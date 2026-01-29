@@ -354,8 +354,8 @@ const AuditCard = ({ audit, onClick }) => {
 
 const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, exportAudit, userProfile }) => {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="glass glass-border rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-bold text-white">{audit.audit_number}</h3>
           <button onClick={onClose} className="text-white/60 hover:text-white">✕</button>
