@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useNavigate } from 'react-router-dom'
 
 const AuthContext = createContext({})
 
@@ -28,9 +29,17 @@ export const AuthProvider = ({ children }) => {
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null)
-      if (session?.user) {
+      
+      // Handle session expiry or sign out
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
+        setUserProfile(null)
+        setUser(null)
+        setLoading(false)
+        // Redirect to login
+        window.location.href = '/login'
+      } else if (session?.user) {
         fetchUserProfile(session.user.id)
       } else {
         setUserProfile(null)
@@ -38,7 +47,21 @@ export const AuthProvider = ({ children }) => {
       }
     })
 
-    return () => subscription.unsubscribe()
+    // Check session validity every minute
+    const sessionCheck = setInterval(async () => {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      if (error || !session) {
+        // Session expired, redirect to login
+        setUser(null)
+        setUserProfile(null)
+        window.location.href = '/login'
+      }
+    }, 60000) // Check every 60 seconds
+
+    return () => {
+      subscription.unsubscribe()
+      clearInterval(sessionCheck)
+    }
   }, [])
 
   const fetchUserProfile = async (userId) => {
