@@ -353,8 +353,8 @@ const ReviewDetailsModal = ({ review, onClose, onComplete, exportReview, userPro
   const [showCompleteForm, setShowCompleteForm] = useState(false)
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="glass glass-border rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+      <div className="bg-slate-900 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-bold text-white">{review.review_number}</h3>
           <button onClick={onClose} className="text-white/60 hover:text-white">✕</button>
@@ -587,8 +587,8 @@ const CreateReviewForm = ({ userProfile, onClose, onCreated }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="glass glass-border rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+      <div className="bg-slate-900 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <h3 className="text-2xl font-bold text-white mb-6">Schedule Management Review</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -600,7 +600,7 @@ const CreateReviewForm = ({ userProfile, onClose, onCreated }) => {
                 required
                 value={formData.review_date}
                 onChange={(e) => setFormData({ ...formData, review_date: e.target.value })}
-                className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+                className="w-full px-4 py-2 bg-slate-800/90 border border-white/30 rounded-lg text-white placeholder-white/40"
               />
             </div>
 
@@ -610,7 +610,7 @@ const CreateReviewForm = ({ userProfile, onClose, onCreated }) => {
                 type="time"
                 value={formData.review_time}
                 onChange={(e) => setFormData({ ...formData, review_time: e.target.value })}
-                className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+                className="w-full px-4 py-2 bg-slate-800/90 border border-white/30 rounded-lg text-white placeholder-white/40"
               />
             </div>
           </div>
@@ -622,7 +622,7 @@ const CreateReviewForm = ({ userProfile, onClose, onCreated }) => {
               required
               value={formData.chairperson}
               onChange={(e) => setFormData({ ...formData, chairperson: e.target.value })}
-              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+              className="w-full px-4 py-2 bg-slate-800/90 border border-white/30 rounded-lg text-white placeholder-white/40"
               placeholder="e.g., Managing Director"
             />
           </div>
@@ -632,7 +632,7 @@ const CreateReviewForm = ({ userProfile, onClose, onCreated }) => {
             <textarea
               value={formData.attendees}
               onChange={(e) => setFormData({ ...formData, attendees: e.target.value })}
-              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+              className="w-full px-4 py-2 bg-slate-800/90 border border-white/30 rounded-lg text-white placeholder-white/40"
               rows="2"
               placeholder="e.g., MD, Quality Manager, Operations Manager"
             />
@@ -644,7 +644,7 @@ const CreateReviewForm = ({ userProfile, onClose, onCreated }) => {
               type="date"
               value={formData.next_review_date}
               onChange={(e) => setFormData({ ...formData, next_review_date: e.target.value })}
-              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+              className="w-full px-4 py-2 bg-slate-800/90 border border-white/30 rounded-lg text-white placeholder-white/40"
             />
           </div>
 
@@ -654,7 +654,7 @@ const CreateReviewForm = ({ userProfile, onClose, onCreated }) => {
               required
               value={formData.reminder_method}
               onChange={(e) => setFormData({ ...formData, reminder_method: e.target.value })}
-              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+              className="w-full px-4 py-2 bg-slate-800/90 border border-white/30 rounded-lg text-white placeholder-white/40"
             >
               <option value="email" className="bg-slate-800">Email</option>
               <option value="whatsapp" className="bg-slate-800">WhatsApp</option>
@@ -741,8 +741,8 @@ const CompleteReviewForm = ({ review, onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="glass glass-border rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+      <div className="bg-slate-900 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <h3 className="text-2xl font-bold text-white mb-6">Complete Review - Add Minutes & Evidence</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -752,7 +752,7 @@ const CompleteReviewForm = ({ review, onClose }) => {
               required
               value={formData.agenda_items}
               onChange={(e) => setFormData({ ...formData, agenda_items: e.target.value })}
-              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+              className="w-full px-4 py-2 bg-slate-800/90 border border-white/30 rounded-lg text-white placeholder-white/40"
               rows="4"
               placeholder="Review of compliance status&#10;NCR analysis&#10;Audit findings&#10;Customer feedback"
             />
@@ -764,7 +764,7 @@ const CompleteReviewForm = ({ review, onClose }) => {
               required
               value={formData.minutes}
               onChange={(e) => setFormData({ ...formData, minutes: e.target.value })}
-              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent font-mono text-sm"
+              className="w-full px-4 py-2 bg-slate-800/90 border border-white/30 rounded-lg text-white placeholder-white/40 font-mono text-sm"
               rows="12"
               placeholder="MANAGEMENT REVIEW MEETING MINUTES&#10;&#10;Date: [date]&#10;Time: [time]&#10;Venue: [location]&#10;&#10;ATTENDEES:&#10;- Name (Position)&#10;&#10;1. TOPIC DISCUSSED&#10;Discussion: [details]&#10;&#10;Decisions: [decisions made]&#10;Actions: [action items]"
             />
@@ -777,7 +777,7 @@ const CompleteReviewForm = ({ review, onClose }) => {
               required
               value={formData.decisions_made}
               onChange={(e) => setFormData({ ...formData, decisions_made: e.target.value })}
-              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+              className="w-full px-4 py-2 bg-slate-800/90 border border-white/30 rounded-lg text-white placeholder-white/40"
               rows="4"
               placeholder="Approve R25,000 training budget&#10;Implement monthly NCR reviews&#10;Upgrade document system by Q1 2025"
             />
@@ -791,7 +791,7 @@ const CompleteReviewForm = ({ review, onClose }) => {
               required
               value={formData.action_items}
               onChange={(e) => setFormData({ ...formData, action_items: e.target.value })}
-              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent font-mono text-sm"
+              className="w-full px-4 py-2 bg-slate-800/90 border border-white/30 rounded-lg text-white placeholder-white/40 font-mono text-sm"
               rows="5"
               placeholder="Complete environmental assessment|Michael Chen|2025-02-15|In Progress&#10;Enroll in lead auditor course|Sarah Johnson|2025-03-01|Planned&#10;Evaluate document systems|Operations Manager|2025-02-20|Planned"
             />
@@ -803,7 +803,7 @@ const CompleteReviewForm = ({ review, onClose }) => {
             <textarea
               value={formData.resource_decisions}
               onChange={(e) => setFormData({ ...formData, resource_decisions: e.target.value })}
-              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+              className="w-full px-4 py-2 bg-slate-800/90 border border-white/30 rounded-lg text-white placeholder-white/40"
               rows="3"
               placeholder="Budget approved, staffing levels adequate, equipment needs identified..."
             />
@@ -814,7 +814,7 @@ const CompleteReviewForm = ({ review, onClose }) => {
             <textarea
               value={formData.improvement_opportunities}
               onChange={(e) => setFormData({ ...formData, improvement_opportunities: e.target.value })}
-              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+              className="w-full px-4 py-2 bg-slate-800/90 border border-white/30 rounded-lg text-white placeholder-white/40"
               rows="3"
               placeholder="Areas where system can be improved, automation opportunities, process enhancements..."
             />

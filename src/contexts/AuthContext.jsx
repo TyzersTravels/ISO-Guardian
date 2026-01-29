@@ -96,6 +96,7 @@ export const AuthProvider = ({ children }) => {
     const { error } = await supabase.auth.signOut()
     setUser(null)
     setUserProfile(null)
+    window.location.href = '/login'
     return { error }
   }
 
