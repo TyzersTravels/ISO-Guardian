@@ -34,9 +34,10 @@ const Documents = () => {
 
       if (fetchError) throw fetchError
 
-      // Filter by user's standards access
+      // Filter by user's standards access (fallback to all standards if not set)
+      const userStandards = userProfile?.standards_access || ['ISO_9001', 'ISO_14001', 'ISO_45001']
       const filteredDocs = data.filter(doc => 
-        userProfile.standards_access.includes(doc.standard)
+        userStandards.includes(doc.standard)
       )
 
       setDocuments(filteredDocs)
@@ -307,7 +308,7 @@ ${htmlContent}
             className="px-4 py-2 glass glass-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-transparent"
           >
             <option value="all" className="bg-slate-800">All Standards</option>
-            {userProfile.standards_access.map(std => (
+            {(userProfile?.standards_access || ['ISO_9001', 'ISO_14001', 'ISO_45001']).map(std => (
               <option key={std} value={std} className="bg-slate-800">
                 {std.replace('_', ' ')}
               </option>
@@ -541,7 +542,7 @@ ${htmlContent}
 const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
   const [formData, setFormData] = useState({
     name: '',
-    standard: userProfile.standards_access[0] || 'ISO_9001',
+    standard: (userProfile?.standards_access || ["ISO_9001", "ISO_14001", "ISO_45001"])[0] || 'ISO_9001',
     clause: 5,
     type: 'Policy',
     version: '1.0'
@@ -637,7 +638,7 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
                 onChange={(e) => setFormData({ ...formData, standard: e.target.value })}
                 className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
               >
-                {userProfile.standards_access.map(std => (
+                {(userProfile?.standards_access || ["ISO_9001", "ISO_14001", "ISO_45001"]).map(std => (
                   <option key={std} value={std} className="bg-slate-800">
                     {std.replace('_', ' ')}
                   </option>

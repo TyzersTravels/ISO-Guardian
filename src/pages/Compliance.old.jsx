@@ -116,7 +116,7 @@ const Compliance = () => {
 
   // Filter by user's access
   const accessibleStandards = standards.filter(std => 
-    userProfile.standards_access.includes(std.code)
+    (userProfile?.standards_access || ["ISO_9001", "ISO_14001", "ISO_45001"]).includes(std.code)
   )
 
   return (

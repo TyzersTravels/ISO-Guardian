@@ -405,7 +405,7 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    standard: userProfile.standards_access[0] || 'ISO_9001',
+    standard: (userProfile?.standards_access || ["ISO_9001", "ISO_14001", "ISO_45001"])[0] || 'ISO_9001',
     clause: 7,
     severity: 'Major',
     root_cause: '',
@@ -509,7 +509,7 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
                 onChange={(e) => setFormData({ ...formData, standard: e.target.value })}
                 className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
               >
-                {userProfile.standards_access.map(std => (
+                {(userProfile?.standards_access || ["ISO_9001", "ISO_14001", "ISO_45001"]).map(std => (
                   <option key={std} value={std} className="bg-slate-800">
                     {std.replace('_', ' ')}
                   </option>

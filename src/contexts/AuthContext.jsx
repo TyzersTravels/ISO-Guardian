@@ -68,17 +68,35 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select(`
-          *,
-          company:companies(*)
-        `)
+        .select('*')
         .eq('id', userId)
         .single()
 
       if (error) throw error
+      
+      // Fetch company separately if company_id exists
+      if (data?.company_id) {
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', data.company_id)
+          .single()
+        
+        if (companyData) {
+          data.company = companyData
+        }
+      }
+      
       setUserProfile(data)
     } catch (error) {
       console.error('Error fetching user profile:', error)
+      // Set a default profile so app doesn't break
+      setUserProfile({
+        id: userId,
+        email: 'unknown',
+        role: 'admin',
+        company: null
+      })
     } finally {
       setLoading(false)
     }

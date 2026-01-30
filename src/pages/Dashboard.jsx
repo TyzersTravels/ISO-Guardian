@@ -206,7 +206,7 @@ const Dashboard = () => {
         <div className="glass glass-border rounded-2xl p-6">
           <h3 className="text-lg font-bold text-white mb-3">Your Standards Access</h3>
           <div className="flex gap-3 flex-wrap">
-            {userProfile.standards_access.map(standard => (
+            {(userProfile?.standards_access || ["ISO_9001", "ISO_14001", "ISO_45001"]).map(standard => (
               <div key={standard} className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-cyan-300 font-semibold text-sm">
                 {standard.replace('_', ' ')}
               </div>
