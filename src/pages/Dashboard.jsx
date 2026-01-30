@@ -18,15 +18,22 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
 
   const isSuperAdmin = userProfile?.email === 'krugerreece@gmail.com'
+  const isReseller = userProfile?.role === 'Reseller'
 
   useEffect(() => {
+    // Redirect resellers to their special dashboard
+    if (isReseller) {
+      navigate('/reseller')
+      return
+    }
+
     if (userProfile) {
       fetchDashboardData()
       if (isSuperAdmin) {
         fetchAdminStats()
       }
     }
-  }, [userProfile])
+  }, [userProfile, isReseller])
 
   const fetchAdminStats = async () => {
     try {

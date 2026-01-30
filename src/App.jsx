@@ -12,6 +12,7 @@ import POPIACompliance from './pages/POPIACompliance'
 import TermsOfService from './pages/TermsOfService'
 import DataExport from './pages/DataExport'
 import SuperAdminDashboard from './pages/SuperAdminDashboard'
+import ResellerDashboard from './pages/ResellerDashboard'
 
 function App() {
   return (
@@ -21,6 +22,14 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/popia" element={<POPIACompliance />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route
+            path="/reseller"
+            element={
+              <ProtectedRoute>
+                <ResellerDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={
