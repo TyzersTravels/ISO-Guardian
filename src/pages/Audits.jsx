@@ -237,6 +237,22 @@ const Audits = () => {
           </div>
         )}
 
+        {/* In Progress Audits */}
+        {inProgressAudits.length > 0 && (
+          <div>
+            <h3 className="text-lg font-bold text-white mb-3">In Progress Audits</h3>
+            <div className="space-y-3">
+              {inProgressAudits.map(audit => (
+                <AuditCard
+                  key={audit.id}
+                  audit={audit}
+                  onClick={() => setSelectedAudit(audit)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Past Audits */}
         {pastAudits.length > 0 && (
           <div>

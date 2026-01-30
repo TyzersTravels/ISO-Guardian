@@ -120,9 +120,14 @@ const Documents = () => {
           const url = URL.createObjectURL(data)
           setPreviewDoc({ ...doc, previewUrl: url, fileType: 'image' })
         }
-        // For Word/Excel - show message that preview not available
+        // For text files
+        else if (['txt', 'csv', 'log', 'md'].includes(fileExt)) {
+          const text = await data.text()
+          setPreviewDoc({ ...doc, previewContent: text, fileType: 'text' })
+        }
+        // For Word/Excel - download instead
         else {
-          alert('Preview not available for this file type. Click Export to download.')
+          await handleDownload(doc)
         }
       } else {
         alert('This document does not have an uploaded file')
@@ -504,6 +509,13 @@ ${htmlContent}
                     alt={previewDoc.name}
                     className="max-w-full max-h-full object-contain"
                   />
+                </div>
+              )}
+              {previewDoc.fileType === 'text' && (
+                <div className="w-full h-full overflow-auto p-6">
+                  <pre className="text-sm text-gray-800 font-mono whitespace-pre-wrap">
+                    {previewDoc.previewContent}
+                  </pre>
                 </div>
               )}
             </div>

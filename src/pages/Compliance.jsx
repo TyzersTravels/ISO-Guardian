@@ -6,86 +6,90 @@ import Layout from '../components/Layout'
 const Compliance = () => {
   const { userProfile } = useAuth()
   const [selectedStandard, setSelectedStandard] = useState('ISO_9001')
-  const [complianceData, setComplianceData] = useState(null)
+  const [requirements, setRequirements] = useState([])
   const [loading, setLoading] = useState(true)
-  const [sortOrder, setSortOrder] = useState('clause') // 'clause', 'highest', 'lowest'
+  const [selectedClause, setSelectedClause] = useState(null)
 
   const standards = [
-    { code: 'ISO_9001', name: 'ISO 9001:2015' },
-    { code: 'ISO_14001', name: 'ISO 14001:2015' },
-    { code: 'ISO_45001', name: 'ISO 45001:2018' }
+    { code: 'ISO_9001', name: 'ISO 9001:2015', color: 'blue' },
+    { code: 'ISO_14001', name: 'ISO 14001:2015', color: 'green' },
+    { code: 'ISO_45001', name: 'ISO 45001:2018', color: 'orange' }
   ]
 
   useEffect(() => {
-    fetchComplianceData()
-  }, [])
+    fetchRequirements()
+  }, [selectedStandard])
 
-  const fetchComplianceData = async () => {
+  const fetchRequirements = async () => {
     try {
       setLoading(true)
       const { data, error } = await supabase
         .from('compliance_requirements')
         .select('*')
+        .eq('standard', selectedStandard)
+        .order('clause_number')
 
       if (error) throw error
-
-      // Group by standard
-      const grouped = {}
-      data?.forEach(req => {
-        if (!grouped[req.standard]) grouped[req.standard] = []
-        grouped[req.standard].push(req)
-      })
-
-      setComplianceData(grouped)
+      setRequirements(data || [])
     } catch (err) {
-      console.error('Error fetching compliance:', err)
+      console.error('Error fetching requirements:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  const updateRequirement = async (id, field, value) => {
+  const updateStatus = async (id, newStatus) => {
     try {
-      // Find the requirement to validate
-      const requirement = currentData.find(req => req.id === id)
-      if (!requirement) return
-
-      // Calculate what the new total would be
-      let newMet = field === 'met' ? value : requirement.met
-      let newPartial = field === 'partially_met' ? value : requirement.partially_met
-      let newNotMet = field === 'not_met' ? value : requirement.not_met
-      
-      const newTotal = newMet + newPartial + newNotMet
-
-      // VALIDATION: Cannot exceed total requirements
-      if (newTotal > requirement.total_requirements) {
-        alert(`Cannot exceed ${requirement.total_requirements} total requirements for this clause!\n\nCurrent: ${newMet} met + ${newPartial} partial + ${newNotMet} not met = ${newTotal}`)
-        return
-      }
-
       const { error } = await supabase
         .from('compliance_requirements')
-        .update({ [field]: value })
+        .update({ 
+          compliance_status: newStatus,
+          last_reviewed: new Date().toISOString().split('T')[0]
+        })
         .eq('id', id)
 
       if (error) throw error
-
-      // Refresh data
-      fetchComplianceData()
-      alert('Updated successfully!')
+      fetchRequirements()
     } catch (err) {
-      console.error('Error updating:', err)
-      alert('Failed to update')
+      console.error('Error updating status:', err)
     }
   }
 
-  const calculateScore = (requirements) => {
-    if (!requirements || requirements.length === 0) return 0
-    const total = requirements.reduce((sum, req) => sum + req.total_requirements, 0)
-    const met = requirements.reduce((sum, req) => sum + req.met, 0)
-    const partial = requirements.reduce((sum, req) => sum + req.partially_met, 0)
-    return total > 0 ? Math.round(((met + partial * 0.5) / total) * 100) : 0
+  // Calculate scores
+  const calculateScores = () => {
+    const byClause = {}
+    
+    requirements.forEach(req => {
+      if (!byClause[req.clause_number]) {
+        byClause[req.clause_number] = {
+          clauseName: req.clause_name,
+          total: 0,
+          met: 0,
+          partial: 0,
+          notMet: 0
+        }
+      }
+      
+      byClause[req.clause_number].total++
+      
+      if (req.compliance_status === 'Met') byClause[req.clause_number].met++
+      else if (req.compliance_status === 'Partially Met') byClause[req.clause_number].partial++
+      else byClause[req.clause_number].notMet++
+    })
+    
+    return byClause
   }
+
+  const calculatePercentage = (met, partial, total) => {
+    if (total === 0) return 0
+    return Math.round(((met + (partial * 0.5)) / total) * 100)
+  }
+
+  const scores = calculateScores()
+  const overallTotal = requirements.length
+  const overallMet = requirements.filter(r => r.compliance_status === 'Met').length
+  const overallPartial = requirements.filter(r => r.compliance_status === 'Partially Met').length
+  const overallScore = calculatePercentage(overallMet, overallPartial, overallTotal)
 
   if (loading) {
     return (
@@ -95,48 +99,27 @@ const Compliance = () => {
     )
   }
 
-  const currentData = complianceData?.[selectedStandard] || []
-  const overallScore = calculateScore(currentData)
-
-  // Sort data based on sortOrder option
-  const sortedData = [...currentData].sort((a, b) => {
-    if (sortOrder === 'clause') {
-      return a.clause - b.clause // Always sort by clause number (default)
-    } else if (sortOrder === 'score-high') {
-      const scoreA = a.total_requirements > 0 ? ((a.met + a.partially_met * 0.5) / a.total_requirements) * 100 : 0
-      const scoreB = b.total_requirements > 0 ? ((b.met + b.partially_met * 0.5) / b.total_requirements) * 100 : 0
-      return scoreB - scoreA // High to low
-    } else if (sortOrder === 'score-low') {
-      const scoreA = a.total_requirements > 0 ? ((a.met + a.partially_met * 0.5) / a.total_requirements) * 100 : 0
-      const scoreB = b.total_requirements > 0 ? ((b.met + b.partially_met * 0.5) / b.total_requirements) * 100 : 0
-      return scoreA - scoreB // Low to high
-    }
-    return 0
-  })
-
-  // Filter by user's access
-  const accessibleStandards = standards.filter(std => 
-    userProfile.standards_access.includes(std.code)
-  )
-
   return (
     <Layout>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Header */}
         <div>
-          <h2 className="text-2xl font-bold text-white">Compliance Tracking</h2>
-          <p className="text-cyan-200 text-sm">Manage compliance requirements by standard</p>
+          <h2 className="text-2xl font-bold text-white mb-2">Compliance Management</h2>
+          <p className="text-white/60">Track compliance requirements by clause</p>
         </div>
 
         {/* Standard Selector */}
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {accessibleStandards.map(std => (
+          {standards.map(std => (
             <button
               key={std.code}
-              onClick={() => setSelectedStandard(std.code)}
-              className={`px-4 py-2 rounded-xl font-semibold whitespace-nowrap ${
+              onClick={() => {
+                setSelectedStandard(std.code)
+                setSelectedClause(null)
+              }}
+              className={`px-4 py-2 rounded-xl font-semibold whitespace-nowrap transition-all ${
                 selectedStandard === std.code
-                  ? 'bg-cyan-500 text-white'
+                  ? `bg-gradient-to-r from-${std.color}-500 to-${std.color}-600 text-white shadow-lg`
                   : 'glass glass-border text-white/70 hover:bg-white/10'
               }`}
             >
@@ -145,143 +128,108 @@ const Compliance = () => {
           ))}
         </div>
 
-        {/* Sort Filter */}
-        <div className="glass glass-border rounded-lg p-3">
-          <div className="flex items-center gap-3">
-            <label className="text-white text-sm font-semibold">Sort by:</label>
-            <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              className="px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
-            >
-              <option value="clause" className="bg-slate-800">Clause Number (Default)</option>
-              <option value="score-high" className="bg-slate-800">Most Compliant First</option>
-              <option value="score-low" className="bg-slate-800">Least Compliant First</option>
-            </select>
-          </div>
-        </div>
-
         {/* Overall Score */}
         <div className="glass glass-border rounded-2xl p-6">
-          <div className="text-center">
-            <div className="text-5xl font-bold text-white mb-2">{overallScore}%</div>
-            <div className="text-cyan-300 font-semibold">
-              {selectedStandard.replace('_', ' ')} Compliance
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-xl font-bold text-white">Overall Compliance</h3>
+              <p className="text-sm text-white/60">
+                {overallMet} Met • {overallPartial} Partially Met • {overallTotal - overallMet - overallPartial} Not Met
+              </p>
             </div>
+            <div className="text-4xl font-bold text-white">{overallScore}%</div>
           </div>
-          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden mt-4">
-            <div
+          <div className="w-full h-4 bg-white/10 rounded-full overflow-hidden">
+            <div 
               className={`h-full transition-all duration-500 ${
-                overallScore >= 70 ? 'bg-green-500' :
-                overallScore >= 50 ? 'bg-orange-500' :
-                'bg-red-500'
+                overallScore >= 70 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                overallScore >= 50 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                'bg-gradient-to-r from-red-500 to-red-600'
               }`}
-              style={{ width: `${overallScore}%` }}
+              style={{width: `${overallScore}%`}}
             />
           </div>
         </div>
 
-        {/* Clauses */}
-        {sortedData.length === 0 ? (
-          <div className="glass glass-border rounded-2xl p-8 text-center text-white/60">
-            No compliance data for this standard yet
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {sortedData.map(req => {
-              const score = req.total_requirements > 0
-                ? Math.round(((req.met + req.partially_met * 0.5) / req.total_requirements) * 100)
-                : 0
-
-              return (
-                <div key={req.id} className="glass glass-border rounded-2xl p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-white text-lg">
-                        Clause {req.clause}: {req.clause_name}
-                      </h3>
-                      <p className="text-white/60 text-sm mt-1">
-                        {req.total_requirements} requirements
-                      </p>
-                    </div>
-                    <div className="text-3xl font-bold text-white">
-                      {score}%
+        {/* Clause Breakdown */}
+        <div className="space-y-3">
+          {Object.entries(scores).map(([clauseNum, data]) => {
+            const percentage = calculatePercentage(data.met, data.partial, data.total)
+            const isExpanded = selectedClause === parseInt(clauseNum)
+            
+            return (
+              <div key={clauseNum} className="glass glass-border rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setSelectedClause(isExpanded ? null : parseInt(clauseNum))}
+                  className="w-full p-4 text-left hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-bold text-white">{data.clauseName}</h4>
+                    <div className={`text-2xl font-bold ${
+                      percentage >= 70 ? 'text-green-400' :
+                      percentage >= 50 ? 'text-orange-400' :
+                      'text-red-400'
+                    }`}>
+                      {percentage}%
                     </div>
                   </div>
-
-                  <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden mb-4">
-                    <div
+                  <div className="flex items-center gap-4 text-sm text-white/60 mb-2">
+                    <span>✓ {data.met} Met</span>
+                    <span>◐ {data.partial} Partial</span>
+                    <span>✗ {data.notMet} Not Met</span>
+                    <span>Total: {data.total}</span>
+                  </div>
+                  <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div 
                       className={`h-full transition-all ${
-                        score >= 70 ? 'bg-green-500' :
-                        score >= 50 ? 'bg-orange-500' :
+                        percentage >= 70 ? 'bg-green-500' :
+                        percentage >= 50 ? 'bg-orange-500' :
                         'bg-red-500'
                       }`}
-                      style={{ width: `${score}%` }}
+                      style={{width: `${percentage}%`}}
                     />
                   </div>
+                </button>
 
-                  {/* Update Controls */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs text-white/60 block mb-1">Met</label>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => updateRequirement(req.id, 'met', Math.max(0, req.met - 1))}
-                          className="px-2 py-1 glass glass-border text-white rounded"
-                        >
-                          -
-                        </button>
-                        <span className="text-white font-semibold">{req.met}</span>
-                        <button
-                          onClick={() => updateRequirement(req.id, 'met', Math.min(req.total_requirements, req.met + 1))}
-                          className="px-2 py-1 glass glass-border text-white rounded"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-white/60 block mb-1">Partial</label>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => updateRequirement(req.id, 'partially_met', Math.max(0, req.partially_met - 1))}
-                          className="px-2 py-1 glass glass-border text-white rounded"
-                        >
-                          -
-                        </button>
-                        <span className="text-white font-semibold">{req.partially_met}</span>
-                        <button
-                          onClick={() => updateRequirement(req.id, 'partially_met', Math.min(req.total_requirements, req.partially_met + 1))}
-                          className="px-2 py-1 glass glass-border text-white rounded"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-white/60 block mb-1">Not Met</label>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => updateRequirement(req.id, 'not_met', Math.max(0, req.not_met - 1))}
-                          className="px-2 py-1 glass glass-border text-white rounded"
-                        >
-                          -
-                        </button>
-                        <span className="text-white font-semibold">{req.not_met}</span>
-                        <button
-                          onClick={() => updateRequirement(req.id, 'not_met', Math.min(req.total_requirements, req.not_met + 1))}
-                          className="px-2 py-1 glass glass-border text-white rounded"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
+                {/* Requirements List */}
+                {isExpanded && (
+                  <div className="border-t border-white/10 p-4 space-y-2">
+                    {requirements
+                      .filter(r => r.clause_number === parseInt(clauseNum))
+                      .map(req => (
+                        <div key={req.id} className="flex items-start justify-between p-3 bg-white/5 rounded-lg">
+                          <div className="flex-1">
+                            <p className="text-white text-sm">{req.requirement_text}</p>
+                            {req.notes && (
+                              <p className="text-white/50 text-xs mt-1">{req.notes}</p>
+                            )}
+                          </div>
+                          <select
+                            value={req.compliance_status}
+                            onChange={(e) => updateStatus(req.id, e.target.value)}
+                            className={`ml-4 px-3 py-1 rounded-lg text-sm font-semibold ${
+                              req.compliance_status === 'Met' ? 'bg-green-500/20 text-green-300' :
+                              req.compliance_status === 'Partially Met' ? 'bg-orange-500/20 text-orange-300' :
+                              'bg-red-500/20 text-red-300'
+                            }`}
+                          >
+                            <option value="Not Met">Not Met</option>
+                            <option value="Partially Met">Partially Met</option>
+                            <option value="Met">Met</option>
+                          </select>
+                        </div>
+                      ))}
                   </div>
-                </div>
-              )
-            })}
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {requirements.length === 0 && (
+          <div className="glass glass-border rounded-xl p-8 text-center">
+            <p className="text-white/60 mb-4">No requirements loaded for this standard</p>
+            <p className="text-white/40 text-sm">Run the seed SQL scripts to load ISO requirements</p>
           </div>
         )}
       </div>
