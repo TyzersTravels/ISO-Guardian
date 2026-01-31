@@ -12,6 +12,8 @@ import POPIACompliance from './pages/POPIACompliance'
 import TermsOfService from './pages/TermsOfService'
 import DataExport from './pages/DataExport'
 import SuperAdminDashboard from './pages/SuperAdminDashboard'
+import PasswordRecovery from './pages/PasswordRecovery'
+import ResetPassword from './pages/ResetPassword'
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<PasswordRecovery />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/popia" element={<POPIACompliance />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route
