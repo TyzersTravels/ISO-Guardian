@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import LegalFooter from './LegalFooter'
 
 const Layout = ({ children }) => {
   const { userProfile, signOut } = useAuth()
@@ -20,6 +21,16 @@ const Layout = ({ children }) => {
     { path: '/management-reviews', label: 'Reviews', icon: 'users' },
     { path: '/data-export', label: 'Export Data', icon: 'download' },
   ]
+
+  // Add admin-specific navigation
+  if (userProfile?.role === 'admin') {
+    navItems.push({ path: '/reseller', label: 'Analytics', icon: 'chart' })
+  }
+
+  // Add super admin navigation
+  if (userProfile?.email === 'krugerreece@gmail.com') {
+    navItems.push({ path: '/admin', label: 'Super Admin', icon: 'shield' })
+  }
 
   const isActive = (path) => location.pathname === path
 
@@ -86,6 +97,8 @@ const Layout = ({ children }) => {
           {children}
         </div>
       </main>
+
+      <LegalFooter />
 
       <style>{`
         .glass {

@@ -15,6 +15,7 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard'
 import PasswordRecovery from './pages/PasswordRecovery'
 import ResetPassword from './pages/ResetPassword'
 import ClientAnalytics from './pages/ClientAnalytics'
+import ResellerDashboard from './pages/ResellerDashboard'
 
 function App() {
   return (
@@ -95,6 +96,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ClientAnalytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reseller"
+            element={
+              <ProtectedRoute>
+                <ResellerDashboard />
               </ProtectedRoute>
             }
           />
