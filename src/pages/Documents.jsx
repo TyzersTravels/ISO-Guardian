@@ -81,33 +81,27 @@ const Documents = () => {
 
   const handleDeleteDocument = async (docId) => {
     try {
-      // Get document details first
       const doc = documents.find(d => d.id === docId)
       if (!doc) return
 
-      // Delete from storage if it has a file
       if (doc.file_path) {
-        const { error: storageError } = await supabase.storage
-          .from('documents')
-          .remove([doc.file_path])
-        
-        if (storageError) console.error('Storage delete error:', storageError)
+        await supabase.storage.from('documents').remove([doc.file_path])
       }
 
-      // Delete from database
       const { error: dbError } = await supabase
         .from('documents')
         .delete()
         .eq('id', docId)
+        .eq('company_id', userProfile.company_id) // Add company check
 
       if (dbError) throw dbError
 
-      // Update local state
-      setDocuments(prev => prev.filter(d => d.id !== docId))
+      // Refresh from server
+      await fetchDocuments()
       alert('Document deleted successfully')
     } catch (err) {
       console.error('Delete error:', err)
-      alert('Failed to delete document: ' + err.message)
+      alert('Failed to delete: ' + err.message)
     }
   }
         // Cleanup
