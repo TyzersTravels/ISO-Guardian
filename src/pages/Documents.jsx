@@ -103,155 +103,157 @@ const Documents = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-white">Document Management</h1>
-        <label className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold cursor-pointer hover:scale-105 transition-transform shadow-lg">
-          {uploading ? 'Uploading...' : '📤 Upload Document'}
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-white">Document Management</h1>
+          <label className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold cursor-pointer hover:scale-105 transition-transform shadow-lg">
+            {uploading ? 'Uploading...' : '📤 Upload Document'}
+            <input
+              type="file"
+              className="hidden"
+              onChange={(e) => handleUpload(e.target.files[0])}
+              disabled={uploading}
+            />
+          </label>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
-            type="file"
-            className="hidden"
-            onChange={(e) => handleUpload(e.target.files[0])}
-            disabled={uploading}
+            type="text"
+            placeholder="🔍 Search documents..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
           />
-        </label>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input
-          type="text"
-          placeholder="🔍 Search documents..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-        />
-        <select
-          value={filterStandard}
-          onChange={(e) => setFilterStandard(e.target.value)}
-          className="px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-        >
-          <option value="ALL" className="bg-slate-800">All Standards</option>
-          <option value="ISO_9001" className="bg-slate-800">ISO 9001:2015</option>
-          <option value="ISO_14001" className="bg-slate-800">ISO 14001:2015</option>
-          <option value="ISO_45001" className="bg-slate-800">ISO 45001:2018</option>
-        </select>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
-          <div className="text-3xl font-bold text-white">{documents.length}</div>
-          <div className="text-sm text-white/70">Total Documents</div>
+          <select
+            value={filterStandard}
+            onChange={(e) => setFilterStandard(e.target.value)}
+            className="px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          >
+            <option value="ALL" className="bg-slate-800">All Standards</option>
+            <option value="ISO_9001" className="bg-slate-800">ISO 9001:2015</option>
+            <option value="ISO_14001" className="bg-slate-800">ISO 14001:2015</option>
+            <option value="ISO_45001" className="bg-slate-800">ISO 45001:2018</option>
+          </select>
         </div>
-        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
-          <div className="text-3xl font-bold text-green-400">
-            {documents.filter(d => d.status === 'Approved').length}
-          </div>
-          <div className="text-sm text-white/70">Approved</div>
-        </div>
-        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
-          <div className="text-3xl font-bold text-orange-400">
-            {documents.filter(d => d.status === 'Review').length}
-          </div>
-          <div className="text-sm text-white/70">In Review</div>
-        </div>
-      </div>
 
-      <div className="space-y-3">
-        {filteredDocuments.length === 0 ? (
-          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-12 text-center">
-            <div className="text-6xl mb-4">📄</div>
-            <p className="text-white/70">
-              {searchTerm || filterStandard !== 'ALL' 
-                ? 'No documents match your search criteria' 
-                : 'No documents uploaded yet'}
-            </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
+            <div className="text-3xl font-bold text-white">{documents.length}</div>
+            <div className="text-sm text-white/70">Total Documents</div>
           </div>
-        ) : (
-          filteredDocuments.map((doc) => (
-            <div
-              key={doc.id}
-              className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/[0.15] transition-colors"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl">
-                  📄
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-white">{doc.name}</span>
-                    {doc.status === 'Approved' && (
-                      <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-300">
-                        ✓ Approved
-                      </span>
-                    )}
-                    {doc.status === 'Review' && (
-                      <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-300">
-                        ⏳ In Review
-                      </span>
-                    )}
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
+            <div className="text-3xl font-bold text-green-400">
+              {documents.filter(d => d.status === 'Approved').length}
+            </div>
+            <div className="text-sm text-white/70">Approved</div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
+            <div className="text-3xl font-bold text-orange-400">
+              {documents.filter(d => d.status === 'Review').length}
+            </div>
+            <div className="text-sm text-white/70">In Review</div>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {filteredDocuments.length === 0 ? (
+            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-12 text-center">
+              <div className="text-6xl mb-4">📄</div>
+              <p className="text-white/70">
+                {searchTerm || filterStandard !== 'ALL' 
+                  ? 'No documents match your search criteria' 
+                  : 'No documents uploaded yet'}
+              </p>
+            </div>
+          ) : (
+            filteredDocuments.map((doc) => (
+              <div
+                key={doc.id}
+                className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/[0.15] transition-colors"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl">
+                    📄
                   </div>
-                  <div className="flex items-center gap-3 text-sm text-white/60 mb-2">
-                    {doc.standard && (
-                      <>
-                        <span>{doc.standard.replace('_', ' ')}</span>
-                        <span>•</span>
-                      </>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-white">{doc.name || 'Untitled Document'}</span>
+                      {doc.status === 'Approved' && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-300">
+                          ✓ Approved
+                        </span>
+                      )}
+                      {doc.status === 'Review' && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-300">
+                          ⏳ In Review
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-white/60 mb-2">
+                      {doc.standard && (
+                        <>
+                          <span>{doc.standard.replace('_', ' ')}</span>
+                          <span>•</span>
+                        </>
+                      )}
+                      {doc.clause_name && (
+                        <>
+                          <span>{doc.clause_name}</span>
+                          <span>•</span>
+                        </>
+                      )}
+                      {doc.type && (
+                        <>
+                          <span>{doc.type}</span>
+                          <span>•</span>
+                        </>
+                      )}
+                      {doc.version && <span>Rev {doc.version}</span>}
+                    </div>
+                    {doc.description && (
+                      <div className="text-sm text-white/50 mb-2">{doc.description}</div>
                     )}
-                    {doc.clause_name && (
-                      <>
-                        <span>{doc.clause_name}</span>
-                        <span>•</span>
-                      </>
-                    )}
-                    {doc.type && (
-                      <>
-                        <span>{doc.type}</span>
-                        <span>•</span>
-                      </>
-                    )}
-                    {doc.version && <span>Rev {doc.version}</span>}
+                    <div className="flex items-center gap-3 text-xs text-white/40">
+                      {doc.date_created && (
+                        <span>📅 {new Date(doc.date_created).toLocaleDateString()}</span>
+                      )}
+                      {doc.file_size && (
+                        <span>📊 {(doc.file_size / 1024).toFixed(1)} KB</span>
+                      )}
+                    </div>
                   </div>
-                  {doc.description && (
-                    <div className="text-sm text-white/50 mb-2">{doc.description}</div>
-                  )}
-                  <div className="flex items-center gap-3 text-xs text-white/40">
-                    {doc.date_created && (
-                      <span>📅 {new Date(doc.date_created).toLocaleDateString()}</span>
+                  <div className="flex items-center gap-2">
+                    {doc.file_url && (
+                      <button
+                        onClick={() => window.open(doc.file_url, '_blank')}
+                        className="px-3 py-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors text-sm font-medium"
+                        title="Download document"
+                      >
+                        ⬇️
+                      </button>
                     )}
-                    {doc.file_size && (
-                      <span>📊 {(doc.file_size / 1024).toFixed(1)} KB</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {doc.file_url && (
                     <button
-                      onClick={() => window.open(doc.file_url, '_blank')}
-                      className="px-3 py-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors text-sm font-medium"
-                      title="Download document"
+                      onClick={() => handleDeleteDocument(doc.id)}
+                      className="px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-sm font-medium"
+                      title="Delete document"
                     >
-                      ⬇️ Download
+                      🗑️
                     </button>
-                  )}
-                  <button
-                    onClick={() => handleDeleteDocument(doc.id)}
-                    className="px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-sm font-medium"
-                    title="Delete document"
-                  >
-                    🗑️ Delete
-                  </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
