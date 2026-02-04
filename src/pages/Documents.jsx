@@ -42,13 +42,18 @@ const Documents = () => {
   const fetchDocuments = async () => {
     try {
       setLoading(true);
-      // ✅ FIX: Use select('*') to get whatever columns exist
+      
+      // ✅ Query only core fields that definitely exist
       const { data, error } = await supabase
         .from('documents')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, name, standard, clause, clause_name, type, version, status, file_url, company_id')
+        .order('id', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
       setDocuments(data || []);
     } catch (error) {
       console.error('Error fetching documents:', error);
@@ -77,21 +82,14 @@ const Documents = () => {
         .from('documents')
         .getPublicUrl(filePath);
 
-      // ✅ FIX: Only include created_by if user exists
-      const insertData = {
-        name: file.name,
-        file_url: publicUrl,
-        status: 'Review'
-      };
-
-      // Add created_by only if we have a user
-      if (user?.id) {
-        insertData.created_by = user.id;
-      }
-
       const { error: insertError } = await supabase
         .from('documents')
-        .insert([insertData]);
+        .insert([{
+          name: file.name,
+          file_url: publicUrl,
+          status: 'Review',
+          company_id: user?.user_metadata?.company_id
+        }]);
 
       if (insertError) throw insertError;
 
@@ -220,13 +218,13 @@ const Documents = () => {
                         <span>•</span>
                       </>
                     )}
-                    {doc.version && <span>Rev {doc.version}</span>}
-                    {doc.created_at && (
+                    {doc.version && (
                       <>
+                        <span>Rev {doc.version}</span>
                         <span>•</span>
-                        <span>{new Date(doc.created_at).toLocaleDateString()}</span>
                       </>
                     )}
+                    {doc.type && <span>{doc.type}</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
