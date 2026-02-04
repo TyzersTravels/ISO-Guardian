@@ -10,6 +10,28 @@ const Documents = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStandard, setFilterStandard] = useState('ALL');
 
+  useEffect(() => {
+    fetchDocuments();
+  }, []);
+
+  const fetchDocuments = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .order('date_created', { ascending: false });
+
+      if (error) throw error;
+      setDocuments(data || []);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      alert('Failed to load documents: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeleteDocument = async (documentId) => {
     if (!window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
       return;
@@ -21,45 +43,13 @@ const Documents = () => {
         .delete()
         .eq('id', documentId);
 
-      if (error) {
-        console.error('Error deleting document:', error);
-        alert('Failed to delete document: ' + error.message);
-        return;
-      }
+      if (error) throw error;
 
       setDocuments(documents.filter(doc => doc.id !== documentId));
       alert('Document deleted successfully!');
     } catch (err) {
       console.error('Unexpected error:', err);
       alert('An unexpected error occurred while deleting the document.');
-    }
-  };
-
-  useEffect(() => {
-    fetchDocuments();
-  }, []);
-
-  const fetchDocuments = async () => {
-    try {
-      setLoading(true);
-      
-      // ✅ Query only core fields that definitely exist
-      const { data, error } = await supabase
-        .from('documents')
-        .select('id, name, standard, clause, clause_name, type, version, status, file_url, company_id')
-        .order('id', { ascending: false });
-
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
-      
-      setDocuments(data || []);
-    } catch (error) {
-      console.error('Error fetching documents:', error);
-      alert('Failed to load documents: ' + error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -87,8 +77,10 @@ const Documents = () => {
         .insert([{
           name: file.name,
           file_url: publicUrl,
+          file_path: filePath,
           status: 'Review',
-          company_id: user?.user_metadata?.company_id
+          company_id: user?.user_metadata?.company_id,
+          uploaded_by: user?.id
         }]);
 
       if (insertError) throw insertError;
@@ -205,7 +197,7 @@ const Documents = () => {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 text-sm text-white/60">
+                  <div className="flex items-center gap-3 text-sm text-white/60 mb-2">
                     {doc.standard && (
                       <>
                         <span>{doc.standard.replace('_', ' ')}</span>
@@ -218,13 +210,24 @@ const Documents = () => {
                         <span>•</span>
                       </>
                     )}
-                    {doc.version && (
+                    {doc.type && (
                       <>
-                        <span>Rev {doc.version}</span>
+                        <span>{doc.type}</span>
                         <span>•</span>
                       </>
                     )}
-                    {doc.type && <span>{doc.type}</span>}
+                    {doc.version && <span>Rev {doc.version}</span>}
+                  </div>
+                  {doc.description && (
+                    <div className="text-sm text-white/50 mb-2">{doc.description}</div>
+                  )}
+                  <div className="flex items-center gap-3 text-xs text-white/40">
+                    {doc.date_created && (
+                      <span>📅 {new Date(doc.date_created).toLocaleDateString()}</span>
+                    )}
+                    {doc.file_size && (
+                      <span>📊 {(doc.file_size / 1024).toFixed(1)} KB</span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
