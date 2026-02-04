@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 const Documents = () => {
+  const { user } = useAuth();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -40,10 +42,10 @@ const Documents = () => {
   const fetchDocuments = async () => {
     try {
       setLoading(true);
-      // ✅ FIX: Only select columns that actually exist in your table
+      // ✅ FIX: Use select('*') to get whatever columns exist
       const { data, error } = await supabase
         .from('documents')
-        .select('id, name, standard, clause_name, status, version, created_at, file_url')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -75,15 +77,21 @@ const Documents = () => {
         .from('documents')
         .getPublicUrl(filePath);
 
+      // ✅ FIX: Only include created_by if user exists
+      const insertData = {
+        name: file.name,
+        file_url: publicUrl,
+        status: 'Review'
+      };
+
+      // Add created_by only if we have a user
+      if (user?.id) {
+        insertData.created_by = user.id;
+      }
+
       const { error: insertError } = await supabase
         .from('documents')
-        .insert([
-          {
-            name: file.name,
-            file_url: publicUrl,
-            status: 'Review'
-          }
-        ]);
+        .insert([insertData]);
 
       if (insertError) throw insertError;
 
