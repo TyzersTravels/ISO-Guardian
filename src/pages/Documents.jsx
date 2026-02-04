@@ -8,7 +8,6 @@ const Documents = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStandard, setFilterStandard] = useState('ALL');
 
-  // ✅ FIXED: Working delete function
   const handleDeleteDocument = async (documentId) => {
     if (!window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
       return;
@@ -26,7 +25,6 @@ const Documents = () => {
         return;
       }
 
-      // Remove from local state
       setDocuments(documents.filter(doc => doc.id !== documentId));
       alert('Document deleted successfully!');
     } catch (err) {
@@ -42,16 +40,17 @@ const Documents = () => {
   const fetchDocuments = async () => {
     try {
       setLoading(true);
+      // ✅ FIX: Only select columns that actually exist in your table
       const { data, error } = await supabase
         .from('documents')
-        .select('*')
+        .select('id, name, standard, clause_name, status, version, created_at, file_url')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       setDocuments(data || []);
     } catch (error) {
       console.error('Error fetching documents:', error);
-      alert('Failed to load documents');
+      alert('Failed to load documents: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -66,27 +65,23 @@ const Documents = () => {
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      // Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('documents')
         .getPublicUrl(filePath);
 
-      // Create document record
       const { error: insertError } = await supabase
         .from('documents')
         .insert([
           {
             name: file.name,
             file_url: publicUrl,
-            file_type: fileExt,
-            file_size: file.size,
+            status: 'Review'
           }
         ]);
 
@@ -103,7 +98,7 @@ const Documents = () => {
   };
 
   const filteredDocuments = documents.filter(doc => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = doc.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStandard = filterStandard === 'ALL' || doc.standard === filterStandard;
     return matchesSearch && matchesStandard;
   });
@@ -118,7 +113,6 @@ const Documents = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-white">Document Management</h1>
         <label className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold cursor-pointer hover:scale-105 transition-transform shadow-lg">
@@ -132,7 +126,6 @@ const Documents = () => {
         </label>
       </div>
 
-      {/* Search and Filter */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <input
           type="text"
@@ -153,7 +146,6 @@ const Documents = () => {
         </select>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
           <div className="text-3xl font-bold text-white">{documents.length}</div>
@@ -173,7 +165,6 @@ const Documents = () => {
         </div>
       </div>
 
-      {/* Documents List */}
       <div className="space-y-3">
         {filteredDocuments.length === 0 ? (
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-12 text-center">
@@ -202,6 +193,11 @@ const Documents = () => {
                         ✓ Approved
                       </span>
                     )}
+                    {doc.status === 'Review' && (
+                      <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-300">
+                        ⏳ In Review
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 text-sm text-white/60">
                     {doc.standard && (
@@ -226,13 +222,15 @@ const Documents = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => window.open(doc.file_url, '_blank')}
-                    className="px-3 py-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors text-sm font-medium"
-                    title="Download document"
-                  >
-                    ⬇️ Download
-                  </button>
+                  {doc.file_url && (
+                    <button
+                      onClick={() => window.open(doc.file_url, '_blank')}
+                      className="px-3 py-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors text-sm font-medium"
+                      title="Download document"
+                    >
+                      ⬇️ Download
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDeleteDocument(doc.id)}
                     className="px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-sm font-medium"
