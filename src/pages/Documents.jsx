@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { FileText, Download, Trash2, Upload, Search } from 'lucide-react';
 
 const Documents = () => {
   const [documents, setDocuments] = useState([]);
@@ -118,13 +117,12 @@ const Documents = () => {
   }
 
   return (
-    <div className="space-y-6 animate-in">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-white">Document Management</h1>
-        <label className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold cursor-pointer hover:scale-105 transition-transform shadow-lg flex items-center gap-2">
-          <Upload className="w-5 h-5" />
-          {uploading ? 'Uploading...' : 'Upload Document'}
+        <label className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold cursor-pointer hover:scale-105 transition-transform shadow-lg">
+          {uploading ? 'Uploading...' : '📤 Upload Document'}
           <input
             type="file"
             className="hidden"
@@ -136,16 +134,13 @@ const Documents = () => {
 
       {/* Search and Filter */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
-          <input
-            type="text"
-            placeholder="Search documents..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          />
-        </div>
+        <input
+          type="text"
+          placeholder="🔍 Search documents..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+        />
         <select
           value={filterStandard}
           onChange={(e) => setFilterStandard(e.target.value)}
@@ -182,7 +177,7 @@ const Documents = () => {
       <div className="space-y-3">
         {filteredDocuments.length === 0 ? (
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-12 text-center">
-            <FileText className="w-16 h-16 text-white/30 mx-auto mb-4" />
+            <div className="text-6xl mb-4">📄</div>
             <p className="text-white/70">
               {searchTerm || filterStandard !== 'ALL' 
                 ? 'No documents match your search criteria' 
@@ -196,15 +191,15 @@ const Documents = () => {
               className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/[0.15] transition-colors"
             >
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-6 h-6 text-blue-400" />
+                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl">
+                  📄
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-semibold text-white">{doc.name}</span>
                     {doc.status === 'Approved' && (
                       <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-300">
-                        Approved
+                        ✓ Approved
                       </span>
                     )}
                   </div>
@@ -233,17 +228,17 @@ const Documents = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => window.open(doc.file_url, '_blank')}
-                    className="p-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors"
+                    className="px-3 py-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors text-sm font-medium"
                     title="Download document"
                   >
-                    <Download className="w-4 h-4" />
+                    ⬇️ Download
                   </button>
                   <button
                     onClick={() => handleDeleteDocument(doc.id)}
-                    className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                    className="px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-sm font-medium"
                     title="Delete document"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    🗑️ Delete
                   </button>
                 </div>
               </div>
