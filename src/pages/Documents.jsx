@@ -10,6 +10,17 @@ const Documents = () => {
   const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStandard, setFilterStandard] = useState('ALL');
+  
+  // NEW: Upload form modal state
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadFormData, setUploadFormData] = useState({
+    file: null,
+    name: '',
+    type: 'Policy',
+    standard: 'ISO_9001',
+    clause: 5,
+    description: '',
+  });
 
   useEffect(() => {
     fetchDocuments();
@@ -66,11 +77,18 @@ const Documents = () => {
     }
   };
 
-  const handleUpload = async (file) => {
-    if (!file) return;
+  // NEW: Enhanced upload with form data
+  const handleUploadWithMetadata = async () => {
+    if (!uploadFormData.file) {
+      alert('Please select a file');
+      return;
+    }
 
     try {
       setUploading(true);
+      
+      // Upload file to storage
+      const file = uploadFormData.file;
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
@@ -81,26 +99,65 @@ const Documents = () => {
 
       if (uploadError) throw uploadError;
 
+      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('documents')
         .getPublicUrl(filePath);
 
+      // Build clause name
+      const clauseNames = {
+        4: 'Context of the Organization',
+        5: 'Leadership',
+        6: 'Planning',
+        7: 'Support',
+        8: 'Operation',
+        9: 'Performance Evaluation',
+        10: 'Improvement'
+      };
+      const clauseName = `Clause ${uploadFormData.clause}: ${clauseNames[uploadFormData.clause]}`;
+
+      // Insert document with complete metadata
       const { error: insertError } = await supabase
         .from('documents')
         .insert([{
-          name: file.name,
+          // File info
+          name: uploadFormData.name || file.name,
           file_url: publicUrl,
           file_path: filePath,
           file_size: file.size,
           file_type: file.type,
-          status: 'Review',
-          company_id: user?.user_metadata?.company_id,
-          uploaded_by: user?.id
+          
+          // REQUIRED FIELDS
+          company_id: user?.user_metadata?.company_id || 'default_company',
+          clause_name: clauseName,
+          type: uploadFormData.type,
+          
+          // ISO metadata
+          standard: uploadFormData.standard,
+          clause: uploadFormData.clause,
+          description: uploadFormData.description,
+          
+          // User tracking
+          uploaded_by: user?.email || 'unknown',
+          created_by: user?.id,
+          
+          // Defaults
+          status: 'Under Review',
+          version: '1.0',
         }]);
 
       if (insertError) throw insertError;
 
-      alert('Document uploaded successfully!');
+      alert('✅ Document uploaded successfully!');
+      setShowUploadModal(false);
+      setUploadFormData({
+        file: null,
+        name: '',
+        type: 'Policy',
+        standard: 'ISO_9001',
+        clause: 5,
+        description: '',
+      });
       fetchDocuments();
     } catch (error) {
       console.error('Error uploading document:', error);
@@ -135,17 +192,125 @@ const Documents = () => {
             <h1 className="text-3xl font-bold text-white">Document Management</h1>
             <p className="text-sm text-white/60 mt-1">ISO 9001 Clause 7.5</p>
           </div>
-          <label className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold cursor-pointer hover:scale-105 transition-transform shadow-lg">
-            {uploading ? 'Uploading...' : '📤 Upload Document'}
-            <input
-              type="file"
-              className="hidden"
-              onChange={(e) => handleUpload(e.target.files[0])}
-              disabled={uploading}
-            />
-          </label>
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:scale-105 transition-transform shadow-lg"
+          >
+            📤 Upload Document
+          </button>
         </div>
 
+        {/* Upload Modal */}
+        {showUploadModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border border-white/20 rounded-3xl p-6 max-w-md w-full shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-white">Upload Document</h2>
+                <button
+                  onClick={() => setShowUploadModal(false)}
+                  className="text-white/60 hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* File Input */}
+                <div>
+                  <label className="block text-sm text-white/70 mb-2">Select File *</label>
+                  <input
+                    type="file"
+                    onChange={(e) => setUploadFormData({...uploadFormData, file: e.target.files[0]})}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-cyan-500 file:text-white hover:file:bg-cyan-600"
+                  />
+                </div>
+
+                {/* Document Name */}
+                <div>
+                  <label className="block text-sm text-white/70 mb-2">Document Name</label>
+                  <input
+                    type="text"
+                    value={uploadFormData.name}
+                    onChange={(e) => setUploadFormData({...uploadFormData, name: e.target.value})}
+                    placeholder="Leave blank to use filename"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  />
+                </div>
+
+                {/* Document Type */}
+                <div>
+                  <label className="block text-sm text-white/70 mb-2">Type *</label>
+                  <select
+                    value={uploadFormData.type}
+                    onChange={(e) => setUploadFormData({...uploadFormData, type: e.target.value})}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  >
+                    <option value="Policy" className="bg-slate-800">Policy</option>
+                    <option value="Procedure" className="bg-slate-800">Procedure</option>
+                    <option value="Form" className="bg-slate-800">Form</option>
+                    <option value="Manual" className="bg-slate-800">Manual</option>
+                    <option value="Record" className="bg-slate-800">Record</option>
+                  </select>
+                </div>
+
+                {/* ISO Standard */}
+                <div>
+                  <label className="block text-sm text-white/70 mb-2">ISO Standard</label>
+                  <select
+                    value={uploadFormData.standard}
+                    onChange={(e) => setUploadFormData({...uploadFormData, standard: e.target.value})}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  >
+                    <option value="ISO_9001" className="bg-slate-800">ISO 9001:2015</option>
+                    <option value="ISO_14001" className="bg-slate-800">ISO 14001:2015</option>
+                    <option value="ISO_45001" className="bg-slate-800">ISO 45001:2018</option>
+                  </select>
+                </div>
+
+                {/* Clause */}
+                <div>
+                  <label className="block text-sm text-white/70 mb-2">Clause</label>
+                  <select
+                    value={uploadFormData.clause}
+                    onChange={(e) => setUploadFormData({...uploadFormData, clause: parseInt(e.target.value)})}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  >
+                    <option value="4" className="bg-slate-800">Clause 4: Context</option>
+                    <option value="5" className="bg-slate-800">Clause 5: Leadership</option>
+                    <option value="6" className="bg-slate-800">Clause 6: Planning</option>
+                    <option value="7" className="bg-slate-800">Clause 7: Support</option>
+                    <option value="8" className="bg-slate-800">Clause 8: Operation</option>
+                    <option value="9" className="bg-slate-800">Clause 9: Performance</option>
+                    <option value="10" className="bg-slate-800">Clause 10: Improvement</option>
+                  </select>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm text-white/70 mb-2">Description</label>
+                  <textarea
+                    value={uploadFormData.description}
+                    onChange={(e) => setUploadFormData({...uploadFormData, description: e.target.value})}
+                    placeholder="Optional description..."
+                    rows="3"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  />
+                </div>
+
+                {/* Upload Button */}
+                <button
+                  onClick={handleUploadWithMetadata}
+                  disabled={uploading || !uploadFormData.file}
+                  className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:from-cyan-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {uploading ? 'Uploading...' : 'Upload Document'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Rest of your existing code... */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             type="text"
@@ -179,7 +344,7 @@ const Documents = () => {
           </div>
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
             <div className="text-3xl font-bold text-orange-400">
-              {documents.filter(d => d.status === 'Review').length}
+              {documents.filter(d => d.status === 'Under Review').length}
             </div>
             <div className="text-sm text-white/70">In Review</div>
           </div>
@@ -213,7 +378,7 @@ const Documents = () => {
                           ✓ Approved
                         </span>
                       )}
-                      {doc.status === 'Review' && (
+                      {doc.status === 'Under Review' && (
                         <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-300">
                           ⏳ In Review
                         </span>
