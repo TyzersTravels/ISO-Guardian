@@ -110,23 +110,16 @@ const NCRs = () => {
         corrective_action: newNCR.corrective_action || null,
         preventive_action: newNCR.preventive_action || null,
         company_id: userProfile?.company_id || user?.user_metadata?.company_id,
-        created_by: user?.id,
-        assigned_by: user?.id
+        created_by: user?.email || 'Unknown',
+        assigned_by: user?.email || 'Unknown'
       };
-
-      console.log('Inserting NCR:', insertData);
 
       const { data, error } = await supabase
         .from('ncrs')
         .insert([insertData])
         .select();
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
-
-      console.log('NCR created successfully:', data);
+      if (error) throw error;
 
       alert(`✅ NCR created successfully!\nNCR Number: ${ncrNumber}`);
       
@@ -162,7 +155,7 @@ const NCRs = () => {
         .update({
           status: 'Closed',
           date_closed: new Date().toISOString(),
-          closed_by: user?.id
+          closed_by: user?.email || 'Unknown'
         })
         .eq('id', id);
 
@@ -355,7 +348,7 @@ const NCRs = () => {
           )}
         </div>
 
-        {/* New NCR Modal - FITS SCREEN */}
+        {/* New NCR Modal */}
         {showNewNCRModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-gradient-to-br from-slate-900/95 via-purple-900/95 to-slate-900/95 backdrop-blur-lg border border-white/20 rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto">
@@ -454,14 +447,14 @@ const NCRs = () => {
                 </div>
 
                 <div>
-                  <label className="text-sm text-white/80 block mb-1">Assigned To *</label>
+                  <label className="text-sm text-white/80 block mb-1">Assigned To * (Name or Department)</label>
                   <input
                     type="text"
                     value={newNCR.assigned_to}
                     onChange={(e) => setNewNCR({...newNCR, assigned_to: e.target.value})}
                     required
                     className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-xl text-white text-sm placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                    placeholder="Person/Department"
+                    placeholder="e.g., SHEQ Department or John Smith"
                   />
                 </div>
 
