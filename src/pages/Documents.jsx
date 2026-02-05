@@ -21,6 +21,7 @@ const Documents = () => {
       const { data, error } = await supabase
         .from('documents')
         .select('*')
+        .or('deleted.is.null,deleted.eq.false')
         .order('date_created', { ascending: false });
 
       if (error) throw error;
@@ -34,23 +35,34 @@ const Documents = () => {
   };
 
   const handleDeleteDocument = async (documentId) => {
-    if (!window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+    if (!window.confirm('Archive this document? (ISO 9001: Documents are retained, not permanently deleted)')) {
+      return;
+    }
+
+    const reason = window.prompt('Reason for archiving (required for ISO compliance):');
+    if (!reason || reason.trim() === '') {
+      alert('Deletion reason is required for ISO 9001 compliance');
       return;
     }
 
     try {
       const { error } = await supabase
         .from('documents')
-        .delete()
+        .update({
+          deleted: true,
+          deleted_at: new Date().toISOString(),
+          deleted_by: user?.email || user?.id,
+          deletion_reason: reason
+        })
         .eq('id', documentId);
 
       if (error) throw error;
 
       setDocuments(documents.filter(doc => doc.id !== documentId));
-      alert('Document deleted successfully!');
+      alert('✅ Document archived successfully! (Retained for ISO compliance)');
     } catch (err) {
-      console.error('Unexpected error:', err);
-      alert('An unexpected error occurred while deleting the document.');
+      console.error('Error archiving document:', err);
+      alert('Failed to archive document: ' + err.message);
     }
   };
 
@@ -79,6 +91,8 @@ const Documents = () => {
           name: file.name,
           file_url: publicUrl,
           file_path: filePath,
+          file_size: file.size,
+          file_type: file.type,
           status: 'Review',
           company_id: user?.user_metadata?.company_id,
           uploaded_by: user?.id
@@ -108,15 +122,19 @@ const Documents = () => {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
         </div>
+        <Footer />
       </Layout>
     );
   }
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-6 pb-32">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-white">Document Management</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-white">Document Management</h1>
+            <p className="text-sm text-white/60 mt-1">ISO 9001 Clause 7.5</p>
+          </div>
           <label className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold cursor-pointer hover:scale-105 transition-transform shadow-lg">
             {uploading ? 'Uploading...' : '📤 Upload Document'}
             <input
@@ -246,10 +264,10 @@ const Documents = () => {
                     )}
                     <button
                       onClick={() => handleDeleteDocument(doc.id)}
-                      className="px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-sm font-medium"
-                      title="Delete document"
+                      className="px-3 py-2 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg transition-colors text-sm font-medium"
+                      title="Archive document (ISO compliant)"
                     >
-                      🗑️
+                      📦
                     </button>
                   </div>
                 </div>
@@ -258,7 +276,61 @@ const Documents = () => {
           )}
         </div>
       </div>
+      <Footer />
     </Layout>
+  );
+};
+
+const Footer = () => {
+  return (
+    <footer className="fixed bottom-16 left-0 right-0 bg-gradient-to-br from-slate-900/95 via-purple-900/95 to-slate-900/95 backdrop-blur-lg border-t border-white/10 py-4 z-30">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/50">
+          <div className="flex items-center gap-4">
+            <span>© 2026 ISOGuardian (Pty) Ltd</span>
+            <span>•</span>
+            <span>Reg: 2026/082362/07</span>
+          </div>
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <a 
+              href="/Privacy_policy_.pdf" 
+              target="_blank"
+              className="hover:text-cyan-400 transition-colors"
+            >
+              Privacy Policy
+            </a>
+            <span>•</span>
+            <a 
+              href="/Terms_of_Service_.pdf" 
+              target="_blank"
+              className="hover:text-cyan-400 transition-colors"
+            >
+              Terms of Service
+            </a>
+            <span>•</span>
+            <a 
+              href="/__PAIA_AND_POPIA_MANUAL.pdf" 
+              target="_blank"
+              className="hover:text-cyan-400 transition-colors"
+            >
+              PAIA/POPIA Manual
+            </a>
+            <span>•</span>
+            <a 
+              href="/Upload_confirmation_and_disclaimer_.pdf" 
+              target="_blank"
+              className="hover:text-cyan-400 transition-colors"
+            >
+              Upload Disclaimer
+            </a>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-green-400">🔒</span>
+            <span>POPIA Compliant</span>
+          </div>
+        </div>
+      </div>
+    </footer>
   );
 };
 
