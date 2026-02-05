@@ -10,8 +10,9 @@ const Documents = () => {
   const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStandard, setFilterStandard] = useState('ALL');
+  const [viewMode, setViewMode] = useState('active'); // 'active' or 'archived'
   
-  // NEW: Upload form modal state
+  // Upload modal state
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadFormData, setUploadFormData] = useState({
     file: null,
@@ -24,17 +25,28 @@ const Documents = () => {
 
   useEffect(() => {
     fetchDocuments();
-  }, []);
+  }, [viewMode]);
 
   const fetchDocuments = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from('documents')
         .select('*')
-        .or('deleted.is.null,deleted.eq.false')
         .order('date_created', { ascending: false });
 
+      if (viewMode === 'active') {
+        // Show only active documents (not deleted, not archived)
+        query = query
+          .or('deleted.is.null,deleted.eq.false')
+          .or('archived.is.null,archived.eq.false');
+      } else if (viewMode === 'archived') {
+        // Show archived OR deleted documents
+        query = query.or('deleted.eq.true,archived.eq.true');
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setDocuments(data || []);
     } catch (error) {
@@ -45,14 +57,14 @@ const Documents = () => {
     }
   };
 
-  const handleDeleteDocument = async (documentId) => {
+  const handleArchiveDocument = async (documentId) => {
     if (!window.confirm('Archive this document? (ISO 9001: Documents are retained, not permanently deleted)')) {
       return;
     }
 
     const reason = window.prompt('Reason for archiving (required for ISO compliance):');
     if (!reason || reason.trim() === '') {
-      alert('Deletion reason is required for ISO 9001 compliance');
+      alert('Archiving reason is required for ISO 9001 compliance');
       return;
     }
 
@@ -60,24 +72,53 @@ const Documents = () => {
       const { error } = await supabase
         .from('documents')
         .update({
-          deleted: true,
-          deleted_at: new Date().toISOString(),
-          deleted_by: user?.email || user?.id,
-          deletion_reason: reason
+          archived: true,
+          archived_at: new Date().toISOString(),
+          archived_by: user?.id,
+          archive_reason: reason.trim(),
         })
         .eq('id', documentId);
 
       if (error) throw error;
 
-      setDocuments(documents.filter(doc => doc.id !== documentId));
-      alert('✅ Document archived successfully! (Retained for ISO compliance)');
+      alert('✅ Document archived successfully! (Retained for ISO compliance & audit trail)');
+      fetchDocuments();
     } catch (err) {
       console.error('Error archiving document:', err);
-      alert('Failed to archive document: ' + err.message);
+      alert('Failed to archive document: ' + (err.message || 'Unknown error'));
     }
   };
 
-  // NEW: Enhanced upload with form data
+  const handleRestoreDocument = async (documentId) => {
+    if (!window.confirm('Restore this document to active status?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({
+          archived: false,
+          archived_at: null,
+          archived_by: null,
+          archive_reason: null,
+          deleted: false,
+          deleted_at: null,
+          deleted_by: null,
+          deletion_reason: null,
+        })
+        .eq('id', documentId);
+
+      if (error) throw error;
+
+      alert('✅ Document restored successfully!');
+      fetchDocuments();
+    } catch (err) {
+      console.error('Error restoring document:', err);
+      alert('Failed to restore document: ' + err.message);
+    }
+  };
+
   const handleUploadWithMetadata = async () => {
     if (!uploadFormData.file) {
       alert('Please select a file');
@@ -87,12 +128,12 @@ const Documents = () => {
     try {
       setUploading(true);
       
-      // Upload file to storage
       const file = uploadFormData.file;
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = fileName;
 
+      // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .upload(filePath, file);
@@ -116,11 +157,10 @@ const Documents = () => {
       };
       const clauseName = `Clause ${uploadFormData.clause}: ${clauseNames[uploadFormData.clause]}`;
 
-      // Insert document with complete metadata
+      // Insert document record
       const { error: insertError } = await supabase
         .from('documents')
         .insert([{
-          // File info
           name: uploadFormData.name || file.name,
           file_url: publicUrl,
           file_path: filePath,
@@ -179,14 +219,14 @@ const Documents = () => {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
         </div>
-        <Footer />
       </Layout>
     );
   }
 
   return (
     <Layout>
-      <div className="space-y-6 pb-32">
+      <div className="space-y-6 pb-20">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white">Document Management</h1>
@@ -200,50 +240,55 @@ const Documents = () => {
           </button>
         </div>
 
-        {/* Upload Modal */}
+        {/* Upload Modal - COMPACT VERSION */}
         {showUploadModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border border-white/20 rounded-3xl p-6 max-w-md w-full shadow-2xl">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">Upload Document</h2>
+            <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border border-white/20 rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl flex flex-col">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-900 to-purple-900 border-b border-white/10 p-4 flex items-center justify-between flex-shrink-0">
+                <h2 className="text-xl font-bold text-white">Upload Document</h2>
                 <button
                   onClick={() => setShowUploadModal(false)}
-                  className="text-white/60 hover:text-white transition-colors"
+                  className="text-white/60 hover:text-white transition-colors text-xl"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="space-y-4">
+              {/* Form - Scrollable */}
+              <div className="overflow-y-auto flex-1 p-4 space-y-3">
                 {/* File Input */}
                 <div>
-                  <label className="block text-sm text-white/70 mb-2">Select File *</label>
+                  <label className="block text-xs text-white/70 mb-1">Select File *</label>
                   <input
                     type="file"
                     onChange={(e) => setUploadFormData({...uploadFormData, file: e.target.files[0]})}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-cyan-500 file:text-white hover:file:bg-cyan-600"
+                    className="w-full text-xs px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:bg-cyan-500 file:text-white file:text-xs hover:file:bg-cyan-600"
                   />
+                  {uploadFormData.file && (
+                    <p className="text-xs text-cyan-400 mt-1 truncate">✓ {uploadFormData.file.name}</p>
+                  )}
                 </div>
 
                 {/* Document Name */}
                 <div>
-                  <label className="block text-sm text-white/70 mb-2">Document Name</label>
+                  <label className="block text-xs text-white/70 mb-1">Document Name</label>
                   <input
                     type="text"
                     value={uploadFormData.name}
                     onChange={(e) => setUploadFormData({...uploadFormData, name: e.target.value})}
                     placeholder="Leave blank to use filename"
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full text-sm px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   />
                 </div>
 
-                {/* Document Type */}
+                {/* Type */}
                 <div>
-                  <label className="block text-sm text-white/70 mb-2">Type *</label>
+                  <label className="block text-xs text-white/70 mb-1">Type *</label>
                   <select
                     value={uploadFormData.type}
                     onChange={(e) => setUploadFormData({...uploadFormData, type: e.target.value})}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full text-sm px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   >
                     <option value="Policy" className="bg-slate-800">Policy</option>
                     <option value="Procedure" className="bg-slate-800">Procedure</option>
@@ -253,13 +298,13 @@ const Documents = () => {
                   </select>
                 </div>
 
-                {/* ISO Standard */}
+                {/* Standard */}
                 <div>
-                  <label className="block text-sm text-white/70 mb-2">ISO Standard</label>
+                  <label className="block text-xs text-white/70 mb-1">ISO Standard</label>
                   <select
                     value={uploadFormData.standard}
                     onChange={(e) => setUploadFormData({...uploadFormData, standard: e.target.value})}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full text-sm px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   >
                     <option value="ISO_9001" className="bg-slate-800">ISO 9001:2015</option>
                     <option value="ISO_14001" className="bg-slate-800">ISO 14001:2015</option>
@@ -269,11 +314,11 @@ const Documents = () => {
 
                 {/* Clause */}
                 <div>
-                  <label className="block text-sm text-white/70 mb-2">Clause</label>
+                  <label className="block text-xs text-white/70 mb-1">Clause</label>
                   <select
                     value={uploadFormData.clause}
                     onChange={(e) => setUploadFormData({...uploadFormData, clause: parseInt(e.target.value)})}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full text-sm px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   >
                     <option value="4" className="bg-slate-800">Clause 4: Context</option>
                     <option value="5" className="bg-slate-800">Clause 5: Leadership</option>
@@ -287,30 +332,56 @@ const Documents = () => {
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm text-white/70 mb-2">Description</label>
+                  <label className="block text-xs text-white/70 mb-1">Description (optional)</label>
                   <textarea
                     value={uploadFormData.description}
                     onChange={(e) => setUploadFormData({...uploadFormData, description: e.target.value})}
-                    placeholder="Optional description..."
-                    rows="3"
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    placeholder="Add optional description..."
+                    rows="2"
+                    className="w-full text-sm px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
                   />
                 </div>
+              </div>
 
-                {/* Upload Button */}
+              {/* Footer */}
+              <div className="bg-gradient-to-r from-slate-900 to-purple-900 border-t border-white/10 p-4 flex-shrink-0">
                 <button
                   onClick={handleUploadWithMetadata}
                   disabled={uploading || !uploadFormData.file}
-                  className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:from-cyan-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  {uploading ? 'Uploading...' : 'Upload Document'}
+                  {uploading ? 'Uploading...' : '📤 Upload Document'}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Rest of your existing code... */}
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setViewMode('active')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              viewMode === 'active'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
+                : 'bg-white/10 text-white/60 hover:bg-white/20'
+            }`}
+          >
+            📄 Active Documents
+          </button>
+          <button
+            onClick={() => setViewMode('archived')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              viewMode === 'archived'
+                ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
+                : 'bg-white/10 text-white/60 hover:bg-white/20'
+            }`}
+          >
+            📦 Archived Documents
+          </button>
+        </div>
+
+        {/* Search and Filter */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             type="text"
@@ -331,10 +402,11 @@ const Documents = () => {
           </select>
         </div>
 
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
             <div className="text-3xl font-bold text-white">{documents.length}</div>
-            <div className="text-sm text-white/70">Total Documents</div>
+            <div className="text-sm text-white/70">{viewMode === 'active' ? 'Active' : 'Archived'} Documents</div>
           </div>
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
             <div className="text-3xl font-bold text-green-400">
@@ -350,14 +422,17 @@ const Documents = () => {
           </div>
         </div>
 
+        {/* Documents List */}
         <div className="space-y-3">
           {filteredDocuments.length === 0 ? (
             <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-12 text-center">
-              <div className="text-6xl mb-4">📄</div>
+              <div className="text-6xl mb-4">{viewMode === 'active' ? '📄' : '📦'}</div>
               <p className="text-white/70">
                 {searchTerm || filterStandard !== 'ALL' 
                   ? 'No documents match your search criteria' 
-                  : 'No documents uploaded yet'}
+                  : viewMode === 'active' 
+                    ? 'No active documents' 
+                    : 'No archived documents'}
               </p>
             </div>
           ) : (
@@ -367,8 +442,10 @@ const Documents = () => {
                 className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/[0.15] transition-colors"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl">
-                    📄
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-2xl ${
+                    viewMode === 'archived' ? 'bg-orange-500/20' : 'bg-blue-500/20'
+                  }`}>
+                    {viewMode === 'archived' ? '📦' : '📄'}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -381,6 +458,11 @@ const Documents = () => {
                       {doc.status === 'Under Review' && (
                         <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-300">
                           ⏳ In Review
+                        </span>
+                      )}
+                      {viewMode === 'archived' && (
+                        <span className="text-xs px-2 py-1 rounded-full bg-red-500/20 text-red-300">
+                          🗃️ Archived
                         </span>
                       )}
                     </div>
@@ -408,12 +490,20 @@ const Documents = () => {
                     {doc.description && (
                       <div className="text-sm text-white/50 mb-2">{doc.description}</div>
                     )}
+                    {viewMode === 'archived' && doc.archive_reason && (
+                      <div className="text-xs text-orange-300/70 mb-2">
+                        📝 Archive reason: {doc.archive_reason}
+                      </div>
+                    )}
                     <div className="flex items-center gap-3 text-xs text-white/40">
                       {doc.date_created && (
                         <span>📅 {new Date(doc.date_created).toLocaleDateString()}</span>
                       )}
                       {doc.file_size && (
                         <span>📊 {(doc.file_size / 1024).toFixed(1)} KB</span>
+                      )}
+                      {viewMode === 'archived' && doc.archived_at && (
+                        <span>🗃️ Archived: {new Date(doc.archived_at).toLocaleDateString()}</span>
                       )}
                     </div>
                   </div>
@@ -427,13 +517,23 @@ const Documents = () => {
                         ⬇️
                       </button>
                     )}
-                    <button
-                      onClick={() => handleDeleteDocument(doc.id)}
-                      className="px-3 py-2 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg transition-colors text-sm font-medium"
-                      title="Archive document (ISO compliant)"
-                    >
-                      📦
-                    </button>
+                    {viewMode === 'active' ? (
+                      <button
+                        onClick={() => handleArchiveDocument(doc.id)}
+                        className="px-3 py-2 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg transition-colors text-sm font-medium"
+                        title="Archive document (ISO compliant)"
+                      >
+                        📦
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleRestoreDocument(doc.id)}
+                        className="px-3 py-2 text-green-400 hover:text-green-300 hover:bg-green-500/10 rounded-lg transition-colors text-sm font-medium"
+                        title="Restore document"
+                      >
+                        ↩️
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -441,61 +541,7 @@ const Documents = () => {
           )}
         </div>
       </div>
-      <Footer />
     </Layout>
-  );
-};
-
-const Footer = () => {
-  return (
-    <footer className="fixed bottom-16 left-0 right-0 bg-gradient-to-br from-slate-900/95 via-purple-900/95 to-slate-900/95 backdrop-blur-lg border-t border-white/10 py-4 z-30">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/50">
-          <div className="flex items-center gap-4">
-            <span>© 2026 ISOGuardian (Pty) Ltd</span>
-            <span>•</span>
-            <span>Reg: 2026/082362/07</span>
-          </div>
-          <div className="flex items-center gap-4 flex-wrap justify-center">
-            <a 
-              href="/Privacy_policy_.pdf" 
-              target="_blank"
-              className="hover:text-cyan-400 transition-colors"
-            >
-              Privacy Policy
-            </a>
-            <span>•</span>
-            <a 
-              href="/Terms_of_Service_.pdf" 
-              target="_blank"
-              className="hover:text-cyan-400 transition-colors"
-            >
-              Terms of Service
-            </a>
-            <span>•</span>
-            <a 
-              href="/__PAIA_AND_POPIA_MANUAL.pdf" 
-              target="_blank"
-              className="hover:text-cyan-400 transition-colors"
-            >
-              PAIA/POPIA Manual
-            </a>
-            <span>•</span>
-            <a 
-              href="/Upload_confirmation_and_disclaimer_.pdf" 
-              target="_blank"
-              className="hover:text-cyan-400 transition-colors"
-            >
-              Upload Disclaimer
-            </a>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-green-400">🔒</span>
-            <span>POPIA Compliant</span>
-          </div>
-        </div>
-      </div>
-    </footer>
   );
 };
 
