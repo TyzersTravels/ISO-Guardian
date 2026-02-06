@@ -1,5 +1,107 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+
+const CompanySwitcher = () => {
+  const { user } = useAuth();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [companies, setCompanies] = useState([]);
+  const [currentCompany, setCurrentCompany] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    checkSuperAdminStatus();
+  }, []);
+
+  const checkSuperAdminStatus = async () => {
+    try {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role, company_id')
+        .eq('user_id', user?.id)
+        .eq('role', 'superadmin')
+        .single();
+
+      if (data) {
+        setIsSuperAdmin(true);
+        setCurrentCompany(localStorage.getItem('superadmin_active_company') || data.company_id);
+        fetchAllCompanies();
+      }
+    } catch (err) {
+      // Not a superadmin
+    }
+  };
+
+  const fetchAllCompanies = async () => {
+    try {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('company_id')
+        .order('company_id');
+
+      const uniqueCompanies = [...new Set(data.map(r => r.company_id))];
+      setCompanies(uniqueCompanies);
+    } catch (err) {
+      console.error('Error fetching companies:', err);
+    }
+  };
+
+  const switchCompany = (companyId) => {
+    localStorage.setItem('superadmin_active_company', companyId || 'all');
+    setCurrentCompany(companyId);
+    setShowDropdown(false);
+    window.location.reload();
+  };
+
+  if (!isSuperAdmin) return null;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setShowDropdown(!showDropdown)}
+        className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-xl text-white hover:bg-purple-500/30 transition-colors"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+        <span className="text-sm font-medium">
+          {currentCompany || 'All Companies'}
+        </span>
+        <svg className={`w-4 h-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {showDropdown && (
+        <div className="absolute top-full right-0 mt-2 w-64 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border border-white/20 rounded-xl shadow-2xl z-50">
+          <div className="p-2">
+            <button
+              onClick={() => switchCompany(null)}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                !currentCompany ? 'bg-purple-500/30 text-white' : 'text-white/70 hover:bg-white/10'
+              }`}
+            >
+              All Companies (God Mode)
+            </button>
+            <div className="h-px bg-white/10 my-2"></div>
+            {companies.map((companyId) => (
+              <button
+                key={companyId}
+                onClick={() => switchCompany(companyId)}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                  currentCompany === companyId ? 'bg-cyan-500/30 text-white' : 'text-white/70 hover:bg-white/10'
+                }`}
+              >
+                {companyId}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Layout = ({ children }) => {
   const { user, signOut } = useAuth();
@@ -12,7 +114,6 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
-      {/* Header */}
       <header className="bg-white/10 backdrop-blur-lg border-b border-white/20 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -26,26 +127,27 @@ const Layout = ({ children }) => {
               <p className="text-xs text-cyan-200">{user?.email}</p>
             </div>
           </div>
-          <button 
-            onClick={handleSignOut}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl text-white hover:bg-white/20 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span className="hidden sm:inline">Sign Out</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <CompanySwitcher />
+            <button 
+              onClick={handleSignOut}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl text-white hover:bg-white/20 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 py-6">
           {children}
         </div>
       </main>
 
-      {/* Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/10 backdrop-blur-lg border-t border-white/20 z-50">
         <div className="max-w-7xl mx-auto px-2">
           <div className="grid grid-cols-7 gap-1 py-2">
@@ -95,76 +197,33 @@ const Layout = ({ children }) => {
         </div>
       </nav>
 
-      {/* Footer with CORRECT file names and company details */}
       <footer className="bg-gradient-to-br from-slate-900/95 via-purple-900/95 to-slate-900/95 backdrop-blur-lg border-t border-white/10 py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/50">
-            
-            {/* Company Info - REAL DATA */}
             <div className="flex items-center gap-2">
               <span>© 2026 ISOGuardian (Pty) Ltd</span>
               <span>•</span>
               <span>Reg: 2026/082362/07</span>
               <span>•</span>
-              <span>VAT: 96641372006</span>
+              <span>VAT: 4570284239</span>
             </div>
-            
-            {/* Legal Links - THESE MATCH YOUR EXACT FILES */}
             <div className="flex items-center gap-3 flex-wrap justify-center">
-              <a 
-                href="/Privacy_policy_.pdf" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-cyan-400 transition-colors"
-              >
-                Privacy Policy
-              </a>
+              <a href="/Privacy_policy_.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">Privacy Policy</a>
               <span>•</span>
-              <a 
-                href="/Terms_of_Service_.pdf" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-cyan-400 transition-colors"
-              >
-                Terms of Service
-              </a>
+              <a href="/Terms_of_Service_.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">Terms of Service</a>
               <span>•</span>
-              <a 
-                href="/_PAIA_AND_POPIA_MANUAL_.pdf" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-cyan-400 transition-colors"
-              >
-                PAIA Manual
-              </a>
+              <a href="/PAIA_AND_POPIA_MANUAL_.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">PAIA Manual</a>
               <span>•</span>
-              <a 
-                href="/Upload_confirmation_and_disclaimer_.pdf" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-cyan-400 transition-colors"
-              >
-                Upload Disclaimer
-              </a>
+              <a href="/Upload_confirmation_and_disclaimer_.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">Upload Disclaimer</a>
               <span>•</span>
-              <a 
-                href="/Supabase_User_DPA_August_5_2025.pdf" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-cyan-400 transition-colors"
-              >
-                DPA
-              </a>
+              <a href="/Supabase_User_DPA_August_5_2025.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">DPA</a>
             </div>
-            
-            {/* POPIA Badge */}
             <div className="flex items-center gap-2">
               <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
               <span>POPIA Compliant</span>
             </div>
-            
           </div>
         </div>
       </footer>

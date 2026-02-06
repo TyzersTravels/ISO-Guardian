@@ -3,16 +3,16 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import Layout from '../components/Layout';
 
-const Audits = () => {
+const Reviews = () => {
   const { user } = useAuth();
-  const [audits, setAudits] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('active');
   const [isLeadAuditor, setIsLeadAuditor] = useState(false);
 
   useEffect(() => {
     checkUserRole();
-    fetchAudits();
+    fetchReviews();
   }, [viewMode]);
 
   const checkUserRole = async () => {
@@ -31,12 +31,12 @@ const Audits = () => {
     }
   };
 
-  const fetchAudits = async () => {
+  const fetchReviews = async () => {
     try {
       setLoading(true);
       
       let query = supabase
-        .from('audits')
+        .from('reviews')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -50,17 +50,17 @@ const Audits = () => {
 
       const { data, error } = await query;
       if (error) throw error;
-      setAudits(data || []);
+      setReviews(data || []);
     } catch (error) {
-      console.error('Error fetching audits:', error);
-      alert('Failed to load audits: ' + error.message);
+      console.error('Error fetching reviews:', error);
+      alert('Failed to load reviews: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleArchive = async (id) => {
-    if (!window.confirm('Archive this audit?')) return;
+    if (!window.confirm('Archive this review?')) return;
     const reason = window.prompt('Reason for archiving (required):');
     if (!reason || reason.trim() === '') {
       alert('Archiving reason is required');
@@ -69,7 +69,7 @@ const Audits = () => {
 
     try {
       const { error } = await supabase
-        .from('audits')
+        .from('reviews')
         .update({
           archived: true,
           archived_at: new Date().toISOString(),
@@ -79,8 +79,8 @@ const Audits = () => {
         .eq('id', id);
 
       if (error) throw error;
-      alert('Audit archived!');
-      fetchAudits();
+      alert('Review archived!');
+      fetchReviews();
     } catch (err) {
       console.error('Error archiving:', err);
       alert('Failed to archive: ' + err.message);
@@ -88,11 +88,11 @@ const Audits = () => {
   };
 
   const handleRestore = async (id) => {
-    if (!window.confirm('Restore this audit?')) return;
+    if (!window.confirm('Restore this review?')) return;
 
     try {
       const { error } = await supabase
-        .from('audits')
+        .from('reviews')
         .update({
           archived: false,
           archived_at: null,
@@ -102,8 +102,8 @@ const Audits = () => {
         .eq('id', id);
 
       if (error) throw error;
-      alert('Audit restored!');
-      fetchAudits();
+      alert('Review restored!');
+      fetchReviews();
     } catch (err) {
       console.error('Error restoring:', err);
       alert('Failed to restore: ' + err.message);
@@ -126,7 +126,7 @@ const Audits = () => {
 
     try {
       const { error } = await supabase
-        .from('audits')
+        .from('reviews')
         .update({
           permanently_deleted: true,
           permanently_deleted_at: new Date().toISOString(),
@@ -136,8 +136,8 @@ const Audits = () => {
         .eq('id', id);
 
       if (error) throw error;
-      alert('Audit permanently deleted');
-      fetchAudits();
+      alert('Review permanently deleted');
+      fetchReviews();
     } catch (err) {
       console.error('Error deleting:', err);
       alert('Failed to delete: ' + err.message);
@@ -158,9 +158,9 @@ const Audits = () => {
     <Layout>
       <div className="space-y-6 pb-20">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-white">Internal Audits</h1>
+          <h1 className="text-3xl font-bold text-white">Management Reviews</h1>
           <button className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:scale-105 transition-transform shadow-lg">
-            New Audit
+            New Review
           </button>
         </div>
 
@@ -173,7 +173,7 @@ const Audits = () => {
                 : 'bg-white/10 text-white/60 hover:bg-white/20'
             }`}
           >
-            Active ({audits.filter(a => !a.archived).length})
+            Active ({reviews.filter(r => !r.archived).length})
           </button>
           <button
             onClick={() => setViewMode('archived')}
@@ -183,37 +183,37 @@ const Audits = () => {
                 : 'bg-white/10 text-white/60 hover:bg-white/20'
             }`}
           >
-            Archived ({audits.filter(a => a.archived).length})
+            Archived ({reviews.filter(r => r.archived).length})
           </button>
         </div>
 
         <div className="space-y-3">
-          {audits.length === 0 ? (
+          {reviews.length === 0 ? (
             <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-12 text-center">
               <p className="text-white/70">
-                {viewMode === 'active' ? 'No active audits' : 'No archived audits'}
+                {viewMode === 'active' ? 'No active reviews' : 'No archived reviews'}
               </p>
             </div>
           ) : (
-            audits.map((audit) => (
+            reviews.map((review) => (
               <div
-                key={audit.id}
+                key={review.id}
                 className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/[0.15] transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-semibold text-white">{audit.title || 'Untitled Audit'}</span>
+                      <span className="font-semibold text-white">{review.title || 'Untitled Review'}</span>
                       {viewMode === 'archived' && (
                         <span className="text-xs px-2 py-1 rounded-full bg-red-500/20 text-red-300">Archived</span>
                       )}
                     </div>
-                    <div className="text-sm text-white/50 mb-2">{audit.description}</div>
+                    <div className="text-sm text-white/50 mb-2">{review.description}</div>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {viewMode === 'active' ? (
                       <button
-                        onClick={() => handleArchive(audit.id)}
+                        onClick={() => handleArchive(review.id)}
                         className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg text-sm font-semibold transition-colors"
                       >
                         Archive
@@ -221,14 +221,14 @@ const Audits = () => {
                     ) : (
                       <>
                         <button
-                          onClick={() => handleRestore(audit.id)}
+                          onClick={() => handleRestore(review.id)}
                           className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg text-sm font-semibold transition-colors"
                         >
                           Restore
                         </button>
                         {isLeadAuditor && (
                           <button
-                            onClick={() => handlePermanentDelete(audit.id)}
+                            onClick={() => handlePermanentDelete(review.id)}
                             className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm font-bold transition-colors"
                           >
                             Delete
@@ -247,4 +247,4 @@ const Audits = () => {
   );
 };
 
-export default Audits;
+export default Reviews;
