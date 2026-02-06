@@ -106,7 +106,7 @@ const Layout = ({ children }) => {
               <span>•</span>
               <span>Reg: 2026/082362/07</span>
               <span>•</span>
-              <span>VAT: [Your VAT Number]</span>
+              <span>VAT: 96641372006</span>
             </div>
             
             {/* Legal Links - THESE MATCH YOUR EXACT FILES */}

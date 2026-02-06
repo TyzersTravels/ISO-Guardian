@@ -109,6 +109,10 @@ const Documents = () => {
       };
       const clauseName = `Clause ${uploadFormData.clause}: ${clauseNames[uploadFormData.clause]}`;
 
+      // AUTO-APPROVE if user is Lead Auditor or SuperAdmin
+      const approvalStatus = isLeadAuditor ? 'Approved' : 'Pending';
+      const docStatus = isLeadAuditor ? 'Approved' : 'Pending Approval';
+
       // Insert document metadata
       const { error: insertError } = await supabase
         .from('documents')
@@ -126,14 +130,20 @@ const Documents = () => {
           description: uploadFormData.description,
           uploaded_by: user?.email || 'unknown',
           created_by: user?.id,
-          status: 'Pending Approval',
-          approval_status: 'Pending',
+          status: docStatus,
+          approval_status: approvalStatus,
           version: '1.0',
+          reviewed_by: isLeadAuditor ? user?.id : null,
+          reviewed_at: isLeadAuditor ? new Date().toISOString() : null,
         }]);
 
       if (insertError) throw insertError;
 
-      alert('Document uploaded successfully! Awaiting approval.');
+      const message = isLeadAuditor 
+        ? 'Document uploaded and auto-approved!' 
+        : 'Document uploaded! Awaiting approval.';
+      
+      alert(message);
       setShowUploadModal(false);
       setUploadFormData({
         file: null,
@@ -265,7 +275,7 @@ const Documents = () => {
             <h1 className="text-3xl font-bold text-white">Document Management</h1>
             <p className="text-sm text-white/60 mt-1">
               All ISO Documents, NCRs, Reviews & Audits
-              {isLeadAuditor && <span className="ml-2 text-cyan-400">• Lead Auditor Access</span>}
+              {isLeadAuditor && <span className="ml-2 text-cyan-400">• Lead Auditor - Auto-Approve Enabled</span>}
             </p>
           </div>
           <button
@@ -286,7 +296,7 @@ const Documents = () => {
                 : 'bg-white/10 text-white/60 hover:bg-white/20'
             }`}
           >
-            Active Documents
+            Active Documents ({documents.filter(d => !d.archived).length})
           </button>
           <button
             onClick={() => setViewMode('archived')}
@@ -296,7 +306,7 @@ const Documents = () => {
                 : 'bg-white/10 text-white/60 hover:bg-white/20'
             }`}
           >
-            Archived
+            Archived ({documents.filter(d => d.archived).length})
           </button>
         </div>
 
@@ -460,6 +470,14 @@ const Documents = () => {
               </div>
 
               <div className="overflow-y-auto flex-1 p-4 space-y-3">
+                {isLeadAuditor && (
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                    <p className="text-xs text-green-300">
+                      ✓ Auto-Approve Enabled - Your documents will be approved immediately
+                    </p>
+                  </div>
+                )}
+                
                 <div>
                   <label className="block text-xs text-white/70 mb-1">Select File *</label>
                   <input
