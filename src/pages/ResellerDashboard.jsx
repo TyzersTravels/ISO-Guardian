@@ -6,41 +6,50 @@ import Layout from '../components/Layout';
 const ResellerDashboard = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [reseller, setReseller] = useState(null);
+  const [resellerData, setResellerData] = useState(null);
   const [clients, setClients] = useState([]);
   const [commissions, setCommissions] = useState([]);
-  const [stats, setStats] = useState({
-    totalClients: 0,
-    activeClients: 0,
-    totalMRR: 0,
-    totalCommissions: 0,
-    pendingCommissions: 0,
-    milestone10Reached: false
-  });
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchResellerData();
-  }, []);
+  }, [user]);
 
   const fetchResellerData = async () => {
     try {
       setLoading(true);
-      
-      // Get reseller record
-      const { data: resellerData, error: resellerError } = await supabase
+      setError(null);
+
+      // Get reseller info - using .select() returns array, we need single()
+      const { data: resellerInfo, error: resellerError } = await supabase
         .from('resellers')
         .select('*')
-        .eq('company_id', user?.user_metadata?.company_id)
-        .single();
+        .eq('contact_email', user?.email)
+        .single(); // This is the fix - single() not array
 
-      if (resellerError) throw resellerError;
-      setReseller(resellerData);
+      if (resellerError) {
+        // If no reseller found, user doesn't have access
+        if (resellerError.code === 'PGRST116') {
+          setError('Reseller access required. Contact support to enable reseller features.');
+          setLoading(false);
+          return;
+        }
+        throw resellerError;
+      }
+
+      if (!resellerInfo) {
+        setError('Reseller access required. Contact support to enable reseller features.');
+        setLoading(false);
+        return;
+      }
+
+      setResellerData(resellerInfo);
 
       // Get clients
       const { data: clientsData, error: clientsError } = await supabase
         .from('reseller_clients')
         .select('*')
-        .eq('reseller_id', resellerData.id)
+        .eq('reseller_id', resellerInfo.id)
         .order('created_at', { ascending: false });
 
       if (clientsError) throw clientsError;
@@ -50,59 +59,62 @@ const ResellerDashboard = () => {
       const { data: commissionsData, error: commissionsError } = await supabase
         .from('reseller_commissions')
         .select('*')
-        .eq('reseller_id', resellerData.id)
+        .eq('reseller_id', resellerInfo.id)
         .order('period_start', { ascending: false });
 
       if (commissionsError) throw commissionsError;
       setCommissions(commissionsData || []);
 
-      // Calculate stats
-      const activeClients = clientsData?.filter(c => c.status === 'Active') || [];
-      const totalMRR = activeClients.reduce((sum, c) => sum + (parseFloat(c.mrr) || 0), 0);
-      const totalComm = commissionsData?.reduce((sum, c) => sum + (parseFloat(c.commission_amount) || 0), 0) || 0;
-      const pendingComm = commissionsData?.filter(c => c.status === 'Pending').reduce((sum, c) => sum + (parseFloat(c.commission_amount) || 0), 0) || 0;
-
-      setStats({
-        totalClients: clientsData?.length || 0,
-        activeClients: activeClients.length,
-        totalMRR,
-        totalCommissions: totalComm,
-        pendingCommissions: pendingComm,
-        milestone10Reached: activeClients.length >= 10
-      });
-
-    } catch (error) {
-      console.error('Error fetching reseller data:', error);
-      alert('Failed to load dashboard: ' + error.message);
+    } catch (err) {
+      console.error('Error fetching reseller data:', err);
+      setError('Failed to load reseller data: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const tierPricing = {
-    Starter: 2000,
-    Growth: 3700,
-    Enterprise: 5000
+  const calculateTotalMRR = () => {
+    return clients
+      .filter(c => c.status === 'Active')
+      .reduce((sum, client) => sum + (parseFloat(client.mrr) || 0), 0);
   };
+
+  const calculateTotalCommission = () => {
+    const totalMRR = calculateTotalMRR();
+    const commissionRate = resellerData?.commission_rate || 0.25;
+    return totalMRR * commissionRate;
+  };
+
+  const activeClients = clients.filter(c => c.status === 'Active').length;
+  const progressTo10 = Math.min((activeClients / 10) * 100, 100);
 
   if (loading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+            <p className="text-white/70">Loading reseller data...</p>
+          </div>
         </div>
       </Layout>
     );
   }
 
-  if (!reseller) {
+  if (error) {
     return (
       <Layout>
-        <div className="max-w-2xl mx-auto mt-20">
-          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 text-center">
-            <h2 className="text-2xl font-bold text-white mb-4">Reseller Access Required</h2>
-            <p className="text-white/70 mb-6">Your account is not set up as a reseller partner.</p>
-            <p className="text-sm text-white/50">Contact support to activate reseller features.</p>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="bg-red-500/10 backdrop-blur-lg border border-red-500/20 rounded-2xl p-8 max-w-md text-center">
+            <div className="text-6xl mb-4">🔒</div>
+            <h2 className="text-2xl font-bold text-white mb-2">Access Required</h2>
+            <p className="text-white/70 mb-4">{error}</p>
+            <a 
+              href="mailto:krugerreece@gmail.com?subject=Reseller Access Request"
+              className="inline-block px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:scale-105 transition-transform"
+            >
+              Contact Support
+            </a>
           </div>
         </div>
       </Layout>
@@ -113,157 +125,192 @@ const ResellerDashboard = () => {
     <Layout>
       <div className="space-y-6 pb-20">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Reseller Dashboard</h1>
-            <p className="text-sm text-white/60 mt-1">{reseller.reseller_name}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`px-4 py-2 rounded-xl font-semibold ${
-              reseller.status === 'Good Standing' 
-                ? 'bg-green-500/20 text-green-300' 
-                : 'bg-red-500/20 text-red-300'
-            }`}>
-              {reseller.status}
-            </span>
+        <div>
+          <h1 className="text-3xl font-bold text-white">Reseller Dashboard</h1>
+          <p className="text-sm text-white/60 mt-1">
+            {resellerData?.reseller_name} • Partner since {new Date(resellerData?.created_at).toLocaleDateString()}
+          </p>
+        </div>
+
+        {/* Status Badge */}
+        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full ${
+                resellerData?.status === 'Good Standing' ? 'bg-green-500 animate-pulse' : 'bg-red-500'
+              }`}></div>
+              <div>
+                <div className="text-sm text-white/60">Partnership Status</div>
+                <div className="font-semibold text-white">{resellerData?.status || 'Active'}</div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-white/60">Commission Rate</div>
+              <div className="font-semibold text-cyan-400 text-lg">
+                {((resellerData?.commission_rate || 0.25) * 100).toFixed(0)}%
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Partner Admin Milestone Card */}
-        {!stats.milestone10Reached && (
-          <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-2xl p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-xl font-bold text-white mb-1">🎯 Partner Admin Discount</h3>
-                <p className="text-sm text-purple-200">50% off until 10 clients milestone</p>
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-white">{stats.activeClients}/10</div>
-                <div className="text-xs text-purple-300">Clients</div>
-              </div>
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 backdrop-blur-lg border border-cyan-500/30 rounded-xl p-6">
+            <div className="text-3xl font-bold text-white mb-1">
+              {activeClients}
             </div>
-            <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
-                style={{ width: `${(stats.activeClients / 10) * 100}%` }}
-              />
+            <div className="text-sm text-cyan-200">Active Clients</div>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-lg border border-green-500/30 rounded-xl p-6">
+            <div className="text-3xl font-bold text-white mb-1">
+              R{calculateTotalMRR().toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
             </div>
-            <p className="text-xs text-purple-200 mt-2">
-              💰 Discount expires 6 months from agreement date or at 10 clients
-            </p>
+            <div className="text-sm text-green-200">Total MRR</div>
           </div>
-        )}
 
-        {stats.milestone10Reached && (
-          <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-2xl p-6">
-            <h3 className="text-xl font-bold text-white mb-2">🎉 Milestone Reached!</h3>
-            <p className="text-green-200">You've reached 10+ active clients. Contact us to negotiate extended discount terms.</p>
+          <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-lg border border-purple-500/30 rounded-xl p-6">
+            <div className="text-3xl font-bold text-white mb-1">
+              R{calculateTotalCommission().toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+            </div>
+            <div className="text-sm text-purple-200">Your Commission</div>
           </div>
-        )}
+        </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
-            <div className="text-3xl font-bold text-white">{stats.totalClients}</div>
-            <div className="text-sm text-white/70">Total Clients</div>
+        {/* Progress to 10 Clients */}
+        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-white">Progress to 10 Clients Milestone</h3>
+            <span className="text-sm text-white/60">{activeClients}/10 clients</span>
           </div>
-          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
-            <div className="text-3xl font-bold text-green-400">{stats.activeClients}</div>
-            <div className="text-sm text-white/70">Active Clients</div>
+          <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500"
+              style={{ width: `${progressTo10}%` }}
+            />
           </div>
-          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
-            <div className="text-3xl font-bold text-cyan-400">R{stats.totalMRR.toFixed(0)}</div>
-            <div className="text-sm text-white/70">Total MRR</div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
-            <div className="text-3xl font-bold text-purple-400">R{(stats.totalMRR * reseller.commission_rate).toFixed(0)}</div>
-            <div className="text-sm text-white/70">Your Commission ({reseller.commission_rate * 100}%)</div>
-          </div>
+          <p className="text-xs text-white/50 mt-2">
+            {activeClients >= 10 
+              ? '🎉 Milestone reached! Contact us to discuss extended partnership benefits.'
+              : `${10 - activeClients} more client${10 - activeClients === 1 ? '' : 's'} to unlock milestone benefits`
+            }
+          </p>
         </div>
 
         {/* Clients List */}
-        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white">Your Clients</h2>
-            <button className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:scale-105 transition-transform">
-              + Add Client
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {clients.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">👥</div>
-                <p className="text-white/70">No clients yet. Start adding clients to earn commissions!</p>
-              </div>
-            ) : (
-              clients.map((client) => (
-                <div key={client.id} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
-                  <div className="flex items-center justify-between">
+        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
+          <h3 className="font-bold text-white mb-4">Your Clients</h3>
+          
+          {clients.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">👥</div>
+              <p className="text-white/70 mb-4">No clients yet</p>
+              <p className="text-sm text-white/50">Clients you onboard will appear here</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {clients.map((client) => (
+                <div 
+                  key={client.id}
+                  className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors"
+                >
+                  <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold text-white">{client.client_name}</span>
                         <span className={`text-xs px-2 py-1 rounded-full ${
                           client.status === 'Active' 
                             ? 'bg-green-500/20 text-green-300' 
-                            : 'bg-red-500/20 text-red-300'
+                            : 'bg-gray-500/20 text-gray-300'
                         }`}>
                           {client.status}
                         </span>
-                        <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-300">
-                          {client.subscription_tier}
-                        </span>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-white/60">
-                        <span>💰 MRR: R{client.mrr}</span>
-                        <span>📊 Your Cut: R{(client.mrr * reseller.commission_rate).toFixed(0)}</span>
-                        <span>📅 Since: {new Date(client.onboarded_date).toLocaleDateString()}</span>
+                      <div className="text-sm text-white/60 mb-2">
+                        {client.client_email || client.client_company_id}
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-white/50">
+                        <span>📋 {client.subscription_tier}</span>
+                        <span>📅 Onboarded: {new Date(client.onboarded_date || client.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-white mb-1">
+                        R{parseFloat(client.mrr || 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="text-xs text-green-400">
+                        +R{(parseFloat(client.mrr || 0) * (resellerData?.commission_rate || 0.25)).toLocaleString('en-ZA', { minimumFractionDigits: 2 })} comm.
                       </div>
                     </div>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Commission History */}
-        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-white mb-4">Commission History</h2>
-          
-          <div className="space-y-2">
-            {commissions.length === 0 ? (
-              <div className="text-center py-8 text-white/70">
-                No commissions yet. Commissions are calculated monthly.
-              </div>
-            ) : (
-              commissions.map((comm) => (
-                <div key={comm.id} className="flex items-center justify-between py-3 border-b border-white/10">
+        {/* Internal Discount Info */}
+        {resellerData?.internal_discount > 0 && (
+          <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 backdrop-blur-lg border border-orange-500/20 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="text-3xl">🎁</div>
+              <div className="flex-1">
+                <h3 className="font-bold text-white mb-1">Partner Admin Discount</h3>
+                <p className="text-sm text-white/70 mb-3">
+                  You receive a {(resellerData.internal_discount * 100).toFixed(0)}% discount on your own internal platform usage.
+                </p>
+                <div className="flex items-center gap-4 text-sm">
                   <div>
-                    <div className="font-semibold text-white">
+                    <span className="text-white/60">Standard: </span>
+                    <span className="text-white line-through">R5,000/month</span>
+                  </div>
+                  <div>
+                    <span className="text-white/60">Your Price: </span>
+                    <span className="text-green-400 font-semibold">R2,500/month</span>
+                  </div>
+                </div>
+                <p className="text-xs text-white/50 mt-2">
+                  This discount applies for 6 months or until you reach 10 active clients, whichever comes first.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Commission History */}
+        {commissions.length > 0 && (
+          <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6">
+            <h3 className="font-bold text-white mb-4">Commission History</h3>
+            <div className="space-y-2">
+              {commissions.map((comm) => (
+                <div 
+                  key={comm.id}
+                  className="flex items-center justify-between py-3 px-4 bg-white/5 rounded-lg"
+                >
+                  <div>
+                    <div className="text-sm text-white">
                       {new Date(comm.period_start).toLocaleDateString()} - {new Date(comm.period_end).toLocaleDateString()}
                     </div>
-                    <div className="text-sm text-white/60">
-                      MRR: R{comm.mrr_amount} × {comm.commission_rate * 100}%
+                    <div className="text-xs text-white/50">
+                      MRR: R{parseFloat(comm.mrr_amount || 0).toLocaleString('en-ZA')}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-white">R{comm.commission_amount}</div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      comm.status === 'Paid' 
-                        ? 'bg-green-500/20 text-green-300' 
-                        : comm.status === 'Pending' 
-                        ? 'bg-orange-500/20 text-orange-300' 
-                        : 'bg-blue-500/20 text-blue-300'
+                    <div className="font-semibold text-green-400">
+                      R{parseFloat(comm.commission_amount || 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                    </div>
+                    <div className={`text-xs ${
+                      comm.status === 'Paid' ? 'text-green-400' : 
+                      comm.status === 'Pending' ? 'text-orange-400' : 'text-white/50'
                     }`}>
                       {comm.status}
-                    </span>
+                    </div>
                   </div>
                 </div>
-              ))
-            )}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </Layout>
   );
