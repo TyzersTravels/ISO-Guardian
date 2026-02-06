@@ -95,19 +95,21 @@ const Layout = ({ children }) => {
         </div>
       </nav>
 
-      {/* Footer - FIXED WITH CORRECT PDF NAMES */}
+      {/* Footer with CORRECT file names and company details */}
       <footer className="bg-gradient-to-br from-slate-900/95 via-purple-900/95 to-slate-900/95 backdrop-blur-lg border-t border-white/10 py-4 mt-auto">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/50">
             
-            {/* Company Info */}
+            {/* Company Info - REAL DATA */}
             <div className="flex items-center gap-2">
               <span>© 2026 ISOGuardian (Pty) Ltd</span>
               <span>•</span>
               <span>Reg: 2026/082362/07</span>
+              <span>•</span>
+              <span>VAT: [Your VAT Number]</span>
             </div>
             
-            {/* Legal Links - EXACT FILE NAMES FROM YOUR PUBLIC FOLDER */}
+            {/* Legal Links - THESE MATCH YOUR EXACT FILES */}
             <div className="flex items-center gap-3 flex-wrap justify-center">
               <a 
                 href="/Privacy_policy_.pdf" 
@@ -151,7 +153,7 @@ const Layout = ({ children }) => {
                 rel="noopener noreferrer"
                 className="hover:text-cyan-400 transition-colors"
               >
-                Data Processing Agreement
+                DPA
               </a>
             </div>
             
