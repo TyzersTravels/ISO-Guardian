@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { useNavigate } from 'react-router-dom'
 
 const AuthContext = createContext({})
 
@@ -17,8 +16,28 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [userProfile, setUserProfile] = useState(null)
 
+  const fetchUserProfile = useCallback(async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          *,
+          company:companies(*)
+        `)
+        .eq('id', userId)
+        .single()
+
+      if (error) throw error
+      setUserProfile(data)
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+      setUserProfile(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
-    // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) {
@@ -28,18 +47,9 @@ export const AuthProvider = ({ children }) => {
       }
     })
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
-      
-      // Handle session expiry or sign out
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
-        setUserProfile(null)
-        setUser(null)
-        setLoading(false)
-        // Redirect to login
-        window.location.href = '/login'
-      } else if (session?.user) {
+      if (session?.user) {
         fetchUserProfile(session.user.id)
       } else {
         setUserProfile(null)
@@ -47,66 +57,11 @@ export const AuthProvider = ({ children }) => {
       }
     })
 
-    // Check session validity every minute
-    const sessionCheck = setInterval(async () => {
-      const { data: { session }, error } = await supabase.auth.getSession()
-      if (error || !session) {
-        // Session expired, redirect to login
-        setUser(null)
-        setUserProfile(null)
-        window.location.href = '/login'
-      }
-    }, 60000) // Check every 60 seconds
-
-    return () => {
-      subscription.unsubscribe()
-      clearInterval(sessionCheck)
-    }
-  }, [])
-
-  const fetchUserProfile = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (error) throw error
-      
-      // Fetch company separately if company_id exists
-      if (data?.company_id) {
-        const { data: companyData } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('id', data.company_id)
-          .single()
-        
-        if (companyData) {
-          data.company = companyData
-        }
-      }
-      
-      setUserProfile(data)
-    } catch (error) {
-      console.error('Error fetching user profile:', error)
-      // Set a default profile so app doesn't break
-      setUserProfile({
-        id: userId,
-        email: 'unknown',
-        role: 'admin',
-        company: null
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+    return () => subscription.unsubscribe()
+  }, [fetchUserProfile])
 
   const signIn = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     return { data, error }
   }
 
@@ -114,16 +69,35 @@ export const AuthProvider = ({ children }) => {
     const { error } = await supabase.auth.signOut()
     setUser(null)
     setUserProfile(null)
-    window.location.href = '/login'
     return { error }
   }
+
+  // Role-based permission helpers
+  const hasRole = (roles) => {
+    if (!userProfile) return false
+    const roleList = Array.isArray(roles) ? roles : [roles]
+    return roleList.includes(userProfile.role)
+  }
+
+  const canCreate = () => hasRole(['super_admin', 'admin', 'sheq_manager', 'quality_manager'])
+  const canEdit = () => hasRole(['super_admin', 'admin', 'sheq_manager', 'quality_manager'])
+  const canDelete = () => hasRole(['super_admin', 'admin'])
+  const canViewAll = () => hasRole(['super_admin'])
+  const isAdmin = () => hasRole(['super_admin', 'admin'])
 
   const value = {
     user,
     userProfile,
     loading,
     signIn,
-    signOut
+    signOut,
+    hasRole,
+    canCreate,
+    canEdit,
+    canDelete,
+    canViewAll,
+    isAdmin,
+    refreshProfile: () => user && fetchUserProfile(user.id)
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

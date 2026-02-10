@@ -1,250 +1,111 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
-import Layout from '../components/Layout';
+import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { supabase } from '../lib/supabase'
+import Layout from '../components/Layout'
 
 const Audits = () => {
-  const { user } = useAuth();
-  const [audits, setAudits] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('active');
-  const [isLeadAuditor, setIsLeadAuditor] = useState(false);
+  const { userProfile, canCreate } = useAuth()
+  const toast = useToast()
+  const [audits, setAudits] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    checkUserRole();
-    fetchAudits();
-  }, [viewMode]);
-
-  const checkUserRole = async () => {
-    try {
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user?.id)
-        .in('role', ['lead_auditor', 'superadmin']);
-      
-      if (data && data.length > 0) {
-        setIsLeadAuditor(true);
-      }
-    } catch (err) {
-      console.error('Error checking role:', err);
-    }
-  };
+  useEffect(() => { fetchAudits() }, [])
 
   const fetchAudits = async () => {
     try {
-      setLoading(true);
-      
-      let query = supabase
+      setLoading(true)
+      const { data, error } = await supabase
         .from('audits')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('audit_date', { ascending: false })
 
-      if (viewMode === 'active') {
-        query = query.or('archived.is.null,archived.eq.false');
-        query = query.or('permanently_deleted.is.null,permanently_deleted.eq.false');
-      } else if (viewMode === 'archived') {
-        query = query.eq('archived', true);
-        query = query.or('permanently_deleted.is.null,permanently_deleted.eq.false');
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setAudits(data || []);
-    } catch (error) {
-      console.error('Error fetching audits:', error);
-      alert('Failed to load audits: ' + error.message);
+      if (error) throw error
+      setAudits(data || [])
+    } catch (err) {
+      console.error('Error fetching audits:', err)
+      // Table may not exist yet — show empty state
+      setAudits([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
-  const handleArchive = async (id) => {
-    if (!window.confirm('Archive this audit?')) return;
-    const reason = window.prompt('Reason for archiving (required):');
-    if (!reason || reason.trim() === '') {
-      alert('Archiving reason is required');
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('audits')
-        .update({
-          archived: true,
-          archived_at: new Date().toISOString(),
-          archived_by: user?.id,
-          archive_reason: reason.trim(),
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-      alert('Audit archived!');
-      fetchAudits();
-    } catch (err) {
-      console.error('Error archiving:', err);
-      alert('Failed to archive: ' + err.message);
-    }
-  };
-
-  const handleRestore = async (id) => {
-    if (!window.confirm('Restore this audit?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('audits')
-        .update({
-          archived: false,
-          archived_at: null,
-          archived_by: null,
-          archive_reason: null,
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-      alert('Audit restored!');
-      fetchAudits();
-    } catch (err) {
-      console.error('Error restoring:', err);
-      alert('Failed to restore: ' + err.message);
-    }
-  };
-
-  const handlePermanentDelete = async (id) => {
-    if (!isLeadAuditor) {
-      alert('Only Lead Auditors can permanently delete');
-      return;
-    }
-
-    if (!window.confirm('PERMANENT DELETE - Cannot be undone! Continue?')) return;
-
-    const reason = window.prompt('Deletion reason (required):');
-    if (!reason || reason.trim() === '') {
-      alert('Deletion reason required');
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('audits')
-        .update({
-          permanently_deleted: true,
-          permanently_deleted_at: new Date().toISOString(),
-          permanently_deleted_by: user?.email,
-          deletion_reason: reason.trim(),
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-      alert('Audit permanently deleted');
-      fetchAudits();
-    } catch (err) {
-      console.error('Error deleting:', err);
-      alert('Failed to delete: ' + err.message);
-    }
-  };
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
-        </div>
-      </Layout>
-    );
   }
 
   return (
     <Layout>
-      <div className="space-y-6 pb-20">
+      <div className="space-y-4 md:ml-16">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-white">Internal Audits</h1>
-          <button className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:scale-105 transition-transform shadow-lg">
-            New Audit
-          </button>
+          <div>
+            <h2 className="text-2xl font-bold text-white">Audit Management</h2>
+            <p className="text-white/40 text-sm">Internal and external audit tracking</p>
+          </div>
+          {canCreate() && (
+            <button className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-cyan-500/20 transition-all flex items-center gap-2">
+              <span className="text-lg leading-none">+</span> Schedule Audit
+            </button>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setViewMode('active')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              viewMode === 'active'
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
-                : 'bg-white/10 text-white/60 hover:bg-white/20'
-            }`}
-          >
-            Active ({audits.filter(a => !a.archived).length})
-          </button>
-          <button
-            onClick={() => setViewMode('archived')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              viewMode === 'archived'
-                ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
-                : 'bg-white/10 text-white/60 hover:bg-white/20'
-            }`}
-          >
-            Archived ({audits.filter(a => a.archived).length})
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          {audits.length === 0 ? (
-            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-12 text-center">
-              <p className="text-white/70">
-                {viewMode === 'active' ? 'No active audits' : 'No archived audits'}
-              </p>
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="glass rounded-xl p-4">
+            <div className="text-2xl font-bold text-cyan-400">{audits.length}</div>
+            <div className="text-xs text-white/50 mt-0.5">Total Audits</div>
+          </div>
+          <div className="glass rounded-xl p-4">
+            <div className="text-2xl font-bold text-amber-400">
+              {audits.filter(a => a.status === 'Scheduled').length}
             </div>
-          ) : (
-            audits.map((audit) => (
-              <div
-                key={audit.id}
-                className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/[0.15] transition-colors"
-              >
+            <div className="text-xs text-white/50 mt-0.5">Scheduled</div>
+          </div>
+          <div className="glass rounded-xl p-4">
+            <div className="text-2xl font-bold text-emerald-400">
+              {audits.filter(a => a.status === 'Completed').length}
+            </div>
+            <div className="text-xs text-white/50 mt-0.5">Completed</div>
+          </div>
+        </div>
+
+        {/* Audit List */}
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2].map(i => <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse" />)}
+          </div>
+        ) : audits.length === 0 ? (
+          <div className="glass rounded-2xl p-12 text-center">
+            <div className="text-4xl mb-3">📋</div>
+            <h3 className="text-lg font-semibold text-white mb-2">No Audits Yet</h3>
+            <p className="text-white/40 text-sm max-w-md mx-auto">
+              Schedule your first internal audit to start tracking compliance readiness. 
+              Audits are required under ISO 9001 Clause 9.2, ISO 14001 Clause 9.2, and ISO 45001 Clause 9.2.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {audits.map(audit => (
+              <div key={audit.id} className="glass rounded-xl p-4 hover:bg-white/5 transition-colors">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-semibold text-white">{audit.title || 'Untitled Audit'}</span>
-                      {viewMode === 'archived' && (
-                        <span className="text-xs px-2 py-1 rounded-full bg-red-500/20 text-red-300">Archived</span>
-                      )}
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium text-white/90">{audit.title}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                        audit.status === 'Completed' ? 'bg-emerald-500/15 text-emerald-300' :
+                        audit.status === 'In Progress' ? 'bg-blue-500/15 text-blue-300' :
+                        'bg-amber-500/15 text-amber-300'
+                      }`}>{audit.status}</span>
                     </div>
-                    <div className="text-sm text-white/50 mb-2">{audit.description}</div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {viewMode === 'active' ? (
-                      <button
-                        onClick={() => handleArchive(audit.id)}
-                        className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg text-sm font-semibold transition-colors"
-                      >
-                        Archive
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleRestore(audit.id)}
-                          className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg text-sm font-semibold transition-colors"
-                        >
-                          Restore
-                        </button>
-                        {isLeadAuditor && (
-                          <button
-                            onClick={() => handlePermanentDelete(audit.id)}
-                            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm font-bold transition-colors"
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </>
-                    )}
+                    <div className="text-[10px] text-white/40">
+                      {audit.audit_type} • {audit.standard?.replace('_', ' ')} • {new Date(audit.audit_date).toLocaleDateString('en-ZA')}
+                    </div>
                   </div>
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </Layout>
-  );
-};
+  )
+}
 
-export default Audits;
+export default Audits

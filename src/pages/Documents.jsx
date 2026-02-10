@@ -1,582 +1,285 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
-import Layout from '../components/Layout';
+import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
+import { supabase } from '../lib/supabase'
+import Layout from '../components/Layout'
+
+const CLAUSE_NAMES = {
+  4: 'Context of the Organization',
+  5: 'Leadership',
+  6: 'Planning',
+  7: 'Support',
+  8: 'Operation',
+  9: 'Performance Evaluation',
+  10: 'Improvement'
+}
 
 const Documents = () => {
-  const { user } = useAuth();
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStandard, setFilterStandard] = useState('ALL');
-  const [filterType, setFilterType] = useState('ALL');
-  const [filterClause, setFilterClause] = useState('ALL');
-  const [viewMode, setViewMode] = useState('active');
-  const [isLeadAuditor, setIsLeadAuditor] = useState(false);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploadFormData, setUploadFormData] = useState({
-    file: null,
-    name: '',
-    type: 'Policy',
-    standard: 'ISO_9001',
-    clause: 5,
-    description: '',
-  });
+  const { userProfile, canCreate } = useAuth()
+  const toast = useToast()
+  const [documents, setDocuments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showUploadForm, setShowUploadForm] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [standardFilter, setStandardFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState('all')
 
-  useEffect(() => {
-    checkUserRole();
-    fetchDocuments();
-  }, [viewMode]);
-
-  const checkUserRole = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user?.id)
-        .in('role', ['lead_auditor', 'superadmin']);
-      
-      if (data && data.length > 0) {
-        setIsLeadAuditor(true);
-      }
-    } catch (err) {
-      console.error('Error checking role:', err);
-    }
-  };
+  useEffect(() => { fetchDocuments() }, [])
 
   const fetchDocuments = async () => {
     try {
-      setLoading(true);
-      
-      let query = supabase
+      setLoading(true)
+      const { data, error } = await supabase
         .from('documents')
         .select('*')
-        .eq('permanently_deleted', false)
-        .order('date_created', { ascending: false });
+        .order('updated_at', { ascending: false })
 
-      if (viewMode === 'active') {
-        query = query.or('archived.is.null,archived.eq.false');
-      } else if (viewMode === 'archived') {
-        query = query.eq('archived', true);
-      }
+      if (error) throw error
 
-      const { data, error } = await query;
-      if (error) throw error;
-      setDocuments(data || []);
-    } catch (error) {
-      console.error('Error fetching documents:', error);
-      alert('Failed to load documents: ' + error.message);
+      // Client-side filter by standards access
+      const filtered = (data || []).filter(doc =>
+        userProfile?.standards_access?.includes(doc.standard)
+      )
+      setDocuments(filtered)
+    } catch (err) {
+      console.error('Error fetching documents:', err)
+      toast.error('Failed to load documents')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
-  const handleUploadWithMetadata = async () => {
-    if (!uploadFormData.file) {
-      alert('Please select a file');
-      return;
-    }
-
-    try {
-      setUploading(true);
-      
-      const file = uploadFormData.file;
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = fileName;
-
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
-
-      const clauseNames = {
-        4: 'Context of the Organization',
-        5: 'Leadership',
-        6: 'Planning',
-        7: 'Support',
-        8: 'Operation',
-        9: 'Performance Evaluation',
-        10: 'Improvement'
-      };
-      const clauseName = `Clause ${uploadFormData.clause}: ${clauseNames[uploadFormData.clause]}`;
-
-      // AUTO-APPROVE if user is Lead Auditor or SuperAdmin
-      const approvalStatus = isLeadAuditor ? 'Approved' : 'Pending';
-      const docStatus = isLeadAuditor ? 'Approved' : 'Pending Approval';
-
-      // Insert document metadata
-      const { error: insertError } = await supabase
-        .from('documents')
-        .insert([{
-          name: uploadFormData.name || file.name,
-          file_url: publicUrl,
-          file_path: filePath,
-          file_size: file.size,
-          file_type: file.type,
-          company_id: user?.user_metadata?.company_id || 'isoguardian',
-          clause_name: clauseName,
-          type: uploadFormData.type,
-          standard: uploadFormData.standard,
-          clause: uploadFormData.clause,
-          description: uploadFormData.description,
-          uploaded_by: user?.email || 'unknown',
-          created_by: user?.id,
-          status: docStatus,
-          approval_status: approvalStatus,
-          version: '1.0',
-          reviewed_by: isLeadAuditor ? user?.id : null,
-          reviewed_at: isLeadAuditor ? new Date().toISOString() : null,
-        }]);
-
-      if (insertError) throw insertError;
-
-      const message = isLeadAuditor 
-        ? 'Document uploaded and auto-approved!' 
-        : 'Document uploaded! Awaiting approval.';
-      
-      alert(message);
-      setShowUploadModal(false);
-      setUploadFormData({
-        file: null,
-        name: '',
-        type: 'Policy',
-        standard: 'ISO_9001',
-        clause: 5,
-        description: '',
-      });
-      fetchDocuments();
-    } catch (error) {
-      console.error('Error uploading:', error);
-      alert('Upload failed: ' + error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleArchiveDocument = async (documentId) => {
-    if (!window.confirm('Archive this document?')) return;
-
-    const reason = window.prompt('Reason for archiving (required for ISO compliance):');
-    if (!reason || reason.trim() === '') {
-      alert('Archiving reason is required');
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('documents')
-        .update({
-          archived: true,
-          archived_at: new Date().toISOString(),
-          archived_by: user?.id,
-          archive_reason: reason.trim(),
-        })
-        .eq('id', documentId);
-
-      if (error) throw error;
-      alert('Document archived!');
-      fetchDocuments();
-    } catch (err) {
-      console.error('Error archiving:', err);
-      alert('Failed to archive: ' + err.message);
-    }
-  };
-
-  const handleRestoreDocument = async (documentId) => {
-    if (!window.confirm('Restore this document?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('documents')
-        .update({
-          archived: false,
-          archived_at: null,
-          archived_by: null,
-          archive_reason: null,
-        })
-        .eq('id', documentId);
-
-      if (error) throw error;
-      alert('Document restored!');
-      fetchDocuments();
-    } catch (err) {
-      console.error('Error restoring:', err);
-      alert('Failed to restore: ' + err.message);
-    }
-  };
-
-  const handlePermanentDelete = async (documentId) => {
-    if (!isLeadAuditor) {
-      alert('Only Lead Auditors can permanently delete documents');
-      return;
-    }
-
-    if (!window.confirm('PERMANENT DELETE - Cannot be undone! Continue?')) return;
-
-    const reason = window.prompt('Reason for permanent deletion (required):');
-    if (!reason || reason.trim() === '') {
-      alert('Deletion reason required');
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('documents')
-        .update({
-          permanently_deleted: true,
-          permanently_deleted_at: new Date().toISOString(),
-          permanently_deleted_by: user?.email,
-          deletion_reason: reason.trim(),
-        })
-        .eq('id', documentId);
-
-      if (error) throw error;
-      alert('Document permanently deleted');
-      fetchDocuments();
-    } catch (err) {
-      console.error('Error deleting:', err);
-      alert('Failed to delete: ' + err.message);
-    }
-  };
-
-  const filteredDocuments = documents.filter(doc => {
-    const matchesSearch = doc.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          doc.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStandard = filterStandard === 'ALL' || doc.standard === filterStandard;
-    const matchesType = filterType === 'ALL' || doc.type === filterType;
-    const matchesClause = filterClause === 'ALL' || doc.clause === parseInt(filterClause);
-    return matchesSearch && matchesStandard && matchesType && matchesClause;
-  });
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
-        </div>
-      </Layout>
-    );
   }
+
+  // Apply filters
+  const filteredDocs = documents.filter(doc => {
+    const matchesSearch = doc.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStandard = standardFilter === 'all' || doc.standard === standardFilter
+    const matchesType = typeFilter === 'all' || doc.type === typeFilter
+    return matchesSearch && matchesStandard && matchesType
+  })
+
+  // Group by standard
+  const groupedDocs = filteredDocs.reduce((acc, doc) => {
+    const key = doc.standard || 'Other'
+    if (!acc[key]) acc[key] = []
+    acc[key].push(doc)
+    return acc
+  }, {})
+
+  const docTypes = [...new Set(documents.map(d => d.type).filter(Boolean))]
 
   return (
     <Layout>
-      <div className="space-y-6 pb-20">
+      <div className="space-y-4 md:ml-16">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Document Management</h1>
-            <p className="text-sm text-white/60 mt-1">
-              All ISO Documents, NCRs, Reviews & Audits
-              {isLeadAuditor && <span className="ml-2 text-cyan-400">• Lead Auditor - Auto-Approve Enabled</span>}
-            </p>
+            <h2 className="text-2xl font-bold text-white">Document Management</h2>
+            <p className="text-white/40 text-sm">{filteredDocs.length} of {documents.length} documents</p>
           </div>
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:scale-105 transition-transform shadow-lg"
-          >
-            Upload Document
-          </button>
-        </div>
-
-        {/* View Mode Toggle */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setViewMode('active')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              viewMode === 'active'
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
-                : 'bg-white/10 text-white/60 hover:bg-white/20'
-            }`}
-          >
-            Active Documents ({documents.filter(d => !d.archived).length})
-          </button>
-          <button
-            onClick={() => setViewMode('archived')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              viewMode === 'archived'
-                ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
-                : 'bg-white/10 text-white/60 hover:bg-white/20'
-            }`}
-          >
-            Archived ({documents.filter(d => d.archived).length})
-          </button>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <input
-            type="text"
-            placeholder="Search by name or description..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          />
-          
-          <select
-            value={filterStandard}
-            onChange={(e) => setFilterStandard(e.target.value)}
-            className="px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          >
-            <option value="ALL" className="bg-slate-800">All Standards</option>
-            <option value="ISO_9001" className="bg-slate-800">ISO 9001</option>
-            <option value="ISO_14001" className="bg-slate-800">ISO 14001</option>
-            <option value="ISO_45001" className="bg-slate-800">ISO 45001</option>
-          </select>
-
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          >
-            <option value="ALL" className="bg-slate-800">All Types</option>
-            <option value="Policy" className="bg-slate-800">Policy</option>
-            <option value="Procedure" className="bg-slate-800">Procedure</option>
-            <option value="Form" className="bg-slate-800">Form</option>
-            <option value="Manual" className="bg-slate-800">Manual</option>
-            <option value="Record" className="bg-slate-800">Record</option>
-            <option value="NCR" className="bg-slate-800">NCR</option>
-            <option value="Audit" className="bg-slate-800">Audit</option>
-            <option value="Review" className="bg-slate-800">Review</option>
-          </select>
-
-          <select
-            value={filterClause}
-            onChange={(e) => setFilterClause(e.target.value)}
-            className="px-4 py-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          >
-            <option value="ALL" className="bg-slate-800">All Clauses</option>
-            <option value="4" className="bg-slate-800">Clause 4</option>
-            <option value="5" className="bg-slate-800">Clause 5</option>
-            <option value="6" className="bg-slate-800">Clause 6</option>
-            <option value="7" className="bg-slate-800">Clause 7</option>
-            <option value="8" className="bg-slate-800">Clause 8</option>
-            <option value="9" className="bg-slate-800">Clause 9</option>
-            <option value="10" className="bg-slate-800">Clause 10</option>
-          </select>
-        </div>
-
-        {/* Results Count */}
-        <div className="text-white/60 text-sm">
-          Showing {filteredDocuments.length} of {documents.length} documents
-        </div>
-
-        {/* Documents List */}
-        <div className="space-y-3">
-          {filteredDocuments.length === 0 ? (
-            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-12 text-center">
-              <p className="text-white/70">
-                {searchTerm || filterStandard !== 'ALL' || filterType !== 'ALL' || filterClause !== 'ALL'
-                  ? 'No documents match your filters'
-                  : viewMode === 'active' 
-                    ? 'No active documents' 
-                    : 'No archived documents'}
-              </p>
-            </div>
-          ) : (
-            filteredDocuments.map((doc) => (
-              <div
-                key={doc.id}
-                className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-4 hover:bg-white/[0.15] transition-colors"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-semibold text-white">{doc.name || 'Untitled'}</span>
-                      {doc.approval_status === 'Pending' && (
-                        <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-300">Pending</span>
-                      )}
-                      {doc.approval_status === 'Approved' && (
-                        <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-300">Approved</span>
-                      )}
-                      {viewMode === 'archived' && (
-                        <span className="text-xs px-2 py-1 rounded-full bg-red-500/20 text-red-300">Archived</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-white/60 mb-2 flex-wrap">
-                      {doc.standard && <span>{doc.standard.replace('_', ' ')}</span>}
-                      {doc.clause_name && <><span>•</span><span>{doc.clause_name}</span></>}
-                      {doc.type && <><span>•</span><span>{doc.type}</span></>}
-                      {doc.version && <><span>•</span><span>v{doc.version}</span></>}
-                    </div>
-                    {doc.description && (
-                      <div className="text-sm text-white/50 mb-2">{doc.description}</div>
-                    )}
-                    {viewMode === 'archived' && doc.archive_reason && (
-                      <div className="text-xs text-orange-300/70">Reason: {doc.archive_reason}</div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {doc.file_url && (
-                      <button
-                        onClick={() => window.open(doc.file_url, '_blank')}
-                        className="px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded-lg text-sm font-semibold transition-colors"
-                      >
-                        Download
-                      </button>
-                    )}
-                    
-                    {viewMode === 'active' ? (
-                      <button
-                        onClick={() => handleArchiveDocument(doc.id)}
-                        className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg text-sm font-semibold transition-colors"
-                      >
-                        Archive
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleRestoreDocument(doc.id)}
-                          className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg text-sm font-semibold transition-colors"
-                        >
-                          Restore
-                        </button>
-                        {isLeadAuditor && (
-                          <button
-                            onClick={() => handlePermanentDelete(doc.id)}
-                            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm font-bold transition-colors"
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
+          {canCreate() && (
+            <button
+              onClick={() => setShowUploadForm(true)}
+              className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-cyan-500/20 transition-all flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Upload
+            </button>
           )}
         </div>
 
-        {/* Upload Modal */}
-        {showUploadModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border border-white/20 rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl flex flex-col">
-              <div className="bg-gradient-to-r from-slate-900 to-purple-900 border-b border-white/10 p-4 flex items-center justify-between flex-shrink-0">
-                <h2 className="text-xl font-bold text-white">Upload Document</h2>
-                <button
-                  onClick={() => setShowUploadModal(false)}
-                  className="text-white/60 hover:text-white transition-colors text-xl"
-                >
-                  ✕
-                </button>
-              </div>
+        {/* Filters */}
+        <div className="flex gap-2 flex-wrap">
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 w-48"
+          />
+          <select
+            value={standardFilter}
+            onChange={e => setStandardFilter(e.target.value)}
+            className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+          >
+            <option value="all" className="bg-slate-800">All Standards</option>
+            {userProfile?.standards_access?.map(std => (
+              <option key={std} value={std} className="bg-slate-800">{std.replace('_', ' ')}</option>
+            ))}
+          </select>
+          <select
+            value={typeFilter}
+            onChange={e => setTypeFilter(e.target.value)}
+            className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+          >
+            <option value="all" className="bg-slate-800">All Types</option>
+            {docTypes.map(t => (
+              <option key={t} value={t} className="bg-slate-800">{t}</option>
+            ))}
+          </select>
+        </div>
 
-              <div className="overflow-y-auto flex-1 p-4 space-y-3">
-                {isLeadAuditor && (
-                  <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-                    <p className="text-xs text-green-300">
-                      ✓ Auto-Approve Enabled - Your documents will be approved immediately
-                    </p>
-                  </div>
-                )}
-                
-                <div>
-                  <label className="block text-xs text-white/70 mb-1">Select File *</label>
-                  <input
-                    type="file"
-                    onChange={(e) => setUploadFormData({...uploadFormData, file: e.target.files[0]})}
-                    className="w-full text-xs px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:bg-cyan-500 file:text-white file:text-xs hover:file:bg-cyan-600"
-                    required
-                  />
-                  {uploadFormData.file && (
-                    <p className="text-xs text-cyan-400 mt-1 truncate">{uploadFormData.file.name}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs text-white/70 mb-1">Document Name</label>
-                  <input
-                    type="text"
-                    value={uploadFormData.name}
-                    onChange={(e) => setUploadFormData({...uploadFormData, name: e.target.value})}
-                    placeholder="Leave blank to use filename"
-                    className="w-full text-sm px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs text-white/70 mb-1">Type *</label>
-                  <select
-                    value={uploadFormData.type}
-                    onChange={(e) => setUploadFormData({...uploadFormData, type: e.target.value})}
-                    className="w-full text-sm px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                    required
-                  >
-                    <option value="Policy" className="bg-slate-800">Policy</option>
-                    <option value="Procedure" className="bg-slate-800">Procedure</option>
-                    <option value="Form" className="bg-slate-800">Form</option>
-                    <option value="Manual" className="bg-slate-800">Manual</option>
-                    <option value="Record" className="bg-slate-800">Record</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-white/70 mb-1">ISO Standard *</label>
-                  <select
-                    value={uploadFormData.standard}
-                    onChange={(e) => setUploadFormData({...uploadFormData, standard: e.target.value})}
-                    className="w-full text-sm px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                    required
-                  >
-                    <option value="ISO_9001" className="bg-slate-800">ISO 9001:2015</option>
-                    <option value="ISO_14001" className="bg-slate-800">ISO 14001:2015</option>
-                    <option value="ISO_45001" className="bg-slate-800">ISO 45001:2018</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-white/70 mb-1">Clause *</label>
-                  <select
-                    value={uploadFormData.clause}
-                    onChange={(e) => setUploadFormData({...uploadFormData, clause: parseInt(e.target.value)})}
-                    className="w-full text-sm px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                    required
-                  >
-                    <option value="4" className="bg-slate-800">Clause 4: Context</option>
-                    <option value="5" className="bg-slate-800">Clause 5: Leadership</option>
-                    <option value="6" className="bg-slate-800">Clause 6: Planning</option>
-                    <option value="7" className="bg-slate-800">Clause 7: Support</option>
-                    <option value="8" className="bg-slate-800">Clause 8: Operation</option>
-                    <option value="9" className="bg-slate-800">Clause 9: Performance</option>
-                    <option value="10" className="bg-slate-800">Clause 10: Improvement</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs text-white/70 mb-1">Description (optional)</label>
-                  <textarea
-                    value={uploadFormData.description}
-                    onChange={(e) => setUploadFormData({...uploadFormData, description: e.target.value})}
-                    placeholder="Add optional description..."
-                    rows="2"
-                    className="w-full text-sm px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-slate-900 to-purple-900 border-t border-white/10 p-4 flex-shrink-0">
-                <button
-                  onClick={handleUploadWithMetadata}
-                  disabled={uploading || !uploadFormData.file}
-                  className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  {uploading ? 'Uploading...' : 'Upload Document'}
-                </button>
-              </div>
-            </div>
+        {/* Document List */}
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse"></div>)}
           </div>
+        ) : filteredDocs.length === 0 ? (
+          <div className="glass rounded-xl p-8 text-center">
+            <p className="text-white/40 text-sm">No documents found</p>
+          </div>
+        ) : (
+          Object.entries(groupedDocs).map(([standard, docs]) => (
+            <div key={standard} className="space-y-2">
+              <h3 className="text-xs font-semibold text-white/50 tracking-wider uppercase mt-4 mb-2">
+                {standard.replace('_', ' ')} <span className="text-white/30">({docs.length})</span>
+              </h3>
+              {docs.map(doc => (
+                <div key={doc.id} className="glass rounded-xl p-4 hover:bg-white/5 transition-colors group">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-sm font-medium text-white/90 truncate">{doc.name}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 flex-shrink-0">
+                          {doc.status || 'Approved'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-white/40">
+                        <span>{doc.type}</span>
+                        <span>•</span>
+                        <span>v{doc.version}</span>
+                        <span>•</span>
+                        <span>Clause {doc.clause}</span>
+                        <span>•</span>
+                        <span>{new Date(doc.updated_at).toLocaleDateString('en-ZA')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))
+        )}
+
+        {/* Upload Form Modal */}
+        {showUploadForm && (
+          <UploadDocumentForm
+            userProfile={userProfile}
+            onClose={() => setShowUploadForm(false)}
+            onUploaded={() => { fetchDocuments(); setShowUploadForm(false) }}
+          />
         )}
       </div>
     </Layout>
-  );
-};
+  )
+}
 
-export default Documents;
+const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
+  const toast = useToast()
+  const [formData, setFormData] = useState({
+    name: '',
+    standard: userProfile.standards_access?.[0] || 'ISO_9001',
+    clause: 5,
+    type: 'Policy',
+    owner: userProfile.full_name || ''
+  })
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .insert([{
+          company_id: userProfile.company_id,
+          name: formData.name,
+          standard: formData.standard,
+          clause: formData.clause,
+          clause_name: `Clause ${formData.clause}: ${CLAUSE_NAMES[formData.clause]}`,
+          type: formData.type,
+          version: '1.0',
+          owner: formData.owner,
+          status: 'Draft',
+          created_by: userProfile.id
+        }])
+
+      if (error) throw error
+      toast.success('Document uploaded successfully')
+      onUploaded()
+    } catch (err) {
+      toast.error('Upload failed: ' + err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const update = (field, value) => setFormData(prev => ({ ...prev, [field]: value }))
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div className="glass rounded-2xl p-6 max-w-md w-full animate-in" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-xl font-bold text-white">Upload Document</h3>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-white/40">✕</button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-[10px] text-white/50 uppercase tracking-wider block mb-1.5">Document Name <span className="text-cyan-400">*</span></label>
+            <input type="text" required value={formData.name} onChange={e => update('name', e.target.value)}
+              className="form-input" placeholder="e.g., Quality Policy" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] text-white/50 uppercase tracking-wider block mb-1.5">Standard</label>
+              <select value={formData.standard} onChange={e => update('standard', e.target.value)} className="form-input">
+                {userProfile.standards_access?.map(std => (
+                  <option key={std} value={std} className="bg-slate-800">{std.replace('_', ' ')}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] text-white/50 uppercase tracking-wider block mb-1.5">Clause</label>
+              <select value={formData.clause} onChange={e => update('clause', parseInt(e.target.value))} className="form-input">
+                {Object.entries(CLAUSE_NAMES).map(([n, name]) => (
+                  <option key={n} value={n} className="bg-slate-800">Clause {n}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] text-white/50 uppercase tracking-wider block mb-1.5">Document Type</label>
+            <select value={formData.type} onChange={e => update('type', e.target.value)} className="form-input">
+              {['Policy', 'Procedure', 'Form', 'Manual', 'Record', 'Work Instruction'].map(t => (
+                <option key={t} value={t} className="bg-slate-800">{t}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button type="submit" disabled={submitting}
+              className="flex-1 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl text-sm disabled:opacity-50">
+              {submitting ? 'Uploading...' : 'Upload Document'}
+            </button>
+            <button type="button" onClick={onClose}
+              className="px-5 py-2.5 bg-white/5 text-white/50 rounded-xl hover:bg-white/10 text-sm">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+export default Documents
