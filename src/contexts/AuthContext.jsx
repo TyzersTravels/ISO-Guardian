@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
         .from('users')
         .select(`
           *,
-          company:companies(*)
+          company:companies!users_company_id_fkey(*)
         `)
         .eq('id', userId)
         .single()
