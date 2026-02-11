@@ -1,46 +1,93 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
+import { useNavigate } from 'react-router-dom'
 
 const Dashboard = () => {
   const { userProfile } = useAuth()
   const navigate = useNavigate()
-  const [stats, setStats] = useState({ openNCRs: 0, criticalNCRs: 0, totalDocs: 0, overdueNCRs: 0 })
-  const [recentNCRs, setRecentNCRs] = useState([])
+  const [stats, setStats] = useState({
+    totalDocuments: 0,
+    openNCRs: 0,
+    criticalNCRs: 0,
+    recentDocuments: [],
+    recentNCRs: []
+  })
+  const [adminStats, setAdminStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const isSuperAdmin = userProfile?.email === 'krugerreece@gmail.com'
+
   useEffect(() => {
-    if (userProfile) fetchDashboardData()
+    if (userProfile) {
+      fetchDashboardData()
+      if (isSuperAdmin) {
+        fetchAdminStats()
+      }
+    }
   }, [userProfile])
+
+  const fetchAdminStats = async () => {
+    try {
+      const { data: companies } = await supabase.from('companies').select('id')
+      const { data: users } = await supabase.from('users').select('id')
+      const { data: subscriptions } = await supabase.from('subscriptions').select('price_per_user, current_users, status')
+      
+      const activeSubscriptions = subscriptions?.filter(s => s.status === 'Active') || []
+      const monthlyRevenue = activeSubscriptions.reduce((sum, sub) => 
+        sum + (sub.price_per_user * sub.current_users), 0
+      )
+
+      setAdminStats({
+        totalClients: companies?.length || 0,
+        totalUsers: users?.length || 0,
+        monthlyRevenue,
+        activeClients: activeSubscriptions.length
+      })
+    } catch (err) {
+      console.error('Error fetching admin stats:', err)
+    }
+  }
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch NCR stats
-      const { data: ncrs } = await supabase
-        .from('ncrs')
-        .select('id, status, severity, due_date, ncr_number, title, date_opened')
-        .order('date_opened', { ascending: false })
+      setLoading(true)
 
-      // Fetch document count
+      // Fetch documents count
       const { count: docCount } = await supabase
         .from('documents')
-        .select('id', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true })
 
-      const today = new Date().toISOString().split('T')[0]
+      // Fetch NCRs
+      const { data: ncrs } = await supabase
+        .from('ncrs')
+        .select('*')
+
       const openNCRs = ncrs?.filter(n => n.status === 'Open') || []
+      const criticalNCRs = openNCRs.filter(n => n.severity === 'Critical')
+
+      // Fetch recent documents (last 5)
+      const { data: recentDocs } = await supabase
+        .from('documents')
+        .select('*')
+        .limit(5)
+
+      // Fetch recent NCRs (last 5)
+      const { data: recentNCRs } = await supabase
+        .from('ncrs')
+        .select('*')
+        .limit(5)
 
       setStats({
+        totalDocuments: docCount || 0,
         openNCRs: openNCRs.length,
-        criticalNCRs: openNCRs.filter(n => n.severity === 'Critical').length,
-        totalDocs: docCount || 0,
-        overdueNCRs: openNCRs.filter(n => n.due_date < today).length
+        criticalNCRs: criticalNCRs.length,
+        recentDocuments: recentDocs || [],
+        recentNCRs: recentNCRs || []
       })
-
-      setRecentNCRs((ncrs || []).slice(0, 5))
     } catch (err) {
-      console.error('Dashboard fetch error:', err)
+      console.error('Error fetching dashboard data:', err)
     } finally {
       setLoading(false)
     }
@@ -54,215 +101,228 @@ const Dashboard = () => {
     )
   }
 
+  if (loading) {
+    return (
+      <Layout>
+        <div className="text-white text-center py-12">Loading dashboard...</div>
+      </Layout>
+    )
+  }
+
   return (
     <Layout>
-      <div className="space-y-6 md:ml-16">
+      <div className="space-y-6">
         {/* Welcome */}
-        <div>
-          <h2 className="text-2xl font-bold text-white">
-            Welcome back, {userProfile.full_name?.split(' ')[0]} 👋
+        <div className="glass glass-border rounded-2xl p-6">
+          <h2 className="text-2xl font-bold text-white mb-1">
+            Welcome back, {userProfile.full_name}! 👋
           </h2>
-          <p className="text-white/40 text-sm mt-1">
-            {userProfile.company?.name} • {new Date().toLocaleDateString('en-ZA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          <p className="text-cyan-200 text-sm">
+            {userProfile.company?.name} · {userProfile.role.replace('_', ' ')}
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard
-            label="Open NCRs"
-            value={loading ? '—' : stats.openNCRs}
-            icon={<AlertTriangleIcon />}
-            color="amber"
-            onClick={() => navigate('/ncrs')}
-          />
-          <StatCard
-            label="Critical"
-            value={loading ? '—' : stats.criticalNCRs}
-            icon={<AlertCircleIcon />}
-            color="red"
-            onClick={() => navigate('/ncrs')}
-          />
-          <StatCard
-            label="Overdue"
-            value={loading ? '—' : stats.overdueNCRs}
-            icon={<ClockIcon />}
-            color="orange"
-          />
-          <StatCard
-            label="Documents"
-            value={loading ? '—' : stats.totalDocs}
-            icon={<FileIcon />}
-            color="cyan"
-            onClick={() => navigate('/documents')}
-          />
-        </div>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent NCRs */}
-          <div className="lg:col-span-2 glass rounded-2xl p-5">
+        {/* SuperAdmin Analytics Widget */}
+        {isSuperAdmin && adminStats && (
+          <div className="glass glass-border rounded-2xl p-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-500/30">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-white/70 tracking-wide uppercase">Recent NCRs</h3>
+              <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  SuperAdmin Analytics
+                </h3>
+                <p className="text-purple-200 text-sm">Business Overview</p>
+              </div>
               <button
-                onClick={() => navigate('/ncrs')}
-                className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+                onClick={() => navigate('/admin')}
+                className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-semibold transition-colors"
               >
-                View All →
+                View Full Analytics →
               </button>
             </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                <div className="text-3xl font-bold text-white mb-1">
+                  R{adminStats.monthlyRevenue.toLocaleString()}
+                </div>
+                <div className="text-purple-200 text-sm">Monthly Revenue</div>
+              </div>
+              
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                <div className="text-3xl font-bold text-white mb-1">{adminStats.activeClients}</div>
+                <div className="text-purple-200 text-sm">Active Clients</div>
+              </div>
+              
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                <div className="text-3xl font-bold text-white mb-1">{adminStats.totalUsers}</div>
+                <div className="text-purple-200 text-sm">Total Users</div>
+              </div>
+              
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                <div className="text-3xl font-bold text-white mb-1">{adminStats.totalClients}</div>
+                <div className="text-purple-200 text-sm">Total Companies</div>
+              </div>
+            </div>
+          </div>
+        )}
 
-            {loading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse"></div>
-                ))}
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button
+            onClick={() => navigate('/documents')}
+            className="glass glass-border rounded-2xl p-6 hover:bg-white/5 cursor-pointer text-left"
+          >
+            <div className="text-4xl font-bold text-blue-400 mb-2">
+              {stats.totalDocuments}
+            </div>
+            <div className="text-white font-medium">Documents</div>
+            <div className="text-white/60 text-sm">Click to view →</div>
+          </button>
+
+          <button
+            onClick={() => navigate('/ncrs')}
+            className="glass glass-border rounded-2xl p-6 hover:bg-white/5 cursor-pointer text-left"
+          >
+            <div className="text-4xl font-bold text-orange-400 mb-2">
+              {stats.openNCRs}
+            </div>
+            <div className="text-white font-medium">Open NCRs</div>
+            <div className="text-white/60 text-sm">Click to manage →</div>
+          </button>
+
+          <div className="glass glass-border rounded-2xl p-6 bg-red-500/10">
+            <div className="text-4xl font-bold text-red-400 mb-2">
+              {stats.criticalNCRs}
+            </div>
+            <div className="text-white font-medium">Critical Issues</div>
+            <div className="text-red-300 text-sm">Requires attention</div>
+          </div>
+        </div>
+
+        {/* Standards Access */}
+        <div className="glass glass-border rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-white mb-3">Your Standards Access</h3>
+          <div className="flex gap-3 flex-wrap">
+            {userProfile.standards_access.map(standard => (
+              <div key={standard} className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-cyan-300 font-semibold text-sm">
+                {standard.replace('_', ' ')}
               </div>
-            ) : recentNCRs.length === 0 ? (
-              <div className="text-center py-8 text-white/30 text-sm">
-                No NCRs found. Looking good! 🎉
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {recentNCRs.map(ncr => (
-                  <div
-                    key={ncr.id}
-                    onClick={() => navigate('/ncrs')}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors group"
-                  >
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                      ncr.severity === 'Critical' ? 'bg-red-400' :
-                      ncr.severity === 'Major' ? 'bg-amber-400' : 'bg-yellow-400'
-                    }`}></div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-cyan-400/70">{ncr.ncr_number}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                          ncr.status === 'Open' ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300'
-                        }`}>{ncr.status}</span>
-                      </div>
-                      <p className="text-sm text-white/80 truncate">{ncr.title}</p>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Recent Documents */}
+          <div className="glass glass-border rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">Recent Documents</h3>
+              <button
+                onClick={() => navigate('/documents')}
+                className="text-cyan-400 text-sm hover:underline"
+              >
+                View all →
+              </button>
+            </div>
+            <div className="space-y-2">
+              {stats.recentDocuments.length === 0 ? (
+                <p className="text-white/60 text-sm">No documents yet</p>
+              ) : (
+                stats.recentDocuments.map(doc => (
+                  <div key={doc.id} className="glass glass-border rounded-lg p-3">
+                    <div className="font-semibold text-white text-sm">{doc.name}</div>
+                    <div className="text-white/60 text-xs mt-1">
+                      {doc.standard.replace('_', ' ')} · {doc.type}
                     </div>
-                    <span className="text-xs text-white/30 group-hover:text-white/50 transition-colors">→</span>
                   </div>
-                ))}
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </div>
 
-          {/* Quick Actions + Standards */}
-          <div className="space-y-4">
-            {/* Quick Actions */}
-            <div className="glass rounded-2xl p-5">
-              <h3 className="text-sm font-semibold text-white/70 tracking-wide uppercase mb-4">Quick Actions</h3>
-              <div className="space-y-2">
-                <QuickAction label="Create NCR" onClick={() => navigate('/ncrs')} icon="+" color="amber" />
-                <QuickAction label="Upload Document" onClick={() => navigate('/documents')} icon="↑" color="cyan" />
-                <QuickAction label="View Compliance" onClick={() => navigate('/compliance')} icon="✓" color="emerald" />
-              </div>
+          {/* Recent NCRs */}
+          <div className="glass glass-border rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">Recent NCRs</h3>
+              <button
+                onClick={() => navigate('/ncrs')}
+                className="text-cyan-400 text-sm hover:underline"
+              >
+                View all →
+              </button>
             </div>
-
-            {/* Standards Access */}
-            <div className="glass rounded-2xl p-5">
-              <h3 className="text-sm font-semibold text-white/70 tracking-wide uppercase mb-4">Your Standards</h3>
-              <div className="space-y-2">
-                {userProfile.standards_access?.map(std => (
-                  <div key={std} className="flex items-center gap-2.5 px-3 py-2 bg-white/5 rounded-xl">
-                    <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
-                    <span className="text-sm text-white/70">{std.replace('_', ' ')}</span>
+            <div className="space-y-2">
+              {stats.recentNCRs.length === 0 ? (
+                <p className="text-white/60 text-sm">No NCRs yet</p>
+              ) : (
+                stats.recentNCRs.map(ncr => (
+                  <div key={ncr.id} className="glass glass-border rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono text-cyan-400 text-xs">{ncr.ncr_number}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded ${
+                        ncr.severity === 'Critical' ? 'bg-red-500/20 text-red-300' :
+                        ncr.severity === 'Major' ? 'bg-orange-500/20 text-orange-300' :
+                        'bg-yellow-500/20 text-yellow-300'
+                      }`}>
+                        {ncr.severity}
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded ${
+                        ncr.status === 'Open' ? 'bg-orange-500/20 text-orange-300' : 'bg-green-500/20 text-green-300'
+                      }`}>
+                        {ncr.status}
+                      </span>
+                    </div>
+                    <div className="font-semibold text-white text-sm">{ncr.title}</div>
                   </div>
-                ))}
-              </div>
+                ))
+              )}
             </div>
+          </div>
+        </div>
 
-            {/* Company Info */}
-            <div className="glass rounded-2xl p-5">
-              <h3 className="text-sm font-semibold text-white/70 tracking-wide uppercase mb-3">Company</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-white/40">Name</span>
-                  <span className="text-white/80">{userProfile.company?.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/40">Tier</span>
-                  <span className="text-white/80 capitalize">{userProfile.company?.tier}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/40">Your Role</span>
-                  <span className="text-white/80 capitalize">{userProfile.role?.replace('_', ' ')}</span>
-                </div>
-              </div>
-            </div>
+        {/* Quick Actions */}
+        <div className="glass glass-border rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-white mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <button
+              onClick={() => navigate('/documents')}
+              className="px-4 py-3 glass glass-border rounded-xl text-white hover:bg-white/10 text-left"
+            >
+              <div className="font-semibold mb-1">View Documents</div>
+              <div className="text-xs text-white/60">Browse compliance documents</div>
+            </button>
+            <button
+              onClick={() => navigate('/ncrs')}
+              className="px-4 py-3 glass glass-border rounded-xl text-white hover:bg-white/10 text-left"
+            >
+              <div className="font-semibold mb-1">Create NCR</div>
+              <div className="text-xs text-white/60">Report non-conformance</div>
+            </button>
+            <button
+              onClick={() => navigate('/compliance')}
+              className="px-4 py-3 glass glass-border rounded-xl text-white hover:bg-white/10 text-left"
+            >
+              <div className="font-semibold mb-1">Check Compliance</div>
+              <div className="text-xs text-white/60">View compliance scores</div>
+            </button>
           </div>
         </div>
       </div>
+
+      <style>{`
+        .glass {
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(20px);
+        }
+        .glass-border {
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+      `}</style>
     </Layout>
   )
 }
-
-const StatCard = ({ label, value, icon, color, onClick }) => {
-  const colors = {
-    amber: 'from-amber-500/10 to-amber-600/5 border-amber-500/20 text-amber-400',
-    red: 'from-red-500/10 to-red-600/5 border-red-500/20 text-red-400',
-    orange: 'from-orange-500/10 to-orange-600/5 border-orange-500/20 text-orange-400',
-    cyan: 'from-cyan-500/10 to-cyan-600/5 border-cyan-500/20 text-cyan-400',
-    emerald: 'from-emerald-500/10 to-emerald-600/5 border-emerald-500/20 text-emerald-400',
-  }
-
-  return (
-    <div
-      onClick={onClick}
-      className={`bg-gradient-to-br ${colors[color]} border rounded-2xl p-4 ${onClick ? 'cursor-pointer hover:scale-[1.02] transition-transform' : ''}`}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <div className={`w-8 h-8 flex items-center justify-center ${colors[color].split(' ').pop()}`}>
-          {icon}
-        </div>
-        <span className="text-3xl font-bold text-white">{value}</span>
-      </div>
-      <p className="text-xs text-white/50">{label}</p>
-    </div>
-  )
-}
-
-const QuickAction = ({ label, onClick, icon, color }) => {
-  const colors = {
-    amber: 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20',
-    cyan: 'bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20',
-    emerald: 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20',
-  }
-
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl ${colors[color]} transition-colors text-left`}
-    >
-      <span className="text-lg font-bold">{icon}</span>
-      <span className="text-sm font-medium">{label}</span>
-    </button>
-  )
-}
-
-// Mini icon components
-const AlertTriangleIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-  </svg>
-)
-const AlertCircleIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-)
-const ClockIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-)
-const FileIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-  </svg>
-)
 
 export default Dashboard

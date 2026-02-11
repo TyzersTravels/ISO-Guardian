@@ -1,777 +1,598 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 
 const NCRs = () => {
-  const { user } = useAuth()
+  const { userProfile } = useAuth()
   const [ncrs, setNcrs] = useState([])
   const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState('active')
-  const [isLeadAuditor, setIsLeadAuditor] = useState(false)
-  const [selectedNCR, setSelectedNCR] = useState(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterSeverity, setFilterSeverity] = useState('all')
-  const [filterStatus, setFilterStatus] = useState('all')
-
-  useEffect(() => {
-    checkUserRole()
-  }, [])
+  const [selectedNCR, setSelectedNCR] = useState(null)
+  
+  // Filters
+  const [statusFilter, setStatusFilter] = useState('Open')
+  const [severityFilter, setSeverityFilter] = useState('all')
 
   useEffect(() => {
     fetchNCRs()
-  }, [viewMode])
-
-  const checkUserRole = async () => {
-    try {
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user?.id)
-        .in('role', ['lead_auditor', 'superadmin'])
-      if (data && data.length > 0) setIsLeadAuditor(true)
-    } catch (err) {
-      console.error('Error checking role:', err)
-    }
-  }
+  }, [])
 
   const fetchNCRs = async () => {
     try {
       setLoading(true)
-      
-      let query = supabase
+      const { data, error } = await supabase
         .from('ncrs')
         .select('*')
-        .order('created_at', { ascending: false })
 
-      // KEY FIX: Handle null booleans properly
-      // Use .neq('permanently_deleted', true) instead of .eq('permanently_deleted', false)
-      // This catches both false AND null values
-      query = query.neq('permanently_deleted', true)
-
-      if (viewMode === 'active') {
-        query = query.neq('archived', true)
-      } else if (viewMode === 'archived') {
-        query = query.eq('archived', true)
-      }
-
-      const { data, error } = await query
       if (error) throw error
       setNcrs(data || [])
-    } catch (error) {
-      console.error('Error fetching NCRs:', error)
+    } catch (err) {
+      console.error('Error fetching NCRs:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleArchiveNCR = async (ncrId) => {
-    if (!window.confirm('Archive this NCR? (ISO compliance: archived for record-keeping)')) return
-
-    const reason = window.prompt('Reason for archiving (required for ISO compliance):')
-    if (!reason || reason.trim() === '') {
-      alert('Archiving reason is required')
-      return
-    }
-
+  const closeNCR = async (ncrId) => {
     try {
       const { error } = await supabase
         .from('ncrs')
-        .update({
-          archived: true,
-          archived_at: new Date().toISOString(),
-          archived_by: user?.id,
-          archive_reason: reason.trim(),
-        })
+        .update({ status: 'Closed' })
         .eq('id', ncrId)
 
       if (error) throw error
-      fetchNCRs()
-    } catch (err) {
-      console.error('Error archiving NCR:', err)
-      alert('Failed to archive: ' + err.message)
-    }
-  }
-
-  const handleRestoreNCR = async (ncrId) => {
-    if (!window.confirm('Restore this NCR to active status?')) return
-
-    try {
-      const { error } = await supabase
-        .from('ncrs')
-        .update({
-          archived: false,
-          archived_at: null,
-          archived_by: null,
-          archive_reason: null,
-        })
-        .eq('id', ncrId)
-
-      if (error) throw error
-      fetchNCRs()
-    } catch (err) {
-      console.error('Error restoring NCR:', err)
-      alert('Failed to restore: ' + err.message)
-    }
-  }
-
-  const handlePermanentDelete = async (ncrId) => {
-    if (!isLeadAuditor) {
-      alert('Only Lead Auditors can permanently delete NCRs')
-      return
-    }
-
-    if (!window.confirm('⚠️ PERMANENT DELETE - This cannot be undone! Continue?')) return
-    const reason = window.prompt('Reason for permanent deletion (required for audit trail):')
-    if (!reason || reason.trim() === '') {
-      alert('Deletion reason required')
-      return
-    }
-
-    try {
-      const { error } = await supabase
-        .from('ncrs')
-        .update({
-          permanently_deleted: true,
-          permanently_deleted_at: new Date().toISOString(),
-          permanently_deleted_by: user?.email,
-          deletion_reason: reason.trim(),
-        })
-        .eq('id', ncrId)
-
-      if (error) throw error
-      fetchNCRs()
-    } catch (err) {
-      console.error('Error deleting NCR:', err)
-      alert('Failed to delete: ' + err.message)
-    }
-  }
-
-  const handleCloseNCR = async (ncrId) => {
-    if (!window.confirm('Close this NCR? This marks it as resolved.')) return
-
-    try {
-      const { error } = await supabase
-        .from('ncrs')
-        .update({
-          status: 'Closed',
-          date_closed: new Date().toISOString(),
-        })
-        .eq('id', ncrId)
-
-      if (error) throw error
-      fetchNCRs()
+      
+      // Update local state
+      setNcrs(ncrs.map(ncr => 
+        ncr.id === ncrId ? { ...ncr, status: 'Closed' } : ncr
+      ))
+      setSelectedNCR(null)
+      alert('NCR closed successfully!')
     } catch (err) {
       console.error('Error closing NCR:', err)
-      alert('Failed to close: ' + err.message)
+      alert('Failed to close NCR')
     }
+  }
+
+  const exportNCR = (ncr) => {
+    // Create HTML document that Word can open
+    let html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Calibri, Arial, sans-serif; margin: 2cm; }
+    h1 { color: #0066cc; border-bottom: 3px solid #0066cc; padding-bottom: 10px; }
+    h2 { color: #0066cc; margin-top: 20px; }
+    .header { background: #f0f0f0; padding: 15px; margin-bottom: 20px; }
+    .section { margin: 15px 0; }
+    .label { font-weight: bold; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    td { padding: 8px; border: 1px solid #ddd; }
+    .footer { margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd; font-size: 10pt; color: #666; }
+  </style>
+</head>
+<body>
+  <h1>NON-CONFORMANCE REPORT</h1>
+  
+  <div class="header">
+    <table>
+      <tr>
+        <td class="label">NCR Number:</td>
+        <td>${ncr.ncr_number}</td>
+        <td class="label">Status:</td>
+        <td>${ncr.status}</td>
+      </tr>
+      <tr>
+        <td class="label">Title:</td>
+        <td colspan="3">${ncr.title}</td>
+      </tr>
+      <tr>
+        <td class="label">Severity:</td>
+        <td>${ncr.severity}</td>
+        <td class="label">Standard:</td>
+        <td>${ncr.standard.replace('_', ' ')}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Clause Reference</h2>
+    <p>${ncr.clause_name}</p>
+  </div>
+
+  <div class="section">
+    <h2>Description</h2>
+    <p>${ncr.description}</p>
+  </div>
+
+  ${ncr.root_cause ? `
+  <div class="section">
+    <h2>Root Cause Analysis</h2>
+    <p>${ncr.root_cause}</p>
+  </div>
+  ` : ''}
+
+  ${ncr.corrective_action ? `
+  <div class="section">
+    <h2>Corrective Action</h2>
+    <p>${ncr.corrective_action}</p>
+  </div>
+  ` : ''}
+
+  <div class="section">
+    <h2>Dates and Assignment</h2>
+    <table>
+      <tr>
+        <td class="label">Date Opened:</td>
+        <td>${new Date(ncr.date_opened).toLocaleDateString()}</td>
+      </tr>
+      <tr>
+        <td class="label">Due Date:</td>
+        <td>${new Date(ncr.due_date).toLocaleDateString()}</td>
+      </tr>
+      ${ncr.date_closed ? `
+      <tr>
+        <td class="label">Date Closed:</td>
+        <td>${new Date(ncr.date_closed).toLocaleDateString()}</td>
+      </tr>
+      ` : ''}
+      <tr>
+        <td class="label">Assigned To:</td>
+        <td>${ncr.assigned_to}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p><strong>Export Information:</strong></p>
+    <p>Exported by: ${userProfile.email}</p>
+    <p>Export date: ${new Date().toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })}</p>
+    <p>Company: ${userProfile.company?.name || 'N/A'}</p>
+    <p style="margin-top: 10px; font-style: italic;">ISOGuardian - POPIA Compliant Export</p>
+  </div>
+</body>
+</html>
+`
+
+    // Create blob and download as .doc (Word will open it)
+    const blob = new Blob([html], { type: 'application/msword' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${ncr.ncr_number}_Report.doc`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
   }
 
   // Filter NCRs
   const filteredNCRs = ncrs.filter(ncr => {
-    const matchesSearch = !searchTerm || 
-      ncr.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ncr.ncr_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ncr.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesSeverity = filterSeverity === 'all' || ncr.severity === filterSeverity
-    const matchesStatus = filterStatus === 'all' || ncr.status === filterStatus
-    return matchesSearch && matchesSeverity && matchesStatus
+    const matchesStatus = statusFilter === 'all' || ncr.status === statusFilter
+    const matchesSeverity = severityFilter === 'all' || ncr.severity === severityFilter
+    return matchesStatus && matchesSeverity
   })
 
-  // Stats
-  const activeNCRs = ncrs.filter(n => !n.archived)
-  const stats = {
-    total: activeNCRs.length,
-    open: activeNCRs.filter(n => n.status === 'Open').length,
-    inProgress: activeNCRs.filter(n => n.status === 'In Progress').length,
-    closed: activeNCRs.filter(n => n.status === 'Closed').length,
-    critical: activeNCRs.filter(n => n.severity === 'Critical').length,
-    major: activeNCRs.filter(n => n.severity === 'Major').length,
-    minor: activeNCRs.filter(n => n.severity === 'Minor').length,
-  }
-
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'Critical': return 'bg-red-500/20 text-red-300 border-red-500/30'
-      case 'Major': return 'bg-orange-500/20 text-orange-300 border-orange-500/30'
-      case 'Minor': return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
-      case 'Observation': return 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-      default: return 'bg-white/10 text-white/60 border-white/20'
-    }
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Open': return 'bg-orange-500/20 text-orange-300'
-      case 'In Progress': return 'bg-blue-500/20 text-blue-300'
-      case 'Closed': return 'bg-emerald-500/20 text-emerald-300'
-      default: return 'bg-white/10 text-white/60'
-    }
-  }
+  // Count stats
+  const openCount = ncrs.filter(n => n.status === 'Open').length
+  const criticalCount = ncrs.filter(n => n.status === 'Open' && n.severity === 'Critical').length
 
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-            <p className="text-white/60">Loading NCRs...</p>
-          </div>
-        </div>
+        <div className="text-white text-center py-12">Loading NCRs...</div>
       </Layout>
     )
   }
 
   return (
     <Layout>
-      <div className="space-y-6 pb-24">
+      <div className="space-y-4">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">Non-Conformance Reports</h1>
-            <p className="text-white/50 text-sm mt-1">Track and resolve quality, safety & environmental issues</p>
+            <h2 className="text-2xl font-bold text-white">Non-Conformance Reports</h2>
+            <p className="text-cyan-200 text-sm">{filteredNCRs.length} NCRs</p>
           </div>
-          <button 
+          <button
             onClick={() => setShowCreateForm(true)}
-            className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold hover:scale-105 transition-transform shadow-lg shadow-cyan-500/20 flex items-center gap-2"
+            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-semibold"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            New NCR
+            + New NCR
           </button>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-white/[0.07] backdrop-blur-lg border border-white/10 rounded-2xl p-4">
-            <div className="text-2xl font-bold text-white">{stats.total}</div>
-            <div className="text-xs text-white/50 mt-1">Total Active</div>
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="glass glass-border rounded-lg p-4">
+            <div className="text-3xl font-bold text-orange-400">{openCount}</div>
+            <div className="text-sm text-white/70">Open NCRs</div>
           </div>
-          <div className="bg-orange-500/10 backdrop-blur-lg border border-orange-500/20 rounded-2xl p-4">
-            <div className="text-2xl font-bold text-orange-400">{stats.open}</div>
-            <div className="text-xs text-white/50 mt-1">Open</div>
-          </div>
-          <div className="bg-red-500/10 backdrop-blur-lg border border-red-500/20 rounded-2xl p-4">
-            <div className="text-2xl font-bold text-red-400">{stats.critical}</div>
-            <div className="text-xs text-white/50 mt-1">Critical</div>
-          </div>
-          <div className="bg-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 rounded-2xl p-4">
-            <div className="text-2xl font-bold text-emerald-400">{stats.closed}</div>
-            <div className="text-xs text-white/50 mt-1">Closed</div>
+          <div className="glass glass-border rounded-lg p-4">
+            <div className="text-3xl font-bold text-red-400">{criticalCount}</div>
+            <div className="text-sm text-white/70">Critical</div>
           </div>
         </div>
 
-        {/* View Toggle + Search + Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* View Mode */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setViewMode('active')}
-              className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
-                viewMode === 'active'
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg'
-                  : 'bg-white/[0.07] text-white/60 hover:bg-white/[0.12]'
-              }`}
+        {/* Filters */}
+        <div className="glass glass-border rounded-lg p-4">
+          <div className="grid grid-cols-2 gap-3">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
             >
-              Active ({activeNCRs.length})
-            </button>
-            <button
-              onClick={() => setViewMode('archived')}
-              className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
-                viewMode === 'archived'
-                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
-                  : 'bg-white/[0.07] text-white/60 hover:bg-white/[0.12]'
-              }`}
+              <option value="all" className="bg-slate-800">All Status</option>
+              <option value="Open" className="bg-slate-800">Open</option>
+              <option value="Closed" className="bg-slate-800">Closed</option>
+            </select>
+
+            <select
+              value={severityFilter}
+              onChange={(e) => setSeverityFilter(e.target.value)}
+              className="px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
             >
-              Archived
-            </button>
+              <option value="all" className="bg-slate-800">All Severity</option>
+              <option value="Critical" className="bg-slate-800">Critical</option>
+              <option value="Major" className="bg-slate-800">Major</option>
+              <option value="Minor" className="bg-slate-800">Minor</option>
+            </select>
           </div>
-
-          {/* Search */}
-          <div className="flex-1 relative">
-            <svg className="w-4 h-4 absolute left-3 top-3 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search NCRs..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white/[0.07] border border-white/10 rounded-xl text-white placeholder-white/40 text-sm focus:outline-none focus:border-cyan-500/50"
-            />
-          </div>
-
-          {/* Severity Filter */}
-          <select
-            value={filterSeverity}
-            onChange={e => setFilterSeverity(e.target.value)}
-            className="px-3 py-2 bg-white/[0.07] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500/50"
-            style={{ colorScheme: 'dark' }}
-          >
-            <option value="all">All Severity</option>
-            <option value="Critical">Critical</option>
-            <option value="Major">Major</option>
-            <option value="Minor">Minor</option>
-            <option value="Observation">Observation</option>
-          </select>
-
-          {/* Status Filter */}
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2 bg-white/[0.07] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500/50"
-            style={{ colorScheme: 'dark' }}
-          >
-            <option value="all">All Status</option>
-            <option value="Open">Open</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Closed">Closed</option>
-          </select>
         </div>
 
-        {/* NCR List */}
+        {/* NCRs List */}
         <div className="space-y-3">
           {filteredNCRs.length === 0 ? (
-            <div className="bg-white/[0.05] backdrop-blur-lg border border-white/10 rounded-2xl p-12 text-center">
-              <svg className="w-16 h-16 mx-auto mb-4 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-white/50 text-lg font-medium">
-                {viewMode === 'active' ? 'No active NCRs found' : 'No archived NCRs'}
-              </p>
-              <p className="text-white/30 text-sm mt-2">
-                {viewMode === 'active' && searchTerm ? 'Try adjusting your search or filters' : 
-                 viewMode === 'active' ? 'Create a new NCR to get started' : 'Archived NCRs will appear here'}
-              </p>
+            <div className="glass glass-border rounded-lg p-8 text-center text-white/60">
+              No NCRs found
             </div>
           ) : (
-            filteredNCRs.map((ncr) => (
+            filteredNCRs.map(ncr => (
               <div
                 key={ncr.id}
-                className="bg-white/[0.07] backdrop-blur-lg border border-white/10 rounded-2xl p-5 hover:bg-white/[0.1] transition-all cursor-pointer group"
                 onClick={() => setSelectedNCR(ncr)}
+                className="glass glass-border rounded-lg p-4 hover:bg-white/5 cursor-pointer"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="font-mono text-cyan-400 text-sm font-medium">{ncr.ncr_number}</span>
-                      <span className={`text-xs px-2.5 py-1 rounded-full border ${getSeverityColor(ncr.severity)}`}>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-mono text-cyan-400 text-sm">{ncr.ncr_number}</span>
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        ncr.severity === 'Critical' ? 'bg-red-500/20 text-red-300' :
+                        ncr.severity === 'Major' ? 'bg-orange-500/20 text-orange-300' :
+                        'bg-yellow-500/20 text-yellow-300'
+                      }`}>
                         {ncr.severity}
                       </span>
-                      <span className={`text-xs px-2.5 py-1 rounded-full ${getStatusColor(ncr.status)}`}>
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        ncr.status === 'Open' ? 'bg-orange-500/20 text-orange-300' : 'bg-green-500/20 text-green-300'
+                      }`}>
                         {ncr.status}
                       </span>
-                      {viewMode === 'archived' && (
-                        <span className="text-xs px-2.5 py-1 rounded-full bg-red-500/20 text-red-300">Archived</span>
-                      )}
                     </div>
-                    <h3 className="font-semibold text-white text-lg truncate">{ncr.title}</h3>
-                    {ncr.description && (
-                      <p className="text-white/50 text-sm mt-1 line-clamp-2">{ncr.description}</p>
-                    )}
-                    <div className="flex items-center gap-4 text-xs text-white/40 mt-3 flex-wrap">
-                      {ncr.standard && <span>📋 {ncr.standard.replace('_', ' ')}</span>}
-                      {ncr.clause_number && <span>§ Clause {ncr.clause_number}</span>}
-                      {ncr.date_raised && <span>📅 {new Date(ncr.date_raised).toLocaleDateString('en-ZA')}</span>}
-                      {ncr.assigned_to_name && <span>👤 {ncr.assigned_to_name}</span>}
-                      {ncr.due_date && <span>⏰ Due: {new Date(ncr.due_date).toLocaleDateString('en-ZA')}</span>}
+                    <div className="font-semibold text-white mb-1">{ncr.title}</div>
+                    <div className="text-sm text-white/60 mb-2">{ncr.clause_name}</div>
+                    <div className="flex items-center gap-4 text-xs text-white/50">
+                      <span>Opened: {new Date(ncr.date_opened).toLocaleDateString()}</span>
+                      <span>Due: {new Date(ncr.due_date).toLocaleDateString()}</span>
                     </div>
                   </div>
-
-                  {/* Action buttons */}
-                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                    {viewMode === 'active' && ncr.status === 'Open' && (
-                      <button
-                        onClick={() => handleCloseNCR(ncr.id)}
-                        className="p-2 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 transition-colors"
-                        title="Close NCR"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </button>
-                    )}
-                    {viewMode === 'active' && (
-                      <button
-                        onClick={() => handleArchiveNCR(ncr.id)}
-                        className="p-2 rounded-lg bg-orange-500/20 text-orange-300 hover:bg-orange-500/30 transition-colors"
-                        title="Archive NCR"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                        </svg>
-                      </button>
-                    )}
-                    {viewMode === 'archived' && (
-                      <>
-                        <button
-                          onClick={() => handleRestoreNCR(ncr.id)}
-                          className="p-2 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition-colors"
-                          title="Restore NCR"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                        </button>
-                        {isLeadAuditor && (
-                          <button
-                            onClick={() => handlePermanentDelete(ncr.id)}
-                            className="p-2 rounded-lg bg-red-500/20 text-red-300 hover:bg-red-500/30 transition-colors"
-                            title="Permanently Delete"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
+                  <button className="text-cyan-400 text-sm hover:underline">View →</button>
                 </div>
               </div>
             ))
           )}
         </div>
 
-        {/* NCR Detail Modal */}
+        {/* NCR Details Modal */}
         {selectedNCR && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setSelectedNCR(null)}>
-            <div className="bg-slate-900/95 backdrop-blur-xl border border-white/15 rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="glass glass-border rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
-                <div>
-                  <span className="font-mono text-cyan-400 text-sm">{selectedNCR.ncr_number}</span>
-                  <h2 className="text-2xl font-bold text-white mt-1">{selectedNCR.title}</h2>
-                </div>
-                <button onClick={() => setSelectedNCR(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-                  <svg className="w-6 h-6 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                <h3 className="text-2xl font-bold text-white">{selectedNCR.ncr_number}</h3>
+                <button
+                  onClick={() => setSelectedNCR(null)}
+                  className="text-white/60 hover:text-white"
+                >
+                  ✕
                 </button>
-              </div>
-              
-              <div className="flex gap-2 mb-6 flex-wrap">
-                <span className={`text-xs px-3 py-1.5 rounded-full border ${getSeverityColor(selectedNCR.severity)}`}>{selectedNCR.severity}</span>
-                <span className={`text-xs px-3 py-1.5 rounded-full ${getStatusColor(selectedNCR.status)}`}>{selectedNCR.status}</span>
-                {selectedNCR.standard && <span className="text-xs px-3 py-1.5 rounded-full bg-purple-500/20 text-purple-300">{selectedNCR.standard.replace('_', ' ')}</span>}
               </div>
 
               <div className="space-y-4">
-                {selectedNCR.description && (
-                  <div>
-                    <label className="text-xs text-white/40 uppercase tracking-wider">Description</label>
-                    <p className="text-white/80 mt-1 bg-white/[0.05] rounded-xl p-3 text-sm">{selectedNCR.description}</p>
-                  </div>
-                )}
-                {selectedNCR.root_cause && (
-                  <div>
-                    <label className="text-xs text-white/40 uppercase tracking-wider">Root Cause</label>
-                    <p className="text-white/80 mt-1 bg-white/[0.05] rounded-xl p-3 text-sm">{selectedNCR.root_cause}</p>
-                  </div>
-                )}
-                {selectedNCR.corrective_action && (
-                  <div>
-                    <label className="text-xs text-white/40 uppercase tracking-wider">Corrective Action</label>
-                    <p className="text-white/80 mt-1 bg-white/[0.05] rounded-xl p-3 text-sm">{selectedNCR.corrective_action}</p>
-                  </div>
-                )}
+                <div>
+                  <label className="text-sm text-white/60">Title</label>
+                  <div className="text-white font-semibold">{selectedNCR.title}</div>
+                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-white/40 uppercase tracking-wider">Date Raised</label>
-                    <p className="text-white/80 mt-1">{selectedNCR.date_raised ? new Date(selectedNCR.date_raised).toLocaleDateString('en-ZA') : 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-white/40 uppercase tracking-wider">Due Date</label>
-                    <p className="text-white/80 mt-1">{selectedNCR.due_date ? new Date(selectedNCR.due_date).toLocaleDateString('en-ZA') : 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-white/40 uppercase tracking-wider">Assigned To</label>
-                    <p className="text-white/80 mt-1">{selectedNCR.assigned_to_name || 'Unassigned'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-white/40 uppercase tracking-wider">Clause</label>
-                    <p className="text-white/80 mt-1">{selectedNCR.clause_name || `Clause ${selectedNCR.clause_number || 'N/A'}`}</p>
+                <div>
+                  <label className="text-sm text-white/60">Description</label>
+                  <div className="text-white/80 glass glass-border rounded-lg p-3">
+                    {selectedNCR.description}
                   </div>
                 </div>
 
-                {selectedNCR.archive_reason && (
-                  <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-3">
-                    <label className="text-xs text-orange-400 uppercase tracking-wider">Archive Reason</label>
-                    <p className="text-white/70 mt-1 text-sm">{selectedNCR.archive_reason}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm text-white/60">Standard</label>
+                    <div className="text-white">{selectedNCR.standard.replace('_', ' ')}</div>
                   </div>
-                )}
-              </div>
+                  <div>
+                    <label className="text-sm text-white/60">Severity</label>
+                    <div className="text-white">{selectedNCR.severity}</div>
+                  </div>
+                </div>
 
-              <div className="flex gap-3 mt-6 pt-4 border-t border-white/10">
-                {selectedNCR.status === 'Open' && !selectedNCR.archived && (
+                <div>
+                  <label className="text-sm text-white/60">Root Cause</label>
+                  <div className="text-white/80 glass glass-border rounded-lg p-3">
+                    {selectedNCR.root_cause}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-white/60">Corrective Action</label>
+                  <div className="text-white/80 glass glass-border rounded-lg p-3">
+                    {selectedNCR.corrective_action}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm text-white/60">Date Opened</label>
+                    <div className="text-white">{new Date(selectedNCR.date_opened).toLocaleDateString()}</div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-white/60">Due Date</label>
+                    <div className="text-white">{new Date(selectedNCR.due_date).toLocaleDateString()}</div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  {selectedNCR.status === 'Open' && (
+                    <button
+                      onClick={() => closeNCR(selectedNCR.id)}
+                      className="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg"
+                    >
+                      Close NCR
+                    </button>
+                  )}
                   <button
-                    onClick={() => {
-                      handleCloseNCR(selectedNCR.id)
-                      setSelectedNCR(null)
-                    }}
-                    className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold rounded-xl hover:scale-[1.02] transition-transform"
+                    onClick={() => exportNCR(selectedNCR)}
+                    className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2"
                   >
-                    ✓ Close NCR
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export NCR
                   </button>
-                )}
-                {!selectedNCR.archived && (
-                  <button
-                    onClick={() => {
-                      handleArchiveNCR(selectedNCR.id)
-                      setSelectedNCR(null)
-                    }}
-                    className="px-6 py-3 bg-orange-500/20 text-orange-300 font-semibold rounded-xl hover:bg-orange-500/30 transition-colors"
-                  >
-                    Archive
-                  </button>
-                )}
-                <button
-                  onClick={() => setSelectedNCR(null)}
-                  className="px-6 py-3 bg-white/[0.07] text-white font-medium rounded-xl hover:bg-white/[0.12] transition-colors"
-                >
-                  Close
-                </button>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Create NCR Modal */}
+        {/* Create NCR Form */}
         {showCreateForm && (
-          <CreateNCRModal 
-            user={user} 
-            onClose={() => setShowCreateForm(false)} 
-            onSuccess={() => {
-              setShowCreateForm(false)
+          <CreateNCRForm
+            userProfile={userProfile}
+            onClose={() => setShowCreateForm(false)}
+            onCreated={() => {
               fetchNCRs()
-            }} 
+              setShowCreateForm(false)
+            }}
           />
         )}
       </div>
+
+      <style>{`
+        .glass {
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(20px);
+        }
+        .glass-border {
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+      `}</style>
     </Layout>
   )
 }
 
-const CreateNCRModal = ({ user, onClose, onSuccess }) => {
+// Create NCR Form Component
+const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    standard: userProfile.standards_access[0] || 'ISO_9001',
+    clause: 7,
     severity: 'Major',
-    standard: 'ISO_9001',
-    clause_number: '',
     root_cause: '',
     corrective_action: '',
-    due_date: '',
-    assigned_to_name: '',
+    due_date: ''
   })
-  const [saving, setSaving] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.title.trim()) {
-      alert('Title is required')
-      return
-    }
+    setSubmitting(true)
 
     try {
-      setSaving(true)
-
-      // Get user's company_id
-      const { data: userData } = await supabase
-        .from('users')
-        .select('company_id')
-        .eq('id', user?.id)
-        .single()
-
-      if (!userData?.company_id) {
-        alert('Could not determine your company. Please contact support.')
-        return
+      const clauseNames = {
+        4: 'Clause 4: Context of the Organization',
+        5: 'Clause 5: Leadership',
+        6: 'Clause 6: Planning',
+        7: 'Clause 7: Support',
+        8: 'Clause 8: Operation',
+        9: 'Clause 9: Performance Evaluation',
+        10: 'Clause 10: Improvement'
       }
 
-      // Generate NCR number
-      const year = new Date().getFullYear()
+      // Get count of existing NCRs to generate next number
       const { count } = await supabase
         .from('ncrs')
         .select('*', { count: 'exact', head: true })
-        .eq('company_id', userData.company_id)
+        .eq('company_id', userProfile.company_id)
 
-      const ncrNumber = `NCR-${year}-${String((count || 0) + 1).padStart(3, '0')}`
+      const nextNumber = (count || 0) + 1
+      const year = new Date().getFullYear()
+      const ncrNumber = `NCR-${year}-${String(nextNumber).padStart(3, '0')}`
 
-      const { error } = await supabase.from('ncrs').insert({
-        company_id: userData.company_id,
-        ncr_number: ncrNumber,
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        severity: formData.severity,
-        standard: formData.standard,
-        clause_number: formData.clause_number ? parseInt(formData.clause_number) : null,
-        root_cause: formData.root_cause.trim() || null,
-        corrective_action: formData.corrective_action.trim() || null,
-        due_date: formData.due_date || null,
-        assigned_to_name: formData.assigned_to_name.trim() || null,
-        status: 'Open',
-        date_raised: new Date().toISOString(),
-        created_by: user?.id,
-        uploaded_by: user?.id,
-        archived: false,
-        permanently_deleted: false,
-        deleted: false,
-      })
+      const { error } = await supabase
+        .from('ncrs')
+        .insert([{
+          company_id: userProfile.company_id,
+          ncr_number: ncrNumber,
+          title: formData.title,
+          description: formData.description,
+          standard: formData.standard,
+          clause: formData.clause,
+          clause_name: clauseNames[formData.clause],
+          severity: formData.severity,
+          status: 'Open',
+          assigned_to: userProfile.id,
+          date_opened: new Date().toISOString().split('T')[0],
+          due_date: formData.due_date,
+          root_cause: formData.root_cause,
+          corrective_action: formData.corrective_action
+        }])
 
       if (error) throw error
-      onSuccess()
+
+      alert('NCR created successfully!')
+      onCreated()
     } catch (err) {
       console.error('Error creating NCR:', err)
       alert('Failed to create NCR: ' + err.message)
     } finally {
-      setSaving(false)
+      setSubmitting(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-slate-900/95 backdrop-blur-xl border border-white/15 rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">Create New NCR</h2>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl">
-            <svg className="w-6 h-6 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="glass glass-border rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <h3 className="text-2xl font-bold text-white mb-6">Create New NCR</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm text-white/60 block mb-1.5">Title *</label>
+            <label className="text-sm text-white/60 block mb-2">Title *</label>
             <input
               type="text"
-              value={formData.title}
-              onChange={e => setFormData({...formData, title: e.target.value})}
-              className="w-full px-4 py-2.5 bg-white/[0.07] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500/50"
-              placeholder="e.g., Incomplete Training Records"
               required
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+              placeholder="Brief description of non-conformance"
             />
           </div>
 
           <div>
-            <label className="text-sm text-white/60 block mb-1.5">Description</label>
+            <label className="text-sm text-white/60 block mb-2">Description *</label>
             <textarea
+              required
               value={formData.description}
-              onChange={e => setFormData({...formData, description: e.target.value})}
-              rows={3}
-              className="w-full px-4 py-2.5 bg-white/[0.07] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
-              placeholder="Describe the non-conformance..."
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+              rows="3"
+              placeholder="Detailed description..."
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-white/60 block mb-1.5">Severity</label>
+              <label className="text-sm text-white/60 block mb-2">Standard *</label>
               <select
-                value={formData.severity}
-                onChange={e => setFormData({...formData, severity: e.target.value})}
-                className="w-full px-4 py-2.5 bg-white/[0.07] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500/50"
-                style={{ colorScheme: 'dark' }}
+                required
+                value={formData.standard}
+                onChange={(e) => setFormData({ ...formData, standard: e.target.value })}
+                className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
               >
-                <option value="Critical">Critical</option>
-                <option value="Major">Major</option>
-                <option value="Minor">Minor</option>
-                <option value="Observation">Observation</option>
+                {userProfile.standards_access.map(std => (
+                  <option key={std} value={std} className="bg-slate-800">
+                    {std.replace('_', ' ')}
+                  </option>
+                ))}
               </select>
             </div>
+
             <div>
-              <label className="text-sm text-white/60 block mb-1.5">Standard</label>
+              <label className="text-sm text-white/60 block mb-2">Clause *</label>
               <select
-                value={formData.standard}
-                onChange={e => setFormData({...formData, standard: e.target.value})}
-                className="w-full px-4 py-2.5 bg-white/[0.07] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500/50"
-                style={{ colorScheme: 'dark' }}
+                required
+                value={formData.clause}
+                onChange={(e) => setFormData({ ...formData, clause: parseInt(e.target.value) })}
+                className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
               >
-                <option value="ISO_9001">ISO 9001:2015</option>
-                <option value="ISO_14001">ISO 14001:2015</option>
-                <option value="ISO_45001">ISO 45001:2018</option>
+                {[4, 5, 6, 7, 8, 9, 10].map(n => (
+                  <option key={n} value={n} className="bg-slate-800">Clause {n}</option>
+                ))}
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-white/60 block mb-1.5">Clause Number</label>
+              <label className="text-sm text-white/60 block mb-2">Severity *</label>
               <select
-                value={formData.clause_number}
-                onChange={e => setFormData({...formData, clause_number: e.target.value})}
-                className="w-full px-4 py-2.5 bg-white/[0.07] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500/50"
-                style={{ colorScheme: 'dark' }}
+                required
+                value={formData.severity}
+                onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
               >
-                <option value="">Select Clause</option>
-                <option value="4">4 - Context</option>
-                <option value="5">5 - Leadership</option>
-                <option value="6">6 - Planning</option>
-                <option value="7">7 - Support</option>
-                <option value="8">8 - Operation</option>
-                <option value="9">9 - Performance Evaluation</option>
-                <option value="10">10 - Improvement</option>
+                <option value="Critical" className="bg-slate-800">Critical</option>
+                <option value="Major" className="bg-slate-800">Major</option>
+                <option value="Minor" className="bg-slate-800">Minor</option>
               </select>
             </div>
+
             <div>
-              <label className="text-sm text-white/60 block mb-1.5">Due Date</label>
+              <label className="text-sm text-white/60 block mb-2">Due Date *</label>
               <input
                 type="date"
+                required
                 value={formData.due_date}
-                onChange={e => setFormData({...formData, due_date: e.target.value})}
-                className="w-full px-4 py-2.5 bg-white/[0.07] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500/50"
-                style={{ colorScheme: 'dark' }}
+                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-sm text-white/60 block mb-1.5">Assigned To</label>
-            <input
-              type="text"
-              value={formData.assigned_to_name}
-              onChange={e => setFormData({...formData, assigned_to_name: e.target.value})}
-              className="w-full px-4 py-2.5 bg-white/[0.07] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500/50"
-              placeholder="e.g., Quality Manager"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-white/60 block mb-1.5">Root Cause</label>
+            <label className="text-sm text-white/60 block mb-2">Root Cause *</label>
             <textarea
+              required
               value={formData.root_cause}
-              onChange={e => setFormData({...formData, root_cause: e.target.value})}
-              rows={2}
-              className="w-full px-4 py-2.5 bg-white/[0.07] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
-              placeholder="Identify the root cause..."
+              onChange={(e) => setFormData({ ...formData, root_cause: e.target.value })}
+              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+              rows="2"
             />
           </div>
 
           <div>
-            <label className="text-sm text-white/60 block mb-1.5">Corrective Action</label>
+            <label className="text-sm text-white/60 block mb-2">Corrective Action *</label>
             <textarea
+              required
               value={formData.corrective_action}
-              onChange={e => setFormData({...formData, corrective_action: e.target.value})}
-              rows={2}
-              className="w-full px-4 py-2.5 bg-white/[0.07] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
-              placeholder="Describe the corrective action plan..."
+              onChange={(e) => setFormData({ ...formData, corrective_action: e.target.value })}
+              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+              rows="2"
             />
           </div>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              disabled={saving}
-              className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:hover:scale-100"
+              disabled={submitting}
+              className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg disabled:opacity-50"
             >
-              {saving ? 'Creating...' : 'Create NCR'}
+              {submitting ? 'Creating...' : 'Create NCR'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 bg-white/[0.07] text-white font-medium rounded-xl hover:bg-white/[0.12] transition-colors"
+              className="px-6 py-3 glass glass-border text-white rounded-lg hover:bg-white/10"
             >
               Cancel
             </button>
