@@ -438,7 +438,7 @@ const NCRs = () => {
                       Archive
                     </button>
                   )}
-                  {userProfile.role === 'superadmin' && (
+                  {['superadmin', 'admin', 'lead_auditor'].includes(userProfile.role) && (
                     <button
                       onClick={() => deleteNCR(selectedNCR.id, true)}
                       className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg"

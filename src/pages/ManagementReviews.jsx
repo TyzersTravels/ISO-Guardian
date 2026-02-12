@@ -603,7 +603,7 @@ const ReviewDetailsModal = ({ review, onClose, onComplete, onDelete, onRestore, 
                 Archive
               </button>
             )}
-            {userProfile.role === 'superadmin' && (
+            {['superadmin', 'admin', 'lead_auditor'].includes(userProfile.role) && (
               <button
                 onClick={() => onDelete(review.id, true)}
                 className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg"
