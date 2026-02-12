@@ -49,6 +49,53 @@ const Audits = () => {
     }
   }
 
+  const deleteAudit = async (auditId, permanent = false) => {
+    const confirmMsg = permanent 
+      ? '⚠️ PERMANENTLY DELETE this audit? This cannot be undone.'
+      : 'Archive this audit? It can be restored later.'
+    
+    if (!confirm(confirmMsg)) return
+
+    try {
+      if (permanent) {
+        await supabase.from('deletion_audit_trail').insert([{
+          company_id: userProfile.company_id,
+          table_name: 'audits',
+          record_id: auditId,
+          deleted_by: userProfile.id,
+          deleted_at: new Date().toISOString(),
+          reason: 'User initiated permanent deletion'
+        }])
+        
+        const { error } = await supabase.from('audits').delete().eq('id', auditId)
+        if (error) throw error
+        alert('Audit permanently deleted.')
+      } else {
+        const { error } = await supabase.from('audits').update({ archived: true }).eq('id', auditId)
+        if (error) throw error
+        alert('Audit archived successfully.')
+      }
+
+      fetchAudits()
+      setSelectedAudit(null)
+    } catch (err) {
+      console.error('Error deleting audit:', err)
+      alert('Failed to delete audit: ' + err.message)
+    }
+  }
+
+  const restoreAudit = async (auditId) => {
+    try {
+      const { error } = await supabase.from('audits').update({ archived: false }).eq('id', auditId)
+      if (error) throw error
+      alert('Audit restored.')
+      fetchAudits()
+    } catch (err) {
+      console.error('Error restoring audit:', err)
+      alert('Failed to restore audit: ' + err.message)
+    }
+  }
+
   const exportAudit = (audit) => {
     const html = `
 <!DOCTYPE html>
@@ -156,14 +203,17 @@ const Audits = () => {
   }
 
   const filteredAudits = audits.filter(audit => {
+    if (filterStatus === 'Archived') return audit.archived === true
+    if (audit.archived) return false
     if (filterStatus === 'all') return true
     return audit.status === filterStatus
   })
 
-  // Show all Planned audits (don't filter by date - some might be in the past)
+  const activeAudits = audits.filter(a => !a.archived)
   const upcomingAudits = filteredAudits.filter(a => a.status === 'Planned')
   const inProgressAudits = filteredAudits.filter(a => a.status === 'In Progress')
   const pastAudits = filteredAudits.filter(a => a.status === 'Complete')
+  const archivedCount = audits.filter(a => a.archived).length
 
   if (loading) {
     return (
@@ -180,7 +230,7 @@ const Audits = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">Audit Schedule</h2>
-            <p className="text-cyan-200 text-sm">{upcomingAudits.length} planned audits</p>
+            <p className="text-cyan-200 text-sm">{filteredAudits.length} audits {filterStatus === 'Archived' ? '(archived)' : ''}</p>
           </div>
           <button
             onClick={() => setShowCreateForm(true)}
@@ -202,22 +252,27 @@ const Audits = () => {
             <option value="In Progress" className="bg-slate-800">In Progress</option>
             <option value="Complete" className="bg-slate-800">Complete</option>
             <option value="Cancelled" className="bg-slate-800">Cancelled</option>
+            <option value="Archived" className="bg-slate-800">Archived</option>
           </select>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div className="glass glass-border rounded-lg p-4">
-            <div className="text-3xl font-bold text-cyan-400">{upcomingAudits.length}</div>
+            <div className="text-3xl font-bold text-cyan-400">{activeAudits.filter(a => a.status === 'Planned').length}</div>
             <div className="text-sm text-white/70">Planned</div>
           </div>
           <div className="glass glass-border rounded-lg p-4">
-            <div className="text-3xl font-bold text-green-400">{pastAudits.length}</div>
+            <div className="text-3xl font-bold text-green-400">{activeAudits.filter(a => a.status === 'Complete').length}</div>
             <div className="text-sm text-white/70">Completed</div>
           </div>
           <div className="glass glass-border rounded-lg p-4">
-            <div className="text-3xl font-bold text-orange-400">{inProgressAudits.length}</div>
+            <div className="text-3xl font-bold text-orange-400">{activeAudits.filter(a => a.status === 'In Progress').length}</div>
             <div className="text-sm text-white/70">In Progress</div>
+          </div>
+          <div className="glass glass-border rounded-lg p-4">
+            <div className="text-3xl font-bold text-white/40">{archivedCount}</div>
+            <div className="text-sm text-white/70">Archived</div>
           </div>
         </div>
 
@@ -269,6 +324,23 @@ const Audits = () => {
           </div>
         )}
 
+        {/* Archived Audits */}
+        {filterStatus === 'Archived' && filteredAudits.length > 0 && (
+          <div>
+            <h3 className="text-lg font-bold text-white/60 mb-3">Archived Audits</h3>
+            <div className="space-y-3">
+              {filteredAudits.map(audit => (
+                <AuditCard
+                  key={audit.id}
+                  audit={audit}
+                  onClick={() => setSelectedAudit(audit)}
+                  isArchived
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {filteredAudits.length === 0 && (
           <div className="glass glass-border rounded-lg p-8 text-center text-white/60">
             No audits found
@@ -281,6 +353,8 @@ const Audits = () => {
             audit={selectedAudit}
             onClose={() => setSelectedAudit(null)}
             onUpdateStatus={updateAuditStatus}
+            onDelete={deleteAudit}
+            onRestore={restoreAudit}
             exportAudit={exportAudit}
             userProfile={userProfile}
           />
@@ -312,7 +386,7 @@ const Audits = () => {
   )
 }
 
-const AuditCard = ({ audit, onClick }) => {
+const AuditCard = ({ audit, onClick, isArchived }) => {
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-ZA', { 
       year: 'numeric', 
@@ -338,7 +412,7 @@ const AuditCard = ({ audit, onClick }) => {
   return (
     <div
       onClick={onClick}
-      className="glass glass-border rounded-lg p-4 hover:bg-white/5 cursor-pointer"
+      className={`glass glass-border rounded-lg p-4 hover:bg-white/5 cursor-pointer ${isArchived ? 'opacity-60' : ''}`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
@@ -347,8 +421,8 @@ const AuditCard = ({ audit, onClick }) => {
             <span className={`text-xs px-2 py-1 rounded ${typeColors[audit.audit_type]}`}>
               {audit.audit_type}
             </span>
-            <span className={`text-xs px-2 py-1 rounded ${statusColors[audit.status]}`}>
-              {audit.status}
+            <span className={`text-xs px-2 py-1 rounded ${isArchived ? 'bg-gray-500/20 text-gray-300' : statusColors[audit.status]}`}>
+              {isArchived ? 'Archived' : audit.status}
             </span>
           </div>
           <div className="font-semibold text-white mb-1">{audit.standard.replace('_', ' ')}</div>
@@ -368,7 +442,7 @@ const AuditCard = ({ audit, onClick }) => {
   )
 }
 
-const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, exportAudit, userProfile }) => {
+const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore, exportAudit, userProfile }) => {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
@@ -426,35 +500,58 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, exportAudit, userPr
             <div className="text-white capitalize">{audit.reminder_method}</div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 pt-4">
-            {audit.status === 'Planned' && (
+          <div className="flex gap-3 flex-wrap pt-4">
+            {!audit.archived && audit.status === 'Planned' && (
               <button
                 onClick={() => onUpdateStatus(audit.id, 'In Progress')}
-                className="py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg"
+                className="py-3 px-6 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg"
               >
                 Start Audit
               </button>
             )}
-            {audit.status === 'In Progress' && (
+            {!audit.archived && audit.status === 'In Progress' && (
               <button
                 onClick={() => onUpdateStatus(audit.id, 'Complete')}
-                className="py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg"
+                className="py-3 px-6 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg"
               >
                 Complete Audit
               </button>
             )}
             <button
               onClick={() => exportAudit(audit)}
-              className="py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2"
+              className="py-3 px-6 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
               Export
             </button>
+            {audit.archived ? (
+              <button
+                onClick={() => onRestore(audit.id)}
+                className="py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg"
+              >
+                ↩ Restore
+              </button>
+            ) : (
+              <button
+                onClick={() => onDelete(audit.id)}
+                className="py-3 px-6 bg-orange-500/80 hover:bg-orange-600 text-white font-semibold rounded-lg"
+              >
+                Archive
+              </button>
+            )}
+            {userProfile.role === 'superadmin' && (
+              <button
+                onClick={() => onDelete(audit.id, true)}
+                className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg"
+              >
+                Delete Forever
+              </button>
+            )}
             <button
               onClick={onClose}
-              className="py-3 glass glass-border text-white font-semibold rounded-lg hover:bg-white/10"
+              className="py-3 px-6 glass glass-border text-white font-semibold rounded-lg hover:bg-white/10"
             >
               Close
             </button>
@@ -482,7 +579,6 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
     setSubmitting(true)
 
     try {
-      // Get count for audit number
       const { count } = await supabase
         .from('audits')
         .select('*', { count: 'exact', head: true })

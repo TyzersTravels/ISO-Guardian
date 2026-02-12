@@ -11,6 +11,7 @@ const Documents = () => {
   const [showUploadForm, setShowUploadForm] = useState(false)
   const [showBulkUpload, setShowBulkUpload] = useState(false)
   const [previewDoc, setPreviewDoc] = useState(null)
+  const [showArchived, setShowArchived] = useState(false)
   
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
@@ -49,9 +50,62 @@ const Documents = () => {
     }
   }
 
+  const deleteDocument = async (docId, permanent = false) => {
+    const doc = documents.find(d => d.id === docId)
+    const confirmMsg = permanent 
+      ? '⚠️ PERMANENTLY DELETE this document and its file? This cannot be undone.'
+      : 'Archive this document? It can be restored later.'
+    
+    if (!confirm(confirmMsg)) return
+
+    try {
+      if (permanent) {
+        // Log to audit trail
+        await supabase.from('deletion_audit_trail').insert([{
+          company_id: userProfile.company_id,
+          table_name: 'documents',
+          record_id: docId,
+          deleted_by: userProfile.id,
+          deleted_at: new Date().toISOString(),
+          reason: 'User initiated permanent deletion'
+        }])
+        
+        // Delete file from storage
+        if (doc?.file_path) {
+          await supabase.storage.from('documents').remove([doc.file_path])
+        }
+        
+        const { error } = await supabase.from('documents').delete().eq('id', docId)
+        if (error) throw error
+        alert('Document permanently deleted.')
+      } else {
+        const { error } = await supabase.from('documents').update({ archived: true }).eq('id', docId)
+        if (error) throw error
+        alert('Document archived successfully.')
+      }
+
+      fetchDocuments()
+      setPreviewDoc(null)
+    } catch (err) {
+      console.error('Error deleting document:', err)
+      alert('Failed to delete document: ' + err.message)
+    }
+  }
+
+  const restoreDocument = async (docId) => {
+    try {
+      const { error } = await supabase.from('documents').update({ archived: false }).eq('id', docId)
+      if (error) throw error
+      alert('Document restored.')
+      fetchDocuments()
+    } catch (err) {
+      console.error('Error restoring document:', err)
+      alert('Failed to restore document: ' + err.message)
+    }
+  }
+
   const handleDownload = async (doc) => {
     try {
-      // If document has file_path (uploaded file)
       if (doc.file_path) {
         const { data, error } = await supabase.storage
           .from('documents')
@@ -59,11 +113,9 @@ const Documents = () => {
 
         if (error) throw error
 
-        // Get file extension
         const fileExt = doc.file_path.split('.').pop()
         const fileName = doc.name + (fileExt ? '.' + fileExt : '')
 
-        // Create download link with proper MIME type
         const blob = new Blob([data], { 
           type: data.type || 'application/octet-stream' 
         })
@@ -73,11 +125,9 @@ const Documents = () => {
         a.download = fileName
         a.style.display = 'none'
         
-        // Force download (don't open in browser)
         document.body.appendChild(a)
         a.click()
         
-        // Cleanup
         setTimeout(() => {
           window.URL.revokeObjectURL(url)
           document.body.removeChild(a)
@@ -100,32 +150,26 @@ const Documents = () => {
 
         if (error) throw error
 
-        // Get file extension to determine how to display
         const fileExt = doc.file_path.split('.').pop().toLowerCase()
         
-        // For HTML files, read content and display in iframe with sandbox
         if (fileExt === 'html' || fileExt === 'htm') {
           const text = await data.text()
           const blob = new Blob([text], { type: 'text/html' })
           const url = URL.createObjectURL(blob)
           setPreviewDoc({ ...doc, previewUrl: url, fileType: 'html' })
         } 
-        // For PDFs, display directly
         else if (fileExt === 'pdf') {
           const url = URL.createObjectURL(data)
           setPreviewDoc({ ...doc, previewUrl: url, fileType: 'pdf' })
         }
-        // For images
         else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) {
           const url = URL.createObjectURL(data)
           setPreviewDoc({ ...doc, previewUrl: url, fileType: 'image' })
         }
-        // For text files
         else if (['txt', 'csv', 'log', 'md'].includes(fileExt)) {
           const text = await data.text()
           setPreviewDoc({ ...doc, previewContent: text, fileType: 'text' })
         }
-        // For Word/Excel - download instead
         else {
           await handleDownload(doc)
         }
@@ -153,11 +197,9 @@ const Documents = () => {
 
       const fileExt = doc.file_path.split('.').pop().toLowerCase()
 
-      // If it's HTML, convert to Word format
       if (fileExt === 'html' || fileExt === 'htm') {
         const htmlContent = await data.text()
         
-        // Wrap in Word-friendly HTML with proper styling
         const wordHtml = `
 <!DOCTYPE html>
 <html>
@@ -197,7 +239,6 @@ ${htmlContent}
         window.URL.revokeObjectURL(url)
         document.body.removeChild(a)
       } 
-      // For other file types, download as-is with proper extension
       else {
         const url = window.URL.createObjectURL(data)
         const a = document.createElement('a')
@@ -217,8 +258,12 @@ ${htmlContent}
     }
   }
 
-  // Apply filters
+  // Apply filters - now with archived support
   const filteredDocuments = documents.filter(doc => {
+    // Archive filter
+    if (showArchived) return doc.archived === true
+    if (doc.archived) return false
+
     const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStandard = standardFilter === 'all' || doc.standard === standardFilter
     const matchesClause = clauseFilter === 'all' || doc.clause === parseInt(clauseFilter)
@@ -234,6 +279,8 @@ ${htmlContent}
     acc[doc.standard][doc.clause].push(doc)
     return acc
   }, {})
+
+  const archivedCount = documents.filter(d => d.archived).length
 
   const clearFilters = () => {
     setSearchTerm('')
@@ -274,86 +321,99 @@ ${htmlContent}
         <div>
           <h2 className="text-2xl font-bold text-white">Document Management</h2>
           <p className="text-cyan-200 text-sm">
-            {filteredDocuments.length} of {documents.length} documents
+            {showArchived 
+              ? `${archivedCount} archived documents` 
+              : `${filteredDocuments.length} of ${documents.filter(d => !d.archived).length} documents`}
           </p>
         </div>
-        <button
-          onClick={() => setShowUploadForm(true)}
-          className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl flex items-center gap-2 hover:scale-105 transition-transform shadow-lg"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-          Upload Document
-        </button>
-      </div>
-
-      {/* Search & Filters */}
-      <div className="glass glass-border rounded-2xl p-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {/* Search */}
-          <input
-            type="text"
-            placeholder="Search documents..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-4 py-2 glass glass-border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-          />
-
-          {/* Standard Filter */}
-          <select
-            value={standardFilter}
-            onChange={(e) => setStandardFilter(e.target.value)}
-            className="px-4 py-2 glass glass-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-transparent"
-          >
-            <option value="all" className="bg-slate-800">All Standards</option>
-            {userProfile.standards_access.map(std => (
-              <option key={std} value={std} className="bg-slate-800">
-                {std.replace('_', ' ')}
-              </option>
-            ))}
-          </select>
-
-          {/* Clause Filter */}
-          <select
-            value={clauseFilter}
-            onChange={(e) => setClauseFilter(e.target.value)}
-            className="px-4 py-2 glass glass-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-transparent"
-          >
-            <option value="all" className="bg-slate-800">All Clauses</option>
-            {[4, 5, 6, 7, 8, 9, 10].map(n => (
-              <option key={n} value={n} className="bg-slate-800">Clause {n}</option>
-            ))}
-          </select>
-
-          {/* Type Filter */}
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-4 py-2 glass glass-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-transparent"
-          >
-            <option value="all" className="bg-slate-800">All Types</option>
-            <option value="Policy" className="bg-slate-800">Policy</option>
-            <option value="Procedure" className="bg-slate-800">Procedure</option>
-            <option value="Form" className="bg-slate-800">Form</option>
-            <option value="Manual" className="bg-slate-800">Manual</option>
-            <option value="Record" className="bg-slate-800">Record</option>
-          </select>
-
-          {/* Clear Filters */}
+        <div className="flex gap-2">
           <button
-            onClick={clearFilters}
-            className="px-4 py-2 glass glass-border rounded-xl text-white hover:bg-white/10 transition-colors"
+            onClick={() => setShowArchived(!showArchived)}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold ${
+              showArchived 
+                ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' 
+                : 'glass glass-border text-white/70 hover:bg-white/10'
+            }`}
           >
-            Clear All
+            {showArchived ? `📦 Archived (${archivedCount})` : `📦 Archive${archivedCount > 0 ? ` (${archivedCount})` : ''}`}
+          </button>
+          <button
+            onClick={() => setShowUploadForm(true)}
+            className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl flex items-center gap-2 hover:scale-105 transition-transform shadow-lg"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Upload Document
           </button>
         </div>
       </div>
 
+      {/* Search & Filters */}
+      {!showArchived && (
+        <div className="glass glass-border rounded-2xl p-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <input
+              type="text"
+              placeholder="Search documents..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="px-4 py-2 glass glass-border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            />
+
+            <select
+              value={standardFilter}
+              onChange={(e) => setStandardFilter(e.target.value)}
+              className="px-4 py-2 glass glass-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-transparent"
+            >
+              <option value="all" className="bg-slate-800">All Standards</option>
+              {userProfile.standards_access.map(std => (
+                <option key={std} value={std} className="bg-slate-800">
+                  {std.replace('_', ' ')}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={clauseFilter}
+              onChange={(e) => setClauseFilter(e.target.value)}
+              className="px-4 py-2 glass glass-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-transparent"
+            >
+              <option value="all" className="bg-slate-800">All Clauses</option>
+              {[4, 5, 6, 7, 8, 9, 10].map(n => (
+                <option key={n} value={n} className="bg-slate-800">Clause {n}</option>
+              ))}
+            </select>
+
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-4 py-2 glass glass-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-transparent"
+            >
+              <option value="all" className="bg-slate-800">All Types</option>
+              <option value="Policy" className="bg-slate-800">Policy</option>
+              <option value="Procedure" className="bg-slate-800">Procedure</option>
+              <option value="Form" className="bg-slate-800">Form</option>
+              <option value="Manual" className="bg-slate-800">Manual</option>
+              <option value="Record" className="bg-slate-800">Record</option>
+            </select>
+
+            <button
+              onClick={clearFilters}
+              className="px-4 py-2 glass glass-border rounded-xl text-white hover:bg-white/10 transition-colors"
+            >
+              Clear All
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Documents by Standard & Clause */}
       {Object.keys(groupedDocs).length === 0 ? (
         <div className="glass glass-border rounded-2xl p-8 text-center">
-          <p className="text-white/60">No documents found matching your filters.</p>
+          <p className="text-white/60">
+            {showArchived ? 'No archived documents.' : 'No documents found matching your filters.'}
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -367,7 +427,7 @@ ${htmlContent}
                 <div key={clause} className="mb-4 last:mb-0">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-lg font-semibold text-cyan-300">
-                      Clause {clause}: {docs[0].clause_name.split(':')[1]}
+                      Clause {clause}: {docs[0].clause_name?.split(':')[1] || ''}
                     </h4>
                     <span className="text-sm text-white/60">
                       {docs.length} document{docs.length !== 1 ? 's' : ''}
@@ -378,7 +438,7 @@ ${htmlContent}
                     {docs.map(doc => (
                       <div
                         key={doc.id}
-                        className="glass glass-border rounded-xl p-4 hover:bg-white/5 transition-colors"
+                        className={`glass glass-border rounded-xl p-4 hover:bg-white/5 transition-colors ${doc.archived ? 'opacity-60' : ''}`}
                       >
                         <div className="flex items-start gap-4">
                           <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -390,8 +450,10 @@ ${htmlContent}
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="font-semibold text-white">{doc.name}</span>
-                              <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-300">
-                                {doc.status}
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                doc.archived ? 'bg-gray-500/20 text-gray-300' : 'bg-green-500/20 text-green-300'
+                              }`}>
+                                {doc.archived ? 'Archived' : doc.status}
                               </span>
                             </div>
                             
@@ -410,26 +472,52 @@ ${htmlContent}
                             )}
                           </div>
                           
-                          <div className="flex gap-2">
-                            <button 
-                              onClick={() => handleView(doc)}
-                              className="px-4 py-2 glass glass-border text-white rounded-lg hover:bg-blue-500/20 transition-colors text-sm flex items-center gap-2"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              View
-                            </button>
-                            <button 
-                              onClick={() => exportDocumentAsWord(doc)}
-                              className="px-4 py-2 glass glass-border text-white rounded-lg hover:bg-cyan-500/20 transition-colors text-sm flex items-center gap-2"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                              </svg>
-                              Download
-                            </button>
+                          <div className="flex gap-2 flex-wrap">
+                            {!doc.archived && (
+                              <>
+                                <button 
+                                  onClick={() => handleView(doc)}
+                                  className="px-3 py-2 glass glass-border text-white rounded-lg hover:bg-blue-500/20 transition-colors text-sm flex items-center gap-1"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                  View
+                                </button>
+                                <button 
+                                  onClick={() => exportDocumentAsWord(doc)}
+                                  className="px-3 py-2 glass glass-border text-white rounded-lg hover:bg-cyan-500/20 transition-colors text-sm flex items-center gap-1"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
+                                  Download
+                                </button>
+                                <button 
+                                  onClick={() => deleteDocument(doc.id)}
+                                  className="px-3 py-2 bg-orange-500/20 text-orange-300 rounded-lg hover:bg-orange-500/30 transition-colors text-sm"
+                                >
+                                  Archive
+                                </button>
+                              </>
+                            )}
+                            {doc.archived && (
+                              <button 
+                                onClick={() => restoreDocument(doc.id)}
+                                className="px-3 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors text-sm"
+                              >
+                                ↩ Restore
+                              </button>
+                            )}
+                            {userProfile.role === 'superadmin' && (
+                              <button 
+                                onClick={() => deleteDocument(doc.id, true)}
+                                className="px-3 py-2 bg-red-600/20 text-red-300 rounded-lg hover:bg-red-600/30 transition-colors text-sm"
+                              >
+                                Delete
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -474,17 +562,42 @@ ${htmlContent}
                   {previewDoc.standard.replace('_', ' ')} | {previewDoc.clause_name} | Rev {previewDoc.version}
                 </p>
               </div>
-              <button
-                onClick={() => {
-                  window.URL.revokeObjectURL(previewDoc.previewUrl)
-                  setPreviewDoc(null)
-                }}
-                className="p-2 hover:bg-white/10 rounded-lg"
-              >
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex gap-2">
+                {previewDoc.archived ? (
+                  <button
+                    onClick={() => restoreDocument(previewDoc.id)}
+                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm"
+                  >
+                    ↩ Restore
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => deleteDocument(previewDoc.id)}
+                    className="px-4 py-2 bg-orange-500/80 hover:bg-orange-600 text-white rounded-lg text-sm"
+                  >
+                    Archive
+                  </button>
+                )}
+                {userProfile.role === 'superadmin' && (
+                  <button
+                    onClick={() => deleteDocument(previewDoc.id, true)}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+                  >
+                    Delete Forever
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    if (previewDoc.previewUrl) window.URL.revokeObjectURL(previewDoc.previewUrl)
+                    setPreviewDoc(null)
+                  }}
+                  className="p-2 hover:bg-white/10 rounded-lg"
+                >
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-hidden bg-white">
               {previewDoc.fileType === 'html' && (
@@ -569,7 +682,6 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
         10: 'Clause 10: Improvement'
       }
 
-      // Upload file to Supabase Storage
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
       const filePath = `${userProfile.company_id}/${fileName}`
@@ -580,7 +692,6 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
 
       if (uploadError) throw uploadError
 
-      // Create document record in database
       const { error: dbError } = await supabase
         .from('documents')
         .insert([{

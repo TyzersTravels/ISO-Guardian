@@ -9,6 +9,7 @@ const ManagementReviews = () => {
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [selectedReview, setSelectedReview] = useState(null)
+  const [showArchived, setShowArchived] = useState(false)
 
   useEffect(() => {
     fetchReviews()
@@ -48,8 +49,54 @@ const ManagementReviews = () => {
     }
   }
 
+  const deleteReview = async (reviewId, permanent = false) => {
+    const confirmMsg = permanent 
+      ? '⚠️ PERMANENTLY DELETE this review? This cannot be undone.'
+      : 'Archive this review? It can be restored later.'
+    
+    if (!confirm(confirmMsg)) return
+
+    try {
+      if (permanent) {
+        await supabase.from('deletion_audit_trail').insert([{
+          company_id: userProfile.company_id,
+          table_name: 'management_reviews',
+          record_id: reviewId,
+          deleted_by: userProfile.id,
+          deleted_at: new Date().toISOString(),
+          reason: 'User initiated permanent deletion'
+        }])
+        
+        const { error } = await supabase.from('management_reviews').delete().eq('id', reviewId)
+        if (error) throw error
+        alert('Review permanently deleted.')
+      } else {
+        const { error } = await supabase.from('management_reviews').update({ archived: true }).eq('id', reviewId)
+        if (error) throw error
+        alert('Review archived successfully.')
+      }
+
+      fetchReviews()
+      setSelectedReview(null)
+    } catch (err) {
+      console.error('Error deleting review:', err)
+      alert('Failed to delete review: ' + err.message)
+    }
+  }
+
+  const restoreReview = async (reviewId) => {
+    try {
+      const { error } = await supabase.from('management_reviews').update({ archived: false }).eq('id', reviewId)
+      if (error) throw error
+      alert('Review restored.')
+      fetchReviews()
+    } catch (err) {
+      console.error('Error restoring review:', err)
+      alert('Failed to restore review: ' + err.message)
+    }
+  }
+
   const exportReview = (review, userProfile) => {
-    // Create HTML document that Word can open
     let html = `
 <!DOCTYPE html>
 <html>
@@ -186,8 +233,14 @@ const ManagementReviews = () => {
     document.body.removeChild(a)
   }
 
-  const scheduledReviews = reviews.filter(r => r.status === 'Scheduled')
-  const completedReviews = reviews.filter(r => r.status === 'Complete')
+  // Filter reviews based on archived toggle
+  const activeReviews = reviews.filter(r => !r.archived)
+  const archivedReviews = reviews.filter(r => r.archived)
+  const displayReviews = showArchived ? archivedReviews : activeReviews
+
+  const scheduledReviews = displayReviews.filter(r => r.status === 'Scheduled')
+  const completedReviews = displayReviews.filter(r => r.status === 'Complete')
+  const archivedCount = archivedReviews.length
 
   if (loading) {
     return (
@@ -204,30 +257,48 @@ const ManagementReviews = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">Management Reviews</h2>
-            <p className="text-cyan-200 text-sm">{scheduledReviews.length} scheduled reviews</p>
+            <p className="text-cyan-200 text-sm">
+              {showArchived ? `${archivedCount} archived reviews` : `${scheduledReviews.length} scheduled reviews`}
+            </p>
           </div>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-semibold"
-          >
-            + Schedule Review
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowArchived(!showArchived)}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm ${
+                showArchived 
+                  ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' 
+                  : 'glass glass-border text-white/70 hover:bg-white/10'
+              }`}
+            >
+              {showArchived ? `📦 Archived (${archivedCount})` : `📦 Archive${archivedCount > 0 ? ` (${archivedCount})` : ''}`}
+            </button>
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-semibold"
+            >
+              + Schedule Review
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="glass glass-border rounded-lg p-4">
-            <div className="text-3xl font-bold text-orange-400">{scheduledReviews.length}</div>
+            <div className="text-3xl font-bold text-orange-400">{activeReviews.filter(r => r.status === 'Scheduled').length}</div>
             <div className="text-sm text-white/70">Scheduled</div>
           </div>
           <div className="glass glass-border rounded-lg p-4">
-            <div className="text-3xl font-bold text-green-400">{completedReviews.length}</div>
+            <div className="text-3xl font-bold text-green-400">{activeReviews.filter(r => r.status === 'Complete').length}</div>
             <div className="text-sm text-white/70">Completed</div>
+          </div>
+          <div className="glass glass-border rounded-lg p-4">
+            <div className="text-3xl font-bold text-white/40">{archivedCount}</div>
+            <div className="text-sm text-white/70">Archived</div>
           </div>
         </div>
 
         {/* Scheduled Reviews */}
-        {scheduledReviews.length > 0 && (
+        {!showArchived && scheduledReviews.length > 0 && (
           <div>
             <h3 className="text-lg font-bold text-white mb-3">Upcoming Reviews</h3>
             <div className="space-y-3">
@@ -243,7 +314,7 @@ const ManagementReviews = () => {
         )}
 
         {/* Completed Reviews */}
-        {completedReviews.length > 0 && (
+        {!showArchived && completedReviews.length > 0 && (
           <div>
             <h3 className="text-lg font-bold text-white mb-3">Completed Reviews</h3>
             <div className="space-y-3">
@@ -258,9 +329,26 @@ const ManagementReviews = () => {
           </div>
         )}
 
-        {reviews.length === 0 && (
+        {/* Archived Reviews */}
+        {showArchived && archivedReviews.length > 0 && (
+          <div>
+            <h3 className="text-lg font-bold text-white/60 mb-3">Archived Reviews</h3>
+            <div className="space-y-3">
+              {archivedReviews.map(review => (
+                <ReviewCard
+                  key={review.id}
+                  review={review}
+                  onClick={() => setSelectedReview(review)}
+                  isArchived
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {displayReviews.length === 0 && (
           <div className="glass glass-border rounded-lg p-8 text-center text-white/60">
-            No management reviews scheduled
+            {showArchived ? 'No archived reviews' : 'No management reviews scheduled'}
           </div>
         )}
 
@@ -270,6 +358,8 @@ const ManagementReviews = () => {
             review={selectedReview}
             onClose={() => setSelectedReview(null)}
             onComplete={completeReview}
+            onDelete={deleteReview}
+            onRestore={restoreReview}
             exportReview={exportReview}
             userProfile={userProfile}
           />
@@ -301,7 +391,7 @@ const ManagementReviews = () => {
   )
 }
 
-const ReviewCard = ({ review, onClick }) => {
+const ReviewCard = ({ review, onClick, isArchived }) => {
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-ZA', { 
       year: 'numeric', 
@@ -319,14 +409,14 @@ const ReviewCard = ({ review, onClick }) => {
   return (
     <div
       onClick={onClick}
-      className="glass glass-border rounded-lg p-4 hover:bg-white/5 cursor-pointer"
+      className={`glass glass-border rounded-lg p-4 hover:bg-white/5 cursor-pointer ${isArchived ? 'opacity-60' : ''}`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <span className="font-mono text-cyan-400 text-sm">{review.review_number}</span>
-            <span className={`text-xs px-2 py-1 rounded ${statusColors[review.status]}`}>
-              {review.status}
+            <span className={`text-xs px-2 py-1 rounded ${isArchived ? 'bg-gray-500/20 text-gray-300' : statusColors[review.status]}`}>
+              {isArchived ? 'Archived' : review.status}
             </span>
           </div>
           <div className="font-semibold text-white mb-1">
@@ -349,7 +439,7 @@ const ReviewCard = ({ review, onClick }) => {
   )
 }
 
-const ReviewDetailsModal = ({ review, onClose, onComplete, exportReview, userProfile }) => {
+const ReviewDetailsModal = ({ review, onClose, onComplete, onDelete, onRestore, exportReview, userProfile }) => {
   const [showCompleteForm, setShowCompleteForm] = useState(false)
 
   return (
@@ -388,7 +478,6 @@ const ReviewDetailsModal = ({ review, onClose, onComplete, exportReview, userPro
             </div>
           )}
 
-          {/* AGENDA ITEMS - For completed reviews */}
           {review.status === 'Complete' && review.agenda_items && review.agenda_items.length > 0 && (
             <div>
               <label className="text-sm text-white/60 font-semibold">Agenda Items</label>
@@ -402,7 +491,6 @@ const ReviewDetailsModal = ({ review, onClose, onComplete, exportReview, userPro
             </div>
           )}
 
-          {/* MINUTES - For completed reviews */}
           {review.status === 'Complete' && review.minutes && (
             <div>
               <label className="text-sm text-white/60 font-semibold">Meeting Minutes</label>
@@ -414,7 +502,6 @@ const ReviewDetailsModal = ({ review, onClose, onComplete, exportReview, userPro
             </div>
           )}
 
-          {/* DECISIONS - For completed reviews */}
           {review.status === 'Complete' && review.decisions_made && review.decisions_made.length > 0 && (
             <div>
               <label className="text-sm text-white/60 font-semibold">Management Decisions</label>
@@ -428,7 +515,6 @@ const ReviewDetailsModal = ({ review, onClose, onComplete, exportReview, userPro
             </div>
           )}
 
-          {/* ACTION ITEMS - For completed reviews */}
           {review.status === 'Complete' && review.action_items && Array.isArray(review.action_items) && review.action_items.length > 0 && (
             <div>
               <label className="text-sm text-white/60 font-semibold">Action Items</label>
@@ -456,7 +542,6 @@ const ReviewDetailsModal = ({ review, onClose, onComplete, exportReview, userPro
             </div>
           )}
 
-          {/* RESOURCE DECISIONS - For completed reviews */}
           {review.status === 'Complete' && review.resource_decisions && (
             <div>
               <label className="text-sm text-white/60 font-semibold">Resource Decisions</label>
@@ -466,7 +551,6 @@ const ReviewDetailsModal = ({ review, onClose, onComplete, exportReview, userPro
             </div>
           )}
 
-          {/* IMPROVEMENT OPPORTUNITIES - For completed reviews */}
           {review.status === 'Complete' && review.improvement_opportunities && (
             <div>
               <label className="text-sm text-white/60 font-semibold">Improvement Opportunities Identified</label>
@@ -483,11 +567,12 @@ const ReviewDetailsModal = ({ review, onClose, onComplete, exportReview, userPro
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-3 pt-4">
-            {review.status === 'Scheduled' && !showCompleteForm && (
+          {/* Action Buttons */}
+          <div className="flex gap-3 flex-wrap pt-4">
+            {review.status === 'Scheduled' && !review.archived && !showCompleteForm && (
               <button
                 onClick={() => setShowCompleteForm(true)}
-                className="py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg"
+                className="py-3 px-6 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg"
               >
                 Complete Review & Add Minutes
               </button>
@@ -495,7 +580,7 @@ const ReviewDetailsModal = ({ review, onClose, onComplete, exportReview, userPro
             {review.status === 'Complete' && (
               <button
                 onClick={() => exportReview(review, userProfile)}
-                className="py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2"
+                className="py-3 px-6 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -503,9 +588,32 @@ const ReviewDetailsModal = ({ review, onClose, onComplete, exportReview, userPro
                 Export Minutes
               </button>
             )}
+            {review.archived ? (
+              <button
+                onClick={() => onRestore(review.id)}
+                className="py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg"
+              >
+                ↩ Restore
+              </button>
+            ) : (
+              <button
+                onClick={() => onDelete(review.id)}
+                className="py-3 px-6 bg-orange-500/80 hover:bg-orange-600 text-white font-semibold rounded-lg"
+              >
+                Archive
+              </button>
+            )}
+            {userProfile.role === 'superadmin' && (
+              <button
+                onClick={() => onDelete(review.id, true)}
+                className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg"
+              >
+                Delete Forever
+              </button>
+            )}
             <button
               onClick={onClose}
-              className="py-3 glass glass-border text-white font-semibold rounded-lg hover:bg-white/10"
+              className="py-3 px-6 glass glass-border text-white font-semibold rounded-lg hover:bg-white/10"
             >
               Close
             </button>
@@ -543,7 +651,6 @@ const CreateReviewForm = ({ userProfile, onClose, onCreated }) => {
     setSubmitting(true)
 
     try {
-      // Get count for review number
       const { count } = await supabase
         .from('management_reviews')
         .select('*', { count: 'exact', head: true })
@@ -553,7 +660,6 @@ const CreateReviewForm = ({ userProfile, onClose, onCreated }) => {
       const quarter = Math.ceil((new Date(formData.review_date).getMonth() + 1) / 3)
       const reviewNumber = `MGT-${year}-Q${quarter}`
 
-      // Parse attendees (comma-separated)
       const attendeesArray = formData.attendees
         .split(',')
         .map(a => a.trim())
@@ -702,7 +808,6 @@ const CompleteReviewForm = ({ review, onClose }) => {
     setSubmitting(true)
 
     try {
-      // Parse action items (format: action|responsible|due_date|status per line)
       const actionItemsArray = formData.action_items
         .split('\n')
         .filter(line => line.trim())
@@ -731,7 +836,7 @@ const CompleteReviewForm = ({ review, onClose }) => {
 
       alert('Management review completed with minutes!')
       onClose()
-      window.location.reload() // Refresh to show updated data
+      window.location.reload()
     } catch (err) {
       console.error('Error completing review:', err)
       alert('Failed to complete review: ' + err.message)

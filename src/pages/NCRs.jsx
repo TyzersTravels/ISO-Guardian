@@ -43,7 +43,6 @@ const NCRs = () => {
 
       if (error) throw error
       
-      // Update local state
       setNcrs(ncrs.map(ncr => 
         ncr.id === ncrId ? { ...ncr, status: 'Closed' } : ncr
       ))
@@ -55,8 +54,54 @@ const NCRs = () => {
     }
   }
 
+  const deleteNCR = async (ncrId, permanent = false) => {
+    const confirmMsg = permanent 
+      ? '⚠️ PERMANENTLY DELETE this NCR? This cannot be undone and will be logged for POPIA compliance.'
+      : 'Archive this NCR? It can be restored later.'
+    
+    if (!confirm(confirmMsg)) return
+
+    try {
+      if (permanent) {
+        await supabase.from('deletion_audit_trail').insert([{
+          company_id: userProfile.company_id,
+          table_name: 'ncrs',
+          record_id: ncrId,
+          deleted_by: userProfile.id,
+          deleted_at: new Date().toISOString(),
+          reason: 'User initiated permanent deletion'
+        }])
+        
+        const { error } = await supabase.from('ncrs').delete().eq('id', ncrId)
+        if (error) throw error
+        alert('NCR permanently deleted.')
+      } else {
+        const { error } = await supabase.from('ncrs').update({ archived: true }).eq('id', ncrId)
+        if (error) throw error
+        alert('NCR archived successfully.')
+      }
+
+      fetchNCRs()
+      setSelectedNCR(null)
+    } catch (err) {
+      console.error('Error deleting NCR:', err)
+      alert('Failed to delete NCR: ' + err.message)
+    }
+  }
+
+  const restoreNCR = async (ncrId) => {
+    try {
+      const { error } = await supabase.from('ncrs').update({ archived: false }).eq('id', ncrId)
+      if (error) throw error
+      alert('NCR restored successfully.')
+      fetchNCRs()
+    } catch (err) {
+      console.error('Error restoring NCR:', err)
+      alert('Failed to restore NCR: ' + err.message)
+    }
+  }
+
   const exportNCR = (ncr) => {
-    // Create HTML document that Word can open
     let html = `
 <!DOCTYPE html>
 <html>
@@ -157,7 +202,6 @@ const NCRs = () => {
 </html>
 `
 
-    // Create blob and download as .doc (Word will open it)
     const blob = new Blob([html], { type: 'application/msword' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -171,14 +215,18 @@ const NCRs = () => {
 
   // Filter NCRs
   const filteredNCRs = ncrs.filter(ncr => {
+    if (statusFilter === 'Archived') return ncr.archived === true
+    if (ncr.archived) return false
     const matchesStatus = statusFilter === 'all' || ncr.status === statusFilter
     const matchesSeverity = severityFilter === 'all' || ncr.severity === severityFilter
     return matchesStatus && matchesSeverity
   })
 
-  // Count stats
-  const openCount = ncrs.filter(n => n.status === 'Open').length
-  const criticalCount = ncrs.filter(n => n.status === 'Open' && n.severity === 'Critical').length
+  // Count stats (exclude archived)
+  const activeNcrs = ncrs.filter(n => !n.archived)
+  const openCount = activeNcrs.filter(n => n.status === 'Open').length
+  const criticalCount = activeNcrs.filter(n => n.status === 'Open' && n.severity === 'Critical').length
+  const archivedCount = ncrs.filter(n => n.archived).length
 
   if (loading) {
     return (
@@ -195,7 +243,7 @@ const NCRs = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">Non-Conformance Reports</h2>
-            <p className="text-cyan-200 text-sm">{filteredNCRs.length} NCRs</p>
+            <p className="text-cyan-200 text-sm">{filteredNCRs.length} NCRs {statusFilter === 'Archived' ? '(archived)' : ''}</p>
           </div>
           <button
             onClick={() => setShowCreateForm(true)}
@@ -206,7 +254,7 @@ const NCRs = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="glass glass-border rounded-lg p-4">
             <div className="text-3xl font-bold text-orange-400">{openCount}</div>
             <div className="text-sm text-white/70">Open NCRs</div>
@@ -214,6 +262,10 @@ const NCRs = () => {
           <div className="glass glass-border rounded-lg p-4">
             <div className="text-3xl font-bold text-red-400">{criticalCount}</div>
             <div className="text-sm text-white/70">Critical</div>
+          </div>
+          <div className="glass glass-border rounded-lg p-4">
+            <div className="text-3xl font-bold text-white/40">{archivedCount}</div>
+            <div className="text-sm text-white/70">Archived</div>
           </div>
         </div>
 
@@ -228,6 +280,7 @@ const NCRs = () => {
               <option value="all" className="bg-slate-800">All Status</option>
               <option value="Open" className="bg-slate-800">Open</option>
               <option value="Closed" className="bg-slate-800">Closed</option>
+              <option value="Archived" className="bg-slate-800">Archived</option>
             </select>
 
             <select
@@ -254,7 +307,7 @@ const NCRs = () => {
               <div
                 key={ncr.id}
                 onClick={() => setSelectedNCR(ncr)}
-                className="glass glass-border rounded-lg p-4 hover:bg-white/5 cursor-pointer"
+                className={`glass glass-border rounded-lg p-4 hover:bg-white/5 cursor-pointer ${ncr.archived ? 'opacity-60' : ''}`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -268,9 +321,10 @@ const NCRs = () => {
                         {ncr.severity}
                       </span>
                       <span className={`text-xs px-2 py-1 rounded ${
+                        ncr.archived ? 'bg-gray-500/20 text-gray-300' :
                         ncr.status === 'Open' ? 'bg-orange-500/20 text-orange-300' : 'bg-green-500/20 text-green-300'
                       }`}>
-                        {ncr.status}
+                        {ncr.archived ? 'Archived' : ncr.status}
                       </span>
                     </div>
                     <div className="font-semibold text-white mb-1">{ncr.title}</div>
@@ -350,24 +404,48 @@ const NCRs = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  {selectedNCR.status === 'Open' && (
+                {/* Action Buttons */}
+                <div className="flex gap-3 flex-wrap pt-2">
+                  {selectedNCR.status === 'Open' && !selectedNCR.archived && (
                     <button
                       onClick={() => closeNCR(selectedNCR.id)}
                       className="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg"
                     >
-                      Close NCR
+                      ✓ Close NCR
                     </button>
                   )}
                   <button
                     onClick={() => exportNCR(selectedNCR)}
-                    className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2"
+                    className="py-3 px-6 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                    Export NCR
+                    Export
                   </button>
+                  {selectedNCR.archived ? (
+                    <button
+                      onClick={() => restoreNCR(selectedNCR.id)}
+                      className="py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg"
+                    >
+                      ↩ Restore
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => deleteNCR(selectedNCR.id)}
+                      className="py-3 px-6 bg-orange-500/80 hover:bg-orange-600 text-white font-semibold rounded-lg"
+                    >
+                      Archive
+                    </button>
+                  )}
+                  {userProfile.role === 'superadmin' && (
+                    <button
+                      onClick={() => deleteNCR(selectedNCR.id, true)}
+                      className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg"
+                    >
+                      Delete Forever
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -429,7 +507,6 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
         10: 'Clause 10: Improvement'
       }
 
-      // Get count of existing NCRs to generate next number
       const { count } = await supabase
         .from('ncrs')
         .select('*', { count: 'exact', head: true })
