@@ -24,7 +24,7 @@ const Layout = ({ children }) => {
   const isActive = (path) => location.pathname === path
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
       {/* Header */}
       <header className="glass glass-border sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -81,11 +81,99 @@ const Layout = ({ children }) => {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
         <div className="animate-in">
           {children}
         </div>
       </main>
+
+      {/* Legal Footer */}
+      <footer className="border-t border-white/10 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          
+          {/* Legal Document Links */}
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-white/50 mb-4">
+            <a 
+              href="/Privacy_policy_.pdf" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-cyan-400 transition-colors"
+            >
+              Privacy Policy
+            </a>
+            <span className="text-white/20">•</span>
+            <a 
+              href="/Terms_of_Service_.pdf" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-cyan-400 transition-colors"
+            >
+              Terms of Service
+            </a>
+            <span className="text-white/20">•</span>
+            <a 
+              href="/_PAIA_AND_POPIA_MANUAL_.pdf" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-cyan-400 transition-colors"
+            >
+              PAIA Manual
+            </a>
+            <span className="text-white/20">•</span>
+            <a 
+              href="/Upload_confirmation_and_disclaimer_.pdf" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-cyan-400 transition-colors"
+            >
+              Upload Disclaimer
+            </a>
+            <span className="text-white/20">•</span>
+            <a 
+              href="/Supabase_User_DPA_August_5_2025.pdf" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-cyan-400 transition-colors"
+            >
+              Data Processing Agreement
+            </a>
+          </div>
+
+          {/* ECTA Notice */}
+          <p className="text-center text-xs text-white/40 mb-4 max-w-3xl mx-auto">
+            By using ISOGuardian, you acknowledge that you have read, understood, and agree to be bound by our 
+            Terms of Service and Privacy Policy. Electronic records and signatures are legally binding under the 
+            Electronic Communications and Transactions Act, 2002.
+          </p>
+
+          {/* Compliance Badges & Copyright */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center gap-4 text-xs text-white/50">
+              <span className="flex items-center gap-1">
+                <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                POPIA Compliant
+              </span>
+              <span className="flex items-center gap-1">
+                <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                ISO 27001 Ready
+              </span>
+              <span className="flex items-center gap-1">
+                <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+                256-bit Encryption
+              </span>
+            </div>
+            <div className="text-xs text-white/40">
+              © {new Date().getFullYear()} ISOGuardian (Pty) Ltd. All rights reserved. • Registered in South Africa
+            </div>
+          </div>
+        </div>
+      </footer>
 
       <style>{`
         .glass {
