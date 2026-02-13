@@ -19,6 +19,7 @@ const Layout = ({ children }) => {
     { path: '/audits', label: 'Audits', icon: 'calendar' },
     { path: '/management-reviews', label: 'Reviews', icon: 'users' },
     { path: '/data-export', label: 'Export Data', icon: 'download' },
+    { path: '/analytics', label: 'Analytics', icon: 'chart' },
   ]
 
   const isActive = (path) => location.pathname === path
