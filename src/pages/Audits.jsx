@@ -443,6 +443,50 @@ const AuditCard = ({ audit, onClick, isArchived }) => {
 }
 
 const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore, exportAudit, userProfile }) => {
+  const [showCompleteForm, setShowCompleteForm] = useState(false)
+  const [completing, setCompleting] = useState(false)
+  const [closeOut, setCloseOut] = useState({
+    findings: audit.findings || '',
+    observations: audit.observations || '',
+    ncrs_raised: audit.ncrs_raised || '0',
+    conclusion: '',
+    evidence_reviewed: '',
+    corrective_actions: '',
+    auditor_recommendation: 'Conforming',
+  })
+
+  const handleCompleteAudit = async () => {
+    // Validate required fields
+    if (!closeOut.findings?.trim()) { alert('Findings are required to close an audit (ISO 19011:2018 Clause 6.5)'); return; }
+    if (!closeOut.conclusion?.trim()) { alert('Audit conclusion is required'); return; }
+    if (!closeOut.evidence_reviewed?.trim()) { alert('Evidence reviewed must be documented'); return; }
+
+    setCompleting(true)
+    try {
+      const { error } = await supabase
+        .from('audits')
+        .update({
+          status: 'Complete',
+          findings: closeOut.findings.trim(),
+          observations: closeOut.observations?.trim() || null,
+          ncrs_raised: parseInt(closeOut.ncrs_raised) || 0,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', audit.id)
+
+      if (error) throw error
+      alert('Audit completed with findings recorded.')
+      onClose()
+      // Trigger parent refresh
+      if (onUpdateStatus) onUpdateStatus(audit.id, 'Complete')
+    } catch (err) {
+      console.error('Error completing audit:', err)
+      alert('Failed to complete: ' + err.message)
+    } finally {
+      setCompleting(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
@@ -452,110 +496,122 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
         </div>
 
         <div className="space-y-4">
+          {/* Audit Info */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-white/60">Type</label>
-              <div className="text-white">{audit.audit_type}</div>
-            </div>
-            <div>
-              <label className="text-sm text-white/60">Standard</label>
-              <div className="text-white">{audit.standard.replace('_', ' ')}</div>
-            </div>
+            <div><label className="text-sm text-white/60">Type</label><div className="text-white">{audit.audit_type}</div></div>
+            <div><label className="text-sm text-white/60">Standard</label><div className="text-white">{audit.standard?.replace('_', ' ')}</div></div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-white/60">Date</label>
-              <div className="text-white">{new Date(audit.audit_date).toLocaleDateString()}</div>
-            </div>
-            <div>
-              <label className="text-sm text-white/60">Time</label>
-              <div className="text-white">{audit.audit_time || 'Not set'}</div>
-            </div>
+            <div><label className="text-sm text-white/60">Date</label><div className="text-white">{new Date(audit.audit_date).toLocaleDateString('en-ZA')}</div></div>
+            <div><label className="text-sm text-white/60">Time</label><div className="text-white">{audit.audit_time || 'Not set'}</div></div>
           </div>
+          <div><label className="text-sm text-white/60">Auditor</label><div className="text-white">{audit.assigned_auditor_name}</div></div>
+          <div><label className="text-sm text-white/60">Scope</label><div className="text-white/80 glass glass-border rounded-lg p-3">{audit.scope || 'No scope defined'}</div></div>
 
-          <div>
-            <label className="text-sm text-white/60">Auditor</label>
-            <div className="text-white">{audit.assigned_auditor_name}</div>
-          </div>
+          {/* Show existing findings if completed */}
+          {audit.status === 'Complete' && audit.findings && (
+            <>
+              <div className="border-t border-white/10 pt-4">
+                <h4 className="text-lg font-semibold text-green-400 mb-3">Audit Close-Out Report</h4>
+              </div>
+              <div><label className="text-sm text-white/60">Findings (ISO 19011:6.5)</label><div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap">{audit.findings}</div></div>
+              {audit.observations && <div><label className="text-sm text-white/60">Observations</label><div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap">{audit.observations}</div></div>}
+              <div><label className="text-sm text-white/60">NCRs Raised</label><div className="text-white">{audit.ncrs_raised || 0}</div></div>
+            </>
+          )}
 
-          <div>
-            <label className="text-sm text-white/60">Scope</label>
-            <div className="text-white/80 glass glass-border rounded-lg p-3">
-              {audit.scope || 'No scope defined'}
-            </div>
-          </div>
+          {/* Complete Audit Form - ISO 19011 compliant */}
+          {showCompleteForm && audit.status === 'In Progress' && (
+            <div className="border-t border-white/10 pt-4 space-y-4">
+              <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-3">
+                <p className="text-xs text-cyan-300 font-semibold">ISO 19011:2018 Clause 6.5 — Audit Close-Out Requirements</p>
+                <p className="text-xs text-cyan-300/70 mt-1">All findings, evidence, and conclusions must be documented before closing an audit.</p>
+              </div>
 
-          {audit.findings && (
-            <div>
-              <label className="text-sm text-white/60">Findings</label>
-              <div className="text-white/80 glass glass-border rounded-lg p-3">
-                {audit.findings}
+              <div>
+                <label className="text-sm text-white/60 block mb-2">Audit Findings * <span className="text-white/40">(Conformities & non-conformities identified)</span></label>
+                <textarea value={closeOut.findings} onChange={e => setCloseOut({...closeOut, findings: e.target.value})}
+                  rows={4} placeholder="Document all findings from the audit — what was conforming, what was not, specific clause references..."
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
+              </div>
+
+              <div>
+                <label className="text-sm text-white/60 block mb-2">Observations <span className="text-white/40">(Opportunities for improvement, not NCRs)</span></label>
+                <textarea value={closeOut.observations} onChange={e => setCloseOut({...closeOut, observations: e.target.value})}
+                  rows={3} placeholder="Any observations or recommendations for improvement..."
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
+              </div>
+
+              <div>
+                <label className="text-sm text-white/60 block mb-2">Evidence Reviewed * <span className="text-white/40">(Documents, records, interviews)</span></label>
+                <textarea value={closeOut.evidence_reviewed} onChange={e => setCloseOut({...closeOut, evidence_reviewed: e.target.value})}
+                  rows={3} placeholder="List documents reviewed, people interviewed, processes observed..."
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-white/60 block mb-2">NCRs Raised</label>
+                  <input type="number" min="0" value={closeOut.ncrs_raised} onChange={e => setCloseOut({...closeOut, ncrs_raised: e.target.value})}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-cyan-500" />
+                </div>
+                <div>
+                  <label className="text-sm text-white/60 block mb-2">Auditor Recommendation</label>
+                  <select value={closeOut.auditor_recommendation} onChange={e => setCloseOut({...closeOut, auditor_recommendation: e.target.value})}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-cyan-500">
+                    <option value="Conforming" className="bg-slate-800">Conforming — No major issues</option>
+                    <option value="Minor NCR" className="bg-slate-800">Minor NCR — Corrective action needed</option>
+                    <option value="Major NCR" className="bg-slate-800">Major NCR — Significant non-conformance</option>
+                    <option value="Critical" className="bg-slate-800">Critical — Immediate action required</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm text-white/60 block mb-2">Audit Conclusion * <span className="text-white/40">(Overall assessment)</span></label>
+                <textarea value={closeOut.conclusion} onChange={e => setCloseOut({...closeOut, conclusion: e.target.value})}
+                  rows={3} placeholder="Overall conclusion of the audit — extent to which audit criteria have been fulfilled..."
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowCompleteForm(false)}
+                  className="flex-1 py-3 px-6 glass glass-border text-white rounded-lg hover:bg-white/10">Cancel</button>
+                <button onClick={handleCompleteAudit} disabled={completing}
+                  className="flex-1 py-3 px-6 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg disabled:opacity-50">
+                  {completing ? 'Completing...' : 'Submit & Complete Audit'}
+                </button>
               </div>
             </div>
           )}
 
-          <div>
-            <label className="text-sm text-white/60">Reminder Method</label>
-            <div className="text-white capitalize">{audit.reminder_method}</div>
-          </div>
-
-          <div className="flex gap-3 flex-wrap pt-4">
-            {!audit.archived && audit.status === 'Planned' && (
-              <button
-                onClick={() => onUpdateStatus(audit.id, 'In Progress')}
-                className="py-3 px-6 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg"
-              >
-                Start Audit
+          {/* Action buttons */}
+          {!showCompleteForm && (
+            <div className="flex gap-3 flex-wrap pt-4">
+              {!audit.archived && audit.status === 'Planned' && (
+                <button onClick={() => onUpdateStatus(audit.id, 'In Progress')}
+                  className="py-3 px-6 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg">Start Audit</button>
+              )}
+              {!audit.archived && audit.status === 'In Progress' && (
+                <button onClick={() => setShowCompleteForm(true)}
+                  className="py-3 px-6 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg">Complete Audit</button>
+              )}
+              <button onClick={() => exportAudit(audit)}
+                className="py-3 px-6 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Export
               </button>
-            )}
-            {!audit.archived && audit.status === 'In Progress' && (
-              <button
-                onClick={() => onUpdateStatus(audit.id, 'Complete')}
-                className="py-3 px-6 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg"
-              >
-                Complete Audit
-              </button>
-            )}
-            <button
-              onClick={() => exportAudit(audit)}
-              className="py-3 px-6 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Export
-            </button>
-            {audit.archived ? (
-              <button
-                onClick={() => onRestore(audit.id)}
-                className="py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg"
-              >
-                ↩ Restore
-              </button>
-            ) : (
-              <button
-                onClick={() => onDelete(audit.id)}
-                className="py-3 px-6 bg-orange-500/80 hover:bg-orange-600 text-white font-semibold rounded-lg"
-              >
-                Archive
-              </button>
-            )}
-            {['superadmin', 'admin', 'lead_auditor'].includes(userProfile.role) && (
-              <button
-                onClick={() => onDelete(audit.id, true)}
-                className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg"
-              >
-                Delete Forever
-              </button>
-            )}
-            <button
-              onClick={onClose}
-              className="py-3 px-6 glass glass-border text-white font-semibold rounded-lg hover:bg-white/10"
-            >
-              Close
-            </button>
-          </div>
+              {audit.archived ? (
+                <button onClick={() => onRestore(audit.id)} className="py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg">Restore</button>
+              ) : (
+                <button onClick={() => onDelete(audit.id)} className="py-3 px-6 bg-orange-500/80 hover:bg-orange-600 text-white font-semibold rounded-lg">Archive</button>
+              )}
+              {['superadmin', 'admin', 'lead_auditor'].includes(userProfile?.role) && (
+                <button onClick={() => onDelete(audit.id, true)} className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg">Delete Forever</button>
+              )}
+              <button onClick={onClose} className="py-3 px-6 glass glass-border text-white font-semibold rounded-lg hover:bg-white/10">Close</button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -565,7 +621,7 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
 const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
   const [formData, setFormData] = useState({
     audit_type: 'Internal',
-    standard: userProfile.standards_access[0] || 'ISO_9001',
+    standard: (userProfile?.standards_access || ['ISO_9001'])[0] || 'ISO_9001',
     audit_date: '',
     audit_time: '',
     assigned_auditor_name: '',
@@ -646,7 +702,7 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
                 onChange={(e) => setFormData({ ...formData, standard: e.target.value })}
                 className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
               >
-                {userProfile.standards_access.map(std => (
+                {(userProfile?.standards_access || ['ISO_9001']).map(std => (
                   <option key={std} value={std} className="bg-slate-800">
                     {std.replace('_', ' ')}
                   </option>
