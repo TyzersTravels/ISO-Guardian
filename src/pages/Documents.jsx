@@ -37,7 +37,7 @@ const Documents = () => {
 
       // Filter by user's standards access
       const filteredDocs = data.filter(doc => 
-        userProfile.standards_access.includes(doc.standard)
+        (userProfile?.standards_access || []).includes(doc.standard)
       )
 
       setDocuments(filteredDocs)
