@@ -1,8 +1,9 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import ClientSelector from './ClientSelector'
 
 const Layout = ({ children }) => {
-  const { userProfile, signOut } = useAuth()
+  const { userProfile, signOut, viewingClient } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -37,7 +38,10 @@ const Layout = ({ children }) => {
             />
             <div>
               <h1 className="text-xl font-bold text-white">ISOGuardian</h1>
-              <p className="text-xs text-cyan-200">{userProfile?.company?.name}</p>
+              <p className="text-xs text-cyan-200">
+                {viewingClient ? viewingClient.client_name : userProfile?.company?.name}
+                {viewingClient && <span className="text-purple-300 ml-1">(client view)</span>}
+              </p>
             </div>
             <div className="hidden md:flex items-center gap-2 ml-4">
               <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-lg">
@@ -59,6 +63,9 @@ const Layout = ({ children }) => {
           </button>
         </div>
       </header>
+
+      {/* Reseller Client Selector */}
+      <ClientSelector />
 
       {/* Navigation */}
       <nav className="glass glass-border">
@@ -160,7 +167,7 @@ const Layout = ({ children }) => {
                 <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                ISO 27001 Ready
+                ISO 27001 Aligned
               </span>
               <span className="flex items-center gap-1">
                 <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
