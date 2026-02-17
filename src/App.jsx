@@ -13,6 +13,7 @@ import TermsOfService from './pages/TermsOfService'
 import DataExport from './pages/DataExport'
 import SuperAdminDashboard from './pages/SuperAdminDashboard'
 import Analytics from './pages/Analytics'
+import ActivityTrail from './pages/ActivityTrail'
 
 function App() {
   return (
@@ -91,6 +92,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Analytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/activity-trail"
+            element={
+              <ProtectedRoute>
+                <ActivityTrail />
               </ProtectedRoute>
             }
           />

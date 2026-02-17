@@ -1,7 +1,160 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import Layout from '../components/Layout';
+
+// Extracted form component to prevent parent re-renders killing focus
+const CreateReviewForm = ({ userProfile, userId, onClose, onCreated }) => {
+  const [reviewNumber, setReviewNumber] = useState('');
+  const [reviewDate, setReviewDate] = useState(new Date().toISOString().split('T')[0]);
+  const [reviewTime, setReviewTime] = useState('09:00');
+  const [chairperson, setChairperson] = useState('');
+  const [attendees, setAttendees] = useState('');
+  const [agendaItems, setAgendaItems] = useState('');
+  const [minutes, setMinutes] = useState('');
+  const [decisionsMade, setDecisionsMade] = useState('');
+  const [actionItems, setActionItems] = useState('');
+  const [resourceDecisions, setResourceDecisions] = useState('');
+  const [improvementOpportunities, setImprovementOpportunities] = useState('');
+  const [nextReviewDate, setNextReviewDate] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!reviewNumber || !reviewDate || !chairperson) {
+      alert('Please fill in Review Number, Date, and Chairperson');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from('management_reviews').insert({
+        company_id: userProfile?.company_id,
+        review_number: reviewNumber,
+        review_date: reviewDate,
+        review_time: reviewTime,
+        chairperson: chairperson,
+        attendees: attendees || null,
+        agenda_items: agendaItems || null,
+        minutes: minutes || null,
+        decisions_made: decisionsMade || null,
+        action_items: actionItems || null,
+        resource_decisions: resourceDecisions || null,
+        improvement_opportunities: improvementOpportunities || null,
+        next_review_date: nextReviewDate || null,
+        status: 'Scheduled',
+        created_by: userId,
+      });
+      if (error) throw error;
+
+      // Log to audit trail
+      await supabase.from('audit_log').insert({
+        company_id: userProfile?.company_id,
+        user_id: userId,
+        action: 'created',
+        entity_type: 'management_review',
+        entity_id: null,
+        changes: { review_number: reviewNumber, chairperson, review_date: reviewDate },
+      });
+
+      alert('Review scheduled!');
+      onCreated();
+    } catch (err) {
+      alert('Failed: ' + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border border-white/20 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+        <div className="flex justify-between mb-6">
+          <h2 className="text-xl font-bold text-white">Schedule Management Review</h2>
+          <button onClick={onClose} className="text-white/50 hover:text-white text-2xl">&times;</button>
+        </div>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-white/70 mb-1">Review Number *</label>
+              <input type="text" value={reviewNumber} onChange={e => setReviewNumber(e.target.value)}
+                placeholder="MR-2026-001" className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
+            </div>
+            <div>
+              <label className="block text-sm text-white/70 mb-1">Review Date *</label>
+              <input type="date" value={reviewDate} onChange={e => setReviewDate(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-white/70 mb-1">Time</label>
+              <input type="time" value={reviewTime} onChange={e => setReviewTime(e.target.value)}
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500" />
+            </div>
+            <div>
+              <label className="block text-sm text-white/70 mb-1">Chairperson *</label>
+              <input type="text" value={chairperson} onChange={e => setChairperson(e.target.value)}
+                placeholder="Name of chairperson" className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Attendees</label>
+            <textarea value={attendees} onChange={e => setAttendees(e.target.value)}
+              placeholder="List attendees (one per line)" rows={2}
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Agenda Items</label>
+            <textarea value={agendaItems} onChange={e => setAgendaItems(e.target.value)}
+              placeholder="Meeting agenda items" rows={3}
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Minutes</label>
+            <textarea value={minutes} onChange={e => setMinutes(e.target.value)}
+              placeholder="Meeting minutes and discussion notes" rows={4}
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Decisions Made</label>
+            <textarea value={decisionsMade} onChange={e => setDecisionsMade(e.target.value)}
+              placeholder="Key decisions from the review" rows={3}
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Action Items</label>
+            <textarea value={actionItems} onChange={e => setActionItems(e.target.value)}
+              placeholder="Actions to be taken, with owners and deadlines" rows={3}
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Resource Decisions</label>
+            <textarea value={resourceDecisions} onChange={e => setResourceDecisions(e.target.value)}
+              placeholder="Resource allocation decisions" rows={2}
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Improvement Opportunities (ISO 10.1)</label>
+            <textarea value={improvementOpportunities} onChange={e => setImprovementOpportunities(e.target.value)}
+              placeholder="Continual improvement opportunities identified" rows={2}
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Next Review Date</label>
+            <input type="date" value={nextReviewDate} onChange={e => setNextReviewDate(e.target.value)}
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500" />
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button onClick={onClose} className="flex-1 px-6 py-3 bg-white/10 border border-white/20 text-white rounded-xl hover:bg-white/20">Cancel</button>
+            <button onClick={handleSubmit} disabled={submitting}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:scale-105 transition-transform disabled:opacity-50">
+              {submitting ? 'Scheduling...' : 'Schedule Review'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ManagementReviews = () => {
   const { user, userProfile } = useAuth();
@@ -35,20 +188,17 @@ const ManagementReviews = () => {
     } catch (error) { alert('Failed to load reviews: ' + error.message); } finally { setLoading(false); }
   };
 
-  const handleCreateReview = async (form) => {
+  const logAction = async (action, entityId, details) => {
     try {
-      const { error } = await supabase.from('management_reviews').insert({
-        company_id: userProfile?.company_id, review_number: form.review_number,
-        review_date: form.review_date, review_time: form.review_time,
-        chairperson: form.chairperson, attendees: form.attendees,
-        agenda_items: form.agenda_items, minutes: form.minutes,
-        decisions_made: form.decisions_made, action_items: form.action_items,
-        resource_decisions: form.resource_decisions, improvement_opportunities: form.improvement_opportunities,
-        next_review_date: form.next_review_date, status: 'Scheduled', created_by: user?.id,
+      await supabase.from('audit_log').insert({
+        company_id: userProfile?.company_id,
+        user_id: user?.id,
+        action,
+        entity_type: 'management_review',
+        entity_id: entityId,
+        changes: details,
       });
-      if (error) throw error;
-      alert('Review scheduled!'); setShowCreateForm(false); fetchReviews();
-    } catch (err) { alert('Failed: ' + err.message); }
+    } catch (err) { console.error('Audit log error:', err); }
   };
 
   const handleArchive = async (id) => {
@@ -57,7 +207,9 @@ const ManagementReviews = () => {
     if (!reason?.trim()) { alert('Reason required'); return; }
     try {
       const { error } = await supabase.from('management_reviews').update({ archived: true, archived_at: new Date().toISOString(), archived_by: user?.id, archive_reason: reason.trim() }).eq('id', id);
-      if (error) throw error; alert('Archived!'); fetchReviews();
+      if (error) throw error;
+      await logAction('archived', id, { reason: reason.trim() });
+      alert('Archived!'); fetchReviews();
     } catch (err) { alert('Failed: ' + err.message); }
   };
 
@@ -65,7 +217,9 @@ const ManagementReviews = () => {
     if (!window.confirm('Restore this review?')) return;
     try {
       const { error } = await supabase.from('management_reviews').update({ archived: false, archived_at: null, archived_by: null, archive_reason: null }).eq('id', id);
-      if (error) throw error; alert('Restored!'); fetchReviews();
+      if (error) throw error;
+      await logAction('restored', id, {});
+      alert('Restored!'); fetchReviews();
     } catch (err) { alert('Failed: ' + err.message); }
   };
 
@@ -75,46 +229,15 @@ const ManagementReviews = () => {
     const reason = window.prompt('Deletion reason (required for audit trail):');
     if (!reason?.trim()) { alert('Reason required'); return; }
     try {
-      await supabase.from('deletion_audit_trail').insert({ table_name: 'management_reviews', record_id: id, deleted_by: userProfile?.email || user?.email, reason: reason.trim(), deleted_at: new Date().toISOString() });
+      await supabase.from('deletion_audit_trail').insert({ table_name: 'management_reviews', record_id: id, deleted_by: user?.id, reason: reason.trim(), deleted_at: new Date().toISOString() });
+      await logAction('permanently_deleted', id, { reason: reason.trim() });
       const { error } = await supabase.from('management_reviews').delete().eq('id', id);
-      if (error) throw error; alert('Permanently deleted'); fetchReviews();
+      if (error) throw error;
+      alert('Permanently deleted'); fetchReviews();
     } catch (err) { alert('Failed: ' + err.message); }
   };
 
   const fmt = (d) => d ? new Date(d).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set';
-
-  const CreateForm = () => {
-    const [f, setF] = useState({ review_number: '', review_date: new Date().toISOString().split('T')[0], review_time: '09:00', chairperson: '', attendees: '', agenda_items: '', minutes: '', decisions_made: '', action_items: '', resource_decisions: '', improvement_opportunities: '', next_review_date: '' });
-    const set = (k, v) => setF({ ...f, [k]: v });
-    const Field = ({ label, k, type = 'text', rows, placeholder, required }) => (
-      <div>
-        <label className="block text-sm text-white/70 mb-1">{label}{required && ' *'}</label>
-        {rows ? <textarea value={f[k]} onChange={e => set(k, e.target.value)} rows={rows} placeholder={placeholder} className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
-          : <input type={type} value={f[k]} onChange={e => set(k, e.target.value)} placeholder={placeholder} className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />}
-      </div>
-    );
-    return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border border-white/20 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-          <div className="flex justify-between mb-6"><h2 className="text-xl font-bold text-white">Schedule Management Review</h2><button onClick={() => setShowCreateForm(false)} className="text-white/50 hover:text-white text-2xl">&times;</button></div>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4"><Field label="Review Number" k="review_number" placeholder="MR-2026-001" required /><Field label="Review Date" k="review_date" type="date" required /></div>
-            <div className="grid grid-cols-2 gap-4"><Field label="Time" k="review_time" type="time" /><Field label="Chairperson" k="chairperson" placeholder="Name" required /></div>
-            <Field label="Attendees" k="attendees" rows={2} placeholder="List attendees" />
-            <Field label="Agenda Items" k="agenda_items" rows={3} placeholder="Meeting agenda" />
-            <Field label="Decisions Made" k="decisions_made" rows={3} placeholder="Key decisions" />
-            <Field label="Action Items" k="action_items" rows={3} placeholder="Actions, owners, deadlines" />
-            <Field label="Improvement Opportunities (ISO 10.1)" k="improvement_opportunities" rows={2} placeholder="Continual improvement opportunities" />
-            <Field label="Next Review Date" k="next_review_date" type="date" />
-            <div className="flex gap-3 pt-4">
-              <button onClick={() => setShowCreateForm(false)} className="flex-1 px-6 py-3 bg-white/10 border border-white/20 text-white rounded-xl hover:bg-white/20">Cancel</button>
-              <button onClick={() => { if (!f.review_number || !f.review_date || !f.chairperson) { alert('Fill required fields'); return; } handleCreateReview(f); }} className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:scale-105 transition-transform">Schedule Review</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const Detail = ({ r }) => (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -126,9 +249,9 @@ const ManagementReviews = () => {
               <div key={l} className="bg-white/5 rounded-xl p-3"><p className="text-xs text-white/50">{l}</p><p className="text-white font-medium">{v}</p></div>
             ))}
           </div>
-          {[['Attendees', r.attendees], ['Agenda', r.agenda_items], ['Minutes', r.minutes], ['Decisions', r.decisions_made], ['Action Items', r.action_items], ['Improvement Opportunities', r.improvement_opportunities]].map(([l, v]) => v && (
+          {[['Attendees', r.attendees], ['Agenda', r.agenda_items], ['Minutes', r.minutes], ['Decisions', r.decisions_made], ['Action Items', r.action_items], ['Resource Decisions', r.resource_decisions], ['Improvement Opportunities', r.improvement_opportunities]].map(([l, v]) => v ? (
             <div key={l} className="bg-white/5 rounded-xl p-3"><p className="text-xs text-white/50 mb-1">{l}</p><p className="text-white text-sm whitespace-pre-wrap">{v}</p></div>
-          ))}
+          ) : null)}
           {r.archived && <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3"><p className="text-xs text-red-300">Archived: {r.archive_reason} • {fmt(r.archived_at)}</p></div>}
         </div>
       </div>
@@ -178,7 +301,7 @@ const ManagementReviews = () => {
           ))}
         </div>
       </div>
-      {showCreateForm && <CreateForm />}
+      {showCreateForm && <CreateReviewForm userProfile={userProfile} userId={user?.id} onClose={() => setShowCreateForm(false)} onCreated={() => { setShowCreateForm(false); fetchReviews(); }} />}
       {selectedReview && <Detail r={selectedReview} />}
     </Layout>
   );
