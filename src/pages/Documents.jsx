@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 
 const Documents = () => {
@@ -77,10 +78,12 @@ const Documents = () => {
         
         const { error } = await supabase.from('documents').delete().eq('id', docId)
         if (error) throw error
+        await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'permanently_deleted', entityType: 'document', entityId: docId, changes: { name: doc?.name } })
         alert('Document permanently deleted.')
       } else {
         const { error } = await supabase.from('documents').update({ archived: true }).eq('id', docId)
         if (error) throw error
+        await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'archived', entityType: 'document', entityId: docId, changes: { name: doc?.name } })
         alert('Document archived successfully.')
       }
 
@@ -96,6 +99,7 @@ const Documents = () => {
     try {
       const { error } = await supabase.from('documents').update({ archived: false }).eq('id', docId)
       if (error) throw error
+      await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'restored', entityType: 'document', entityId: docId, changes: {} })
       alert('Document restored.')
       fetchDocuments()
     } catch (err) {
@@ -367,7 +371,7 @@ ${htmlContent}
               className="px-4 py-2 glass glass-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-transparent"
             >
               <option value="all" className="bg-slate-800">All Standards</option>
-              {userProfile.standards_access.map(std => (
+              {(userProfile?.standards_access || []).map(std => (
                 <option key={std} value={std} className="bg-slate-800">
                   {std.replace('_', ' ')}
                 </option>
@@ -654,7 +658,7 @@ ${htmlContent}
 const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
   const [formData, setFormData] = useState({
     name: '',
-    standard: userProfile.standards_access[0] || 'ISO_9001',
+    standard: (userProfile?.standards_access || ['ISO_9001'])[0] || 'ISO_9001',
     clause: 5,
     type: 'Policy',
     version: '1.0'
@@ -711,6 +715,7 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
 
       if (dbError) throw dbError
 
+      await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'uploaded', entityType: 'document', entityId: null, changes: { name: formData.name, standard: formData.standard, clause: formData.clause } })
       alert('Document uploaded successfully!')
       onUploaded()
     } catch (err) {
@@ -748,7 +753,7 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
                 onChange={(e) => setFormData({ ...formData, standard: e.target.value })}
                 className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
               >
-                {userProfile.standards_access.map(std => (
+                {(userProfile?.standards_access || []).map(std => (
                   <option key={std} value={std} className="bg-slate-800">
                     {std.replace('_', ' ')}
                   </option>

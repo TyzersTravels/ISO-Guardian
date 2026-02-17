@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 
 const NCRs = () => {
@@ -43,6 +44,7 @@ const NCRs = () => {
 
       if (error) throw error
       
+      await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'status_changed', entityType: 'ncr', entityId: ncrId, changes: { status: 'Closed' } })
       setNcrs(ncrs.map(ncr => 
         ncr.id === ncrId ? { ...ncr, status: 'Closed' } : ncr
       ))
@@ -74,10 +76,12 @@ const NCRs = () => {
         
         const { error } = await supabase.from('ncrs').delete().eq('id', ncrId)
         if (error) throw error
+        await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'permanently_deleted', entityType: 'ncr', entityId: ncrId, changes: {} })
         alert('NCR permanently deleted.')
       } else {
         const { error } = await supabase.from('ncrs').update({ archived: true }).eq('id', ncrId)
         if (error) throw error
+        await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'archived', entityType: 'ncr', entityId: ncrId, changes: {} })
         alert('NCR archived successfully.')
       }
 
@@ -93,6 +97,7 @@ const NCRs = () => {
     try {
       const { error } = await supabase.from('ncrs').update({ archived: false }).eq('id', ncrId)
       if (error) throw error
+      await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'restored', entityType: 'ncr', entityId: ncrId, changes: {} })
       alert('NCR restored successfully.')
       fetchNCRs()
     } catch (err) {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 
 const Audits = () => {
@@ -40,9 +41,8 @@ const Audits = () => {
         .eq('id', id)
 
       if (error) throw error
+      await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'status_changed', entityType: 'audit', entityId: id, changes: { new_status: newStatus } })
       fetchAudits()
-      setSelectedAudit(null)
-      alert(`Audit status updated to: ${newStatus}`)
     } catch (err) {
       console.error('Error updating audit:', err)
       alert('Failed to update audit')
