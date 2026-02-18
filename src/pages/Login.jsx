@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+
+const TURNSTILE_SITE_KEY = '0x4AAAAAACfLITd5DD70PYix'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -8,20 +10,56 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [captchaToken, setCaptchaToken] = useState(null)
+  const turnstileRef = useRef(null)
   
   const { signIn } = useAuth()
   const navigate = useNavigate()
 
+  // Load Turnstile script
+  useEffect(() => {
+    if (document.getElementById('turnstile-script')) return;
+    const script = document.createElement('script');
+    script.id = 'turnstile-script';
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
+    script.async = true;
+    document.head.appendChild(script);
+
+    window.onTurnstileLoad = () => {
+      if (turnstileRef.current && window.turnstile) {
+        window.turnstile.render(turnstileRef.current, {
+          sitekey: TURNSTILE_SITE_KEY,
+          callback: (token) => setCaptchaToken(token),
+          'expired-callback': () => setCaptchaToken(null),
+          theme: 'dark',
+        });
+      }
+    };
+
+    return () => { delete window.onTurnstileLoad; };
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+
+    if (!captchaToken) {
+      setError('Please complete the security check')
+      return
+    }
+
     setLoading(true)
 
-    const { data, error: signInError } = await signIn(email, password)
+    const { data, error: signInError } = await signIn(email, password, captchaToken)
     
     if (signInError) {
       setError(signInError.message)
       setLoading(false)
+      // Reset captcha
+      setCaptchaToken(null)
+      if (window.turnstile && turnstileRef.current) {
+        window.turnstile.reset(turnstileRef.current)
+      }
       return
     }
 
@@ -179,6 +217,11 @@ const Login = () => {
                     )}
                   </button>
                 </div>
+              </div>
+
+              {/* Cloudflare Turnstile CAPTCHA */}
+              <div className="flex justify-center">
+                <div ref={turnstileRef}></div>
               </div>
 
               <button

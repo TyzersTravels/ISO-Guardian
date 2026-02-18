@@ -100,8 +100,10 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const signIn = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  const signIn = async (email, password, captchaToken) => {
+    const options = { email, password }
+    if (captchaToken) options.options = { captchaToken }
+    const { data, error } = await supabase.auth.signInWithPassword(options)
     return { data, error }
   }
 
