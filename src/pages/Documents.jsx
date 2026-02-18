@@ -61,6 +61,9 @@ const Documents = () => {
 
     try {
       if (permanent) {
+        const reason = window.prompt('Deletion reason (required for audit trail):')
+        if (!reason?.trim()) { alert('Deletion reason is required'); return; }
+        
         // Log to audit trail
         await supabase.from('deletion_audit_trail').insert([{
           company_id: userProfile.company_id,
@@ -68,7 +71,7 @@ const Documents = () => {
           record_id: docId,
           deleted_by: userProfile.id,
           deleted_at: new Date().toISOString(),
-          reason: 'User initiated permanent deletion'
+          reason: reason.trim()
         }])
         
         // Delete file from storage
@@ -81,9 +84,11 @@ const Documents = () => {
         await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'permanently_deleted', entityType: 'document', entityId: docId, changes: { name: doc?.name } })
         alert('Document permanently deleted.')
       } else {
+        const archiveReason = window.prompt('Reason for archiving (required):')
+        if (!archiveReason?.trim()) { alert('Archive reason is required'); return; }
         const { error } = await supabase.from('documents').update({ archived: true }).eq('id', docId)
         if (error) throw error
-        await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'archived', entityType: 'document', entityId: docId, changes: { name: doc?.name } })
+        await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'archived', entityType: 'document', entityId: docId, changes: { name: doc?.name, reason: archiveReason.trim() } })
         alert('Document archived successfully.')
       }
 
@@ -350,6 +355,15 @@ ${htmlContent}
             </svg>
             Upload Document
           </button>
+          <button
+            onClick={() => setShowBulkUpload(true)}
+            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl flex items-center gap-2 hover:scale-105 transition-transform shadow-lg"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Bulk Upload
+          </button>
         </div>
       </div>
 
@@ -551,6 +565,18 @@ ${htmlContent}
           onUploaded={() => {
             fetchDocuments()
             setShowUploadForm(false)
+          }}
+        />
+      )}
+
+      {/* Bulk Upload Modal */}
+      {showBulkUpload && (
+        <BulkUploadForm
+          userProfile={userProfile}
+          onClose={() => setShowBulkUpload(false)}
+          onUploaded={() => {
+            fetchDocuments()
+            setShowBulkUpload(false)
           }}
         />
       )}
@@ -807,11 +833,11 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
           </div>
 
           <div>
-            <label className="text-sm text-white/60 block mb-2">Upload File * (PDF, Word, Excel)</label>
+            <label className="text-sm text-white/60 block mb-2">Upload File * (PDF, Word, Excel, Images)</label>
             <input
               type="file"
               required
-              accept=".pdf,.doc,.docx,.xls,.xlsx"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.csv,.txt"
               onChange={(e) => setFile(e.target.files[0])}
               className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-cyan-500 file:text-white file:cursor-pointer"
             />
@@ -845,6 +871,209 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+const BulkUploadForm = ({ userProfile, onClose, onUploaded }) => {
+  const [files, setFiles] = useState([])
+  const [standard, setStandard] = useState((userProfile?.standards_access || ['ISO_9001'])[0] || 'ISO_9001')
+  const [clause, setClause] = useState(7)
+  const [type, setType] = useState('Record')
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState({ current: 0, total: 0, currentFile: '' })
+
+  const handleFileSelect = (e) => {
+    const selected = Array.from(e.target.files)
+    setFiles(prev => [...prev, ...selected])
+  }
+
+  const handleFolderSelect = (e) => {
+    const selected = Array.from(e.target.files)
+    setFiles(prev => [...prev, ...selected])
+  }
+
+  const removeFile = (index) => {
+    setFiles(files.filter((_, i) => i !== index))
+  }
+
+  const formatSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / 1048576).toFixed(1) + ' MB'
+  }
+
+  const handleBulkUpload = async () => {
+    if (files.length === 0) { alert('Please select files to upload'); return; }
+    setUploading(true)
+    setProgress({ current: 0, total: files.length, currentFile: '' })
+
+    const clauseNames = {
+      4: 'Clause 4: Context of the Organization', 5: 'Clause 5: Leadership',
+      6: 'Clause 6: Planning', 7: 'Clause 7: Support', 8: 'Clause 8: Operation',
+      9: 'Clause 9: Performance Evaluation', 10: 'Clause 10: Improvement'
+    }
+
+    let successCount = 0
+    let failCount = 0
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      setProgress({ current: i + 1, total: files.length, currentFile: file.name })
+
+      try {
+        const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+        const filePath = `${userProfile.company_id}/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(filePath, file)
+
+        if (uploadError) throw uploadError
+
+        const docName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ')
+
+        const { error: dbError } = await supabase
+          .from('documents')
+          .insert([{
+            company_id: userProfile.company_id,
+            name: docName,
+            standard: standard,
+            clause: clause,
+            clause_name: clauseNames[clause],
+            type: type,
+            version: '1.0',
+            status: 'Approved',
+            date_updated: new Date().toISOString().split('T')[0],
+            file_path: filePath,
+            file_size: file.size,
+            uploaded_by: userProfile.id
+          }])
+
+        if (dbError) throw dbError
+
+        await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'uploaded', entityType: 'document', entityId: null, changes: { name: docName, bulk: true } })
+        successCount++
+      } catch (err) {
+        console.error(`Failed to upload ${file.name}:`, err)
+        failCount++
+      }
+    }
+
+    setUploading(false)
+    alert(`Upload complete: ${successCount} successful, ${failCount} failed`)
+    if (successCount > 0) onUploaded()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="glass glass-border rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between mb-6">
+          <h3 className="text-2xl font-bold text-white">Bulk Upload Documents</h3>
+          <button onClick={onClose} className="text-white/50 hover:text-white text-2xl">&times;</button>
+        </div>
+
+        <div className="space-y-4">
+          {/* Shared settings for all files */}
+          <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-3">
+            <p className="text-xs text-purple-300 mb-2">These settings apply to all uploaded files. You can edit individual documents later.</p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-sm text-white/60 block mb-1">Standard</label>
+              <select value={standard} onChange={e => setStandard(e.target.value)}
+                className="w-full px-3 py-2 glass glass-border rounded-lg text-white bg-transparent text-sm">
+                {(userProfile?.standards_access || ['ISO_9001']).map(std => (
+                  <option key={std} value={std} className="bg-slate-800">{std.replace('_', ' ')}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm text-white/60 block mb-1">Clause</label>
+              <select value={clause} onChange={e => setClause(parseInt(e.target.value))}
+                className="w-full px-3 py-2 glass glass-border rounded-lg text-white bg-transparent text-sm">
+                {[4, 5, 6, 7, 8, 9, 10].map(n => (
+                  <option key={n} value={n} className="bg-slate-800">Clause {n}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm text-white/60 block mb-1">Type</label>
+              <select value={type} onChange={e => setType(e.target.value)}
+                className="w-full px-3 py-2 glass glass-border rounded-lg text-white bg-transparent text-sm">
+                {['Policy', 'Procedure', 'Form', 'Manual', 'Record'].map(t => (
+                  <option key={t} value={t} className="bg-slate-800">{t}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* File selection */}
+          <div className="flex gap-3">
+            <label className="flex-1 cursor-pointer">
+              <div className="px-4 py-3 glass glass-border rounded-xl text-center hover:bg-white/10 transition-colors">
+                <span className="text-cyan-300 text-sm font-semibold">Select Files</span>
+                <p className="text-xs text-white/40 mt-1">PDF, Word, Excel, Images</p>
+              </div>
+              <input type="file" multiple className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.csv,.txt"
+                onChange={handleFileSelect} />
+            </label>
+            <label className="flex-1 cursor-pointer">
+              <div className="px-4 py-3 glass glass-border rounded-xl text-center hover:bg-white/10 transition-colors">
+                <span className="text-purple-300 text-sm font-semibold">Select Folder</span>
+                <p className="text-xs text-white/40 mt-1">Upload entire folder</p>
+              </div>
+              <input type="file" multiple className="hidden"
+                webkitdirectory="true" directory="true"
+                onChange={handleFolderSelect} />
+            </label>
+          </div>
+
+          {/* File list */}
+          {files.length > 0 && (
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-white/70">{files.length} files selected ({formatSize(files.reduce((s, f) => s + f.size, 0))} total)</span>
+                <button onClick={() => setFiles([])} className="text-xs text-red-300 hover:text-red-200">Clear all</button>
+              </div>
+              {files.map((file, i) => (
+                <div key={i} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white truncate">{file.name}</p>
+                    <p className="text-xs text-white/40">{formatSize(file.size)}</p>
+                  </div>
+                  <button onClick={() => removeFile(i)} className="text-red-400 hover:text-red-300 ml-2 text-sm">✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Progress */}
+          {uploading && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-white/70">Uploading {progress.current}/{progress.total}</span>
+                <span className="text-cyan-300 truncate ml-2">{progress.currentFile}</span>
+              </div>
+              <div className="w-full bg-white/10 rounded-full h-2">
+                <div className="bg-gradient-to-r from-cyan-500 to-purple-500 h-2 rounded-full transition-all"
+                  style={{ width: `${(progress.current / progress.total) * 100}%` }}></div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button onClick={onClose} disabled={uploading}
+              className="flex-1 py-3 glass glass-border text-white rounded-lg hover:bg-white/10 disabled:opacity-50">Cancel</button>
+            <button onClick={handleBulkUpload} disabled={uploading || files.length === 0}
+              className="flex-1 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg disabled:opacity-50 hover:scale-105 transition-transform">
+              {uploading ? `Uploading ${progress.current}/${progress.total}...` : `Upload ${files.length} File${files.length !== 1 ? 's' : ''}`}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

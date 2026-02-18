@@ -65,13 +65,16 @@ const NCRs = () => {
 
     try {
       if (permanent) {
+        const reason = window.prompt('Deletion reason (required for audit trail):')
+        if (!reason?.trim()) { alert('Deletion reason is required'); return; }
+        
         await supabase.from('deletion_audit_trail').insert([{
           company_id: userProfile.company_id,
           table_name: 'ncrs',
           record_id: ncrId,
           deleted_by: userProfile.id,
           deleted_at: new Date().toISOString(),
-          reason: 'User initiated permanent deletion'
+          reason: reason.trim()
         }])
         
         const { error } = await supabase.from('ncrs').delete().eq('id', ncrId)
