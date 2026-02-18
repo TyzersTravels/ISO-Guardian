@@ -110,16 +110,16 @@ const POPIACompliance = () => {
           <h2 className="text-xl font-bold text-white mb-4">Contact Information Officer</h2>
           <div className="text-white/80 text-sm">
             <p className="mb-2">For any data protection queries or to exercise your rights:</p>
-            <p><strong>Email:</strong> privacy@compliancehub.co.za</p>
+            <p><strong>Email:</strong> krugerreece@gmail.com</p>
             <p><strong>Response Time:</strong> Within 30 days as required by POPIA</p>
           </div>
         </div>
 
         <div className="glass glass-border rounded-2xl p-6">
           <p className="text-white/60 text-xs">
-            Last Updated: January 2025<br />
-            Information Regulator Registration: [Pending]<br />
-            Company Registration: [Your Registration Number]
+            Last Updated: February 2026<br />
+            Information Regulator Registration: Pending<br />
+            Company Registration: 2026/082362/07
           </p>
         </div>
       </div>

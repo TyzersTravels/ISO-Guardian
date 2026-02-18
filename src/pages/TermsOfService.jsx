@@ -7,7 +7,7 @@ const TermsOfService = () => {
         <div className="glass glass-border rounded-2xl p-6">
           <h1 className="text-3xl font-bold text-white mb-4">Terms of Service</h1>
           <p className="text-cyan-200">
-            Last Updated: January 2025
+            Last Updated: February 2026
           </p>
         </div>
 
@@ -163,18 +163,18 @@ const TermsOfService = () => {
         <div className="glass glass-border rounded-2xl p-6 bg-cyan-500/10">
           <h2 className="text-xl font-bold text-white mb-4">Contact Information</h2>
           <div className="text-white/80 text-sm space-y-2">
-            <p><strong>Support:</strong> support@compliancehub.co.za</p>
-            <p><strong>Legal:</strong> legal@compliancehub.co.za</p>
-            <p><strong>POPIA Queries:</strong> privacy@compliancehub.co.za</p>
+            <p><strong>Support:</strong> krugerreece@gmail.com</p>
+            <p><strong>Legal:</strong> krugerreece@gmail.com</p>
+            <p><strong>POPIA Queries:</strong> krugerreece@gmail.com</p>
           </div>
         </div>
 
         <div className="glass glass-border rounded-2xl p-6">
           <p className="text-white/60 text-xs">
             ISOGuardian<br />
-            Registration: [Your Company Registration]<br />
-            VAT Number: [Your VAT Number]<br />
-            Last Updated: January 27, 2025
+            Registration: 2026/082362/07<br />
+            VAT Number: Pending Registration<br />
+            Last Updated: February 18, 2026
           </p>
         </div>
       </div>
