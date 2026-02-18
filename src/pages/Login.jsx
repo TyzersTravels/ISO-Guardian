@@ -292,7 +292,7 @@ const Login = () => {
                 </a>
               </div>
               <p className="text-white/50 text-xs mt-2">
-                Get a demo and start your ISO compliance journey
+                Get in touch to start your ISO compliance journey
               </p>
             </div>
             
