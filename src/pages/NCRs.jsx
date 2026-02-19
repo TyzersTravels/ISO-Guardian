@@ -133,29 +133,38 @@ const NCRs = () => {
       const m = 20
       const cw = pw - m * 2
 
-      // Load logo
-      let logo = null
-      try {
-        const resp = await fetch('/isoguardian-logo.png')
-        const blob = await resp.blob()
-        logo = await new Promise(r => { const rd = new FileReader(); rd.onload = () => r(rd.result); rd.readAsDataURL(blob) })
-      } catch (e) {}
+      // Load BOTH logos - company as hero, ISOGuardian as subtle
+      let companyLogo = null
+      let igLogo = null
+      const loadImg = async (url) => { try { const resp = await fetch(url); const bl = await resp.blob(); return await new Promise(r => { const rd = new FileReader(); rd.onload = () => r(rd.result); rd.readAsDataURL(bl); }); } catch(e) { return null; } }
+      
+      const companyLogoUrl = userProfile?.company?.logo_url
+      if (companyLogoUrl) companyLogo = await loadImg(companyLogoUrl)
+      igLogo = await loadImg('/isoguardian-logo.png')
+      
+      const companyCode = userProfile?.company?.company_code || 'XX'
+      const companyName = userProfile?.company?.name || 'Company'
 
       // Header bar
       doc.setFillColor(124, 58, 237)
       doc.rect(0, 0, pw, 32, 'F')
-      if (logo) try { doc.addImage(logo, 'PNG', m, 3, 26, 26) } catch(e) {}
+      // Company logo = hero
+      if (companyLogo) try { doc.addImage(companyLogo, 'PNG', m, 3, 26, 26) } catch(e) {}
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(16)
+      doc.setFontSize(14)
       doc.setTextColor(255, 255, 255)
-      doc.text('ISOGuardian', logo ? m + 30 : m, 14)
+      doc.text(companyName, companyLogo ? m + 30 : m, 14)
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
       doc.setTextColor(220, 220, 255)
-      doc.text('Enterprise ISO Compliance Management', logo ? m + 30 : m, 20)
+      doc.text('Integrated Management System', companyLogo ? m + 30 : m, 21)
+      // ISOGuardian subtle right side
+      if (igLogo) try { doc.addImage(igLogo, 'PNG', pw - m - 10, 5, 8, 8) } catch(e) {}
+      doc.setFontSize(5)
+      doc.setTextColor(200, 200, 255)
+      doc.text('Powered by ISOGuardian', pw - m, 18, { align: 'right' })
 
       // Document control block
-      const companyCode = userProfile?.company?.company_code || 'XX'
       const docNum = `IG-${companyCode}-NCR-${String(ncr.ncr_number || '').replace(/\D/g, '').slice(-3).padStart(3, '0')}`
       const revDate = '31 January 2027'
       
@@ -190,7 +199,7 @@ const NCRs = () => {
       doc.setFontSize(9)
       doc.setTextColor(107, 114, 128)
       doc.setFont('helvetica', 'normal')
-      doc.text(`Company: ${userProfile?.company?.name || 'N/A'}`, m, y); y += 4
+      doc.text(`Company: ${companyName}`, m, y); y += 4
       doc.text(`Generated: ${new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' })}`, m, y); y += 6
       doc.setDrawColor(124, 58, 237)
       doc.setLineWidth(0.5)
@@ -248,7 +257,7 @@ const NCRs = () => {
       doc.line(m, fy - 4, pw - m, fy - 4)
       doc.setFontSize(7)
       doc.setTextColor(107, 114, 128)
-      doc.text('ISOGuardian (Pty) Ltd | Reg: 2026/082362/07 | www.isoguardian.co.za', m, fy)
+      doc.text(`${companyName} | ISOGuardian (Pty) Ltd | Reg: 2026/082362/07`, m, fy)
       doc.text(`Printed: ${new Date().toLocaleDateString('en-ZA')} | CONFIDENTIAL`, pw - m, fy, { align: 'right' })
 
       doc.save(`${ncr.ncr_number}_Report.pdf`)

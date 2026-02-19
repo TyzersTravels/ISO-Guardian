@@ -126,27 +126,42 @@ const ManagementReviews = () => {
       const { default: jsPDF } = await import('jspdf');
       const doc = new jsPDF('p', 'mm', 'a4');
       const pw = doc.internal.pageSize.getWidth(); const ph = doc.internal.pageSize.getHeight(); const m = 20; const cw = pw - m * 2;
+      
+      // Load BOTH logos - company as hero, ISOGuardian as subtle
+      let companyLogo = null;
       let igLogo = null;
-      try { const resp = await fetch('/isoguardian-logo.png'); const bl = await resp.blob(); igLogo = await new Promise(res => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.readAsDataURL(bl); }); } catch(e) {}
+      const loadImg = async (url) => { try { const resp = await fetch(url); const bl = await resp.blob(); return await new Promise(res => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.readAsDataURL(bl); }); } catch(e) { return null; } };
+      
+      const companyLogoUrl = userProfile?.company?.logo_url;
+      if (companyLogoUrl) companyLogo = await loadImg(companyLogoUrl);
+      igLogo = await loadImg('/isoguardian-logo.png');
+      
+      const companyCode = userProfile?.company?.company_code || 'XX';
+      const companyName = userProfile?.company?.name || 'Company';
 
       const addHF = (pg) => {
         doc.setFillColor(124, 58, 237); doc.rect(0, 0, pw, 30, 'F');
-        if (igLogo) try { doc.addImage(igLogo, 'PNG', m, 2, 26, 26); } catch(e) {}
+        // Company logo = hero (left side)
+        if (companyLogo) try { doc.addImage(companyLogo, 'PNG', m, 2, 26, 26); } catch(e) {}
         doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(255, 255, 255);
-        doc.text(userProfile?.company?.name || 'Company', igLogo ? m + 30 : m, 13);
+        doc.text(companyName, companyLogo ? m + 30 : m, 13);
         doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(220, 220, 255);
-        doc.text('Integrated Management System', igLogo ? m + 30 : m, 19);
-        doc.setFontSize(6); doc.text('Powered by ISOGuardian', pw - m, 10, { align: 'right' });
+        doc.text('Integrated Management System', companyLogo ? m + 30 : m, 19);
+        // ISOGuardian logo = subtle (right side, small)
+        if (igLogo) try { doc.addImage(igLogo, 'PNG', pw - m - 10, 5, 8, 8); } catch(e) {}
+        doc.setFontSize(5); doc.setTextColor(200, 200, 255);
+        doc.text('Powered by ISOGuardian', pw - m, 17, { align: 'right' });
         doc.text(`Page ${pg}`, pw - m, 26, { align: 'right' });
+        // Footer
         doc.setDrawColor(124, 58, 237); doc.line(m, ph - 13, pw - m, ph - 13);
         doc.setFontSize(6); doc.setTextColor(107, 114, 128);
-        doc.text(`${userProfile?.company?.name || ''} | ISOGuardian (Pty) Ltd | Reg: 2026/082362/07`, m, ph - 9);
+        doc.text(`${companyName} | ISOGuardian (Pty) Ltd | Reg: 2026/082362/07`, m, ph - 9);
         doc.text(`Printed: ${new Date().toLocaleDateString('en-ZA')} | CONFIDENTIAL`, pw - m, ph - 9, { align: 'right' });
       };
 
       addHF(1);
       // Doc control
-      const dn = `IG-XX-MR-${String(r.review_number || '').replace(/\D/g, '').slice(-3).padStart(3, '0')}`;
+      const dn = `IG-${companyCode}-MR-${String(r.review_number || '').replace(/\D/g, '').slice(-3).padStart(3, '0')}`;
       doc.setFillColor(249, 250, 251); doc.rect(m, 33, cw, 14, 'F'); doc.setDrawColor(200, 200, 200); doc.rect(m, 33, cw, 14, 'S');
       const cl = cw / 3;
       doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(30, 27, 75);
