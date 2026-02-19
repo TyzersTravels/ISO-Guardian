@@ -40,15 +40,19 @@ const ActivityTrail = () => {
           user_id: a.user_id,
           timestamp: a.created_at,
         })),
-        ...(deletionData || []).map(d => ({
-          id: 'del_' + d.id,
-          action: 'permanently_deleted',
-          entity_type: d.table_name,
-          entity_id: d.record_id,
-          changes: { reason: d.reason },
-          user_id: d.deleted_by,
-          timestamp: d.deleted_at,
-        })),
+        ...(deletionData || []).map(d => {
+          // Normalize table names: 'documents' -> 'document', 'ncrs' -> 'ncr', etc.
+          const normalized = (d.table_name || '').replace(/s$/, '');
+          return {
+            id: 'del_' + d.id,
+            action: 'permanently_deleted',
+            entity_type: normalized,
+            entity_id: d.record_id,
+            changes: { reason: d.reason },
+            user_id: d.deleted_by,
+            timestamp: d.deleted_at,
+          };
+        }),
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       setAllActivities(combined);
