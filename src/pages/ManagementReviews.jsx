@@ -248,6 +248,134 @@ const ManagementReviews = () => {
     } catch (err) { alert('Failed: ' + err.message); }
   };
 
+  const exportReview = async (r) => {
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pw = doc.internal.pageSize.getWidth();
+      const m = 20;
+      const cw = pw - m * 2;
+
+      let logo = null;
+      try {
+        const resp = await fetch('/isoguardian-logo.png');
+        const blob = await resp.blob();
+        logo = await new Promise(res => { const rd = new FileReader(); rd.onload = () => res(rd.result); rd.readAsDataURL(blob); });
+      } catch(e) {}
+
+      // Header
+      doc.setFillColor(124, 58, 237);
+      doc.rect(0, 0, pw, 32, 'F');
+      if (logo) try { doc.addImage(logo, 'PNG', m, 3, 26, 26); } catch(e) {}
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(255, 255, 255);
+      doc.text('ISOGuardian', logo ? m + 30 : m, 14);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(220, 220, 255);
+      doc.text('Enterprise ISO Compliance Management', logo ? m + 30 : m, 20);
+
+      // Doc control block
+      const docNum = `IG-XX-MR-${String(r.review_number || '').replace(/\D/g, '').slice(-3).padStart(3, '0')}`;
+      doc.setFillColor(249, 250, 251);
+      doc.rect(m, 35, cw, 18, 'F');
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(m, 35, cw, 18, 'S');
+      const colW = cw / 3;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(30, 27, 75);
+      doc.text('Document No.', m + 4, 41);
+      doc.text('Revision', m + colW + 4, 41);
+      doc.text('Date of Review', m + colW * 2 + 4, 41);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(124, 58, 237);
+      doc.text(docNum, m + 4, 48);
+      doc.text('Rev 01', m + colW + 4, 48);
+      doc.text('31 January 2027', m + colW * 2 + 4, 48);
+      doc.setDrawColor(200, 200, 200);
+      doc.line(m + colW, 35, m + colW, 53);
+      doc.line(m + colW * 2, 35, m + colW * 2, 53);
+
+      let y = 62;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(30, 27, 75);
+      doc.text('MANAGEMENT REVIEW MINUTES', m, y); y += 6;
+      doc.setFontSize(9);
+      doc.setTextColor(107, 114, 128);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Company: ${userProfile?.company?.name || 'N/A'}`, m, y); y += 4;
+      doc.text(`Generated: ${new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' })}`, m, y); y += 6;
+      doc.setDrawColor(124, 58, 237);
+      doc.setLineWidth(0.5);
+      doc.line(m, y, pw - m, y); y += 8;
+
+      const addLabel = (label, value, yPos) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(107, 114, 128);
+        doc.text(label + ':', m, yPos);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(30, 27, 75);
+        doc.text(String(value || 'N/A'), m + doc.getTextWidth(label + ': ') + 2, yPos);
+        return yPos + 5.5;
+      };
+      const addSec = (title, yPos) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(124, 58, 237);
+        doc.text(title, m, yPos);
+        return yPos + 7;
+      };
+      const addBody = (text, yPos) => {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(30, 27, 75);
+        const lines = doc.splitTextToSize(String(text || ''), cw);
+        // Check if we need a new page
+        if (yPos + lines.length * 4.2 > doc.internal.pageSize.getHeight() - 20) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(lines, m, yPos);
+        return yPos + lines.length * 4.2 + 4;
+      };
+
+      y = addSec('Review Details', y);
+      y = addLabel('Review Number', r.review_number, y);
+      y = addLabel('Review Date', r.review_date ? new Date(r.review_date).toLocaleDateString('en-ZA') : 'N/A', y);
+      y = addLabel('Chairperson', r.chairperson, y);
+      y = addLabel('Status', r.status, y);
+      y = addLabel('Next Review Date', r.next_review_date ? new Date(r.next_review_date).toLocaleDateString('en-ZA') : 'N/A', y);
+      y += 4;
+
+      if (r.attendees) { y = addSec('Attendees', y); y = addBody(r.attendees, y); }
+      if (r.agenda_items) { y = addSec('Agenda Items', y); y = addBody(r.agenda_items, y); }
+      if (r.minutes) { y = addSec('Minutes', y); y = addBody(r.minutes, y); }
+      if (r.decisions_made) { y = addSec('Decisions Made', y); y = addBody(r.decisions_made, y); }
+      if (r.action_items) { y = addSec('Action Items', y); y = addBody(r.action_items, y); }
+      if (r.resource_decisions) { y = addSec('Resource Decisions', y); y = addBody(r.resource_decisions, y); }
+      if (r.improvement_opportunities) { y = addSec('Improvement Opportunities', y); y = addBody(r.improvement_opportunities, y); }
+
+      // Footer
+      const fy = doc.internal.pageSize.getHeight() - 12;
+      doc.setDrawColor(107, 114, 128);
+      doc.line(m, fy - 4, pw - m, fy - 4);
+      doc.setFontSize(7);
+      doc.setTextColor(107, 114, 128);
+      doc.text('ISOGuardian (Pty) Ltd | Reg: 2026/082362/07 | www.isoguardian.co.za', m, fy);
+      doc.text(`Printed: ${new Date().toLocaleDateString('en-ZA')} | CONFIDENTIAL`, pw - m, fy, { align: 'right' });
+
+      doc.save(`${r.review_number || 'MR'}_Management_Review.pdf`);
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('Export failed: ' + err.message);
+    }
+  };
+
   const fmt = (d) => d ? new Date(d).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set';
 
   const Detail = ({ r }) => (
@@ -274,7 +402,19 @@ const ManagementReviews = () => {
               {r.status !== 'Completed' && (
                 <button onClick={() => handleStatusChange(r.id, 'Completed')} className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg text-sm font-semibold">Mark Completed</button>
               )}
+              <button onClick={() => exportReview(r)} className="px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded-lg text-sm font-semibold flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Export PDF
+              </button>
               <button onClick={() => handleArchive(r.id)} className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg text-sm font-semibold">Archive</button>
+            </div>
+          )}
+          {r.archived && (
+            <div className="flex gap-2 flex-wrap pt-2 border-t border-white/10">
+              <button onClick={() => exportReview(r)} className="px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded-lg text-sm font-semibold flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Export PDF
+              </button>
             </div>
           )}
         </div>

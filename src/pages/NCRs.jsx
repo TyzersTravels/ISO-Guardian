@@ -24,10 +24,26 @@ const NCRs = () => {
       setLoading(true)
       const { data, error } = await supabase
         .from('ncrs')
-        .select('*')
+        .select('*, assigned_user:users!ncrs_assigned_to_fkey(full_name, email)')
 
-      if (error) throw error
-      setNcrs(data || [])
+      if (error) {
+        // Fallback if foreign key name is different
+        const { data: fallbackData, error: fbErr } = await supabase
+          .from('ncrs')
+          .select('*')
+        if (fbErr) throw fbErr
+        
+        // Resolve user names manually
+        const userIds = [...new Set((fallbackData || []).map(n => n.assigned_to).filter(Boolean))]
+        let userMap = {}
+        if (userIds.length > 0) {
+          const { data: users } = await supabase.from('users').select('id, full_name, email').in('id', userIds)
+          if (users) users.forEach(u => { userMap[u.id] = u.full_name || u.email })
+        }
+        setNcrs((fallbackData || []).map(n => ({ ...n, assigned_name: userMap[n.assigned_to] || 'Unassigned' })))
+      } else {
+        setNcrs((data || []).map(n => ({ ...n, assigned_name: n.assigned_user?.full_name || n.assigned_user?.email || 'Unassigned' })))
+      }
     } catch (err) {
       console.error('Error fetching NCRs:', err)
     } finally {
@@ -109,116 +125,137 @@ const NCRs = () => {
     }
   }
 
-  const exportNCR = (ncr) => {
-    let html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body { font-family: Calibri, Arial, sans-serif; margin: 2cm; }
-    h1 { color: #0066cc; border-bottom: 3px solid #0066cc; padding-bottom: 10px; }
-    h2 { color: #0066cc; margin-top: 20px; }
-    .header { background: #f0f0f0; padding: 15px; margin-bottom: 20px; }
-    .section { margin: 15px 0; }
-    .label { font-weight: bold; color: #333; }
-    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-    td { padding: 8px; border: 1px solid #ddd; }
-    .footer { margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd; font-size: 10pt; color: #666; }
-  </style>
-</head>
-<body>
-  <h1>NON-CONFORMANCE REPORT</h1>
-  
-  <div class="header">
-    <table>
-      <tr>
-        <td class="label">NCR Number:</td>
-        <td>${ncr.ncr_number}</td>
-        <td class="label">Status:</td>
-        <td>${ncr.status}</td>
-      </tr>
-      <tr>
-        <td class="label">Title:</td>
-        <td colspan="3">${ncr.title}</td>
-      </tr>
-      <tr>
-        <td class="label">Severity:</td>
-        <td>${ncr.severity}</td>
-        <td class="label">Standard:</td>
-        <td>${ncr.standard.replace('_', ' ')}</td>
-      </tr>
-    </table>
-  </div>
+  const exportNCR = async (ncr) => {
+    try {
+      const { default: jsPDF } = await import('jspdf')
+      const doc = new jsPDF('p', 'mm', 'a4')
+      const pw = doc.internal.pageSize.getWidth()
+      const m = 20
+      const cw = pw - m * 2
 
-  <div class="section">
-    <h2>Clause Reference</h2>
-    <p>${ncr.clause_name}</p>
-  </div>
+      // Load logo
+      let logo = null
+      try {
+        const resp = await fetch('/isoguardian-logo.png')
+        const blob = await resp.blob()
+        logo = await new Promise(r => { const rd = new FileReader(); rd.onload = () => r(rd.result); rd.readAsDataURL(blob) })
+      } catch (e) {}
 
-  <div class="section">
-    <h2>Description</h2>
-    <p>${ncr.description}</p>
-  </div>
+      // Header bar
+      doc.setFillColor(124, 58, 237)
+      doc.rect(0, 0, pw, 32, 'F')
+      if (logo) try { doc.addImage(logo, 'PNG', m, 3, 26, 26) } catch(e) {}
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(16)
+      doc.setTextColor(255, 255, 255)
+      doc.text('ISOGuardian', logo ? m + 30 : m, 14)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(220, 220, 255)
+      doc.text('Enterprise ISO Compliance Management', logo ? m + 30 : m, 20)
 
-  ${ncr.root_cause ? `
-  <div class="section">
-    <h2>Root Cause Analysis</h2>
-    <p>${ncr.root_cause}</p>
-  </div>
-  ` : ''}
+      // Document control block
+      const companyCode = userProfile?.company?.company_code || 'XX'
+      const docNum = `IG-${companyCode}-NCR-${String(ncr.ncr_number || '').replace(/\D/g, '').slice(-3).padStart(3, '0')}`
+      const revDate = '31 January 2027'
+      
+      doc.setFillColor(249, 250, 251)
+      doc.rect(m, 35, cw, 18, 'F')
+      doc.setDrawColor(200, 200, 200)
+      doc.rect(m, 35, cw, 18, 'S')
+      const colW = cw / 3
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      doc.setTextColor(30, 27, 75)
+      doc.text('Document No.', m + 4, 41)
+      doc.text('Revision', m + colW + 4, 41)
+      doc.text('Date of Review', m + colW * 2 + 4, 41)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(124, 58, 237)
+      doc.text(docNum, m + 4, 48)
+      doc.text('Rev 01', m + colW + 4, 48)
+      doc.text(revDate, m + colW * 2 + 4, 48)
+      doc.setDrawColor(200, 200, 200)
+      doc.line(m + colW, 35, m + colW, 53)
+      doc.line(m + colW * 2, 35, m + colW * 2, 53)
 
-  ${ncr.corrective_action ? `
-  <div class="section">
-    <h2>Corrective Action</h2>
-    <p>${ncr.corrective_action}</p>
-  </div>
-  ` : ''}
+      // Title
+      let y = 62
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(14)
+      doc.setTextColor(30, 27, 75)
+      doc.text('NON-CONFORMANCE REPORT', m, y)
+      y += 6
+      doc.setFontSize(9)
+      doc.setTextColor(107, 114, 128)
+      doc.setFont('helvetica', 'normal')
+      doc.text(`Company: ${userProfile?.company?.name || 'N/A'}`, m, y); y += 4
+      doc.text(`Generated: ${new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' })}`, m, y); y += 6
+      doc.setDrawColor(124, 58, 237)
+      doc.setLineWidth(0.5)
+      doc.line(m, y, pw - m, y); y += 8
 
-  <div class="section">
-    <h2>Dates and Assignment</h2>
-    <table>
-      <tr>
-        <td class="label">Date Opened:</td>
-        <td>${new Date(ncr.date_opened).toLocaleDateString()}</td>
-      </tr>
-      <tr>
-        <td class="label">Due Date:</td>
-        <td>${new Date(ncr.due_date).toLocaleDateString()}</td>
-      </tr>
-      ${ncr.date_closed ? `
-      <tr>
-        <td class="label">Date Closed:</td>
-        <td>${new Date(ncr.date_closed).toLocaleDateString()}</td>
-      </tr>
-      ` : ''}
-      <tr>
-        <td class="label">Assigned To:</td>
-        <td>${ncr.assigned_to}</td>
-      </tr>
-    </table>
-  </div>
+      // Helper functions
+      const addLabel = (label, value, yPos) => {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(9)
+        doc.setTextColor(107, 114, 128)
+        doc.text(label + ':', m, yPos)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(30, 27, 75)
+        const lw = doc.getTextWidth(label + ': ')
+        doc.text(String(value || 'N/A'), m + lw + 2, yPos)
+        return yPos + 5.5
+      }
+      const addSection = (title, yPos) => {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(11)
+        doc.setTextColor(124, 58, 237)
+        doc.text(title, m, yPos)
+        return yPos + 7
+      }
+      const addBody = (text, yPos) => {
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9)
+        doc.setTextColor(30, 27, 75)
+        const lines = doc.splitTextToSize(String(text || ''), cw)
+        doc.text(lines, m, yPos)
+        return yPos + lines.length * 4.2 + 4
+      }
 
-  <div class="footer">
-    <p><strong>Export Information:</strong></p>
-    <p>Exported by: ${userProfile.email}</p>
-    <p>Export date: ${new Date().toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })}</p>
-    <p>Company: ${userProfile.company?.name || 'N/A'}</p>
-    <p style="margin-top: 10px; font-style: italic;">ISOGuardian - POPIA Compliant Export</p>
-  </div>
-</body>
-</html>
-`
+      // NCR Details
+      y = addSection('NCR Details', y)
+      y = addLabel('NCR Number', ncr.ncr_number, y)
+      y = addLabel('Title', ncr.title, y)
+      y = addLabel('Status', ncr.status, y)
+      y = addLabel('Severity', ncr.severity, y)
+      y = addLabel('Standard', ncr.standard?.replace('_', ' '), y)
+      y = addLabel('Clause', ncr.clause_name || `Clause ${ncr.clause}`, y)
+      y = addLabel('Assigned To', ncr.assigned_name || 'Unassigned', y)
+      y = addLabel('Date Opened', ncr.date_opened ? new Date(ncr.date_opened).toLocaleDateString('en-ZA') : 'N/A', y)
+      y = addLabel('Due Date', ncr.due_date ? new Date(ncr.due_date).toLocaleDateString('en-ZA') : 'N/A', y)
+      if (ncr.date_closed) y = addLabel('Date Closed', new Date(ncr.date_closed).toLocaleDateString('en-ZA'), y)
+      y += 4
 
-    const blob = new Blob([html], { type: 'application/msword' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${ncr.ncr_number}_Report.doc`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
+      if (ncr.description) { y = addSection('Description', y); y = addBody(ncr.description, y) }
+      if (ncr.root_cause) { y = addSection('Root Cause Analysis', y); y = addBody(ncr.root_cause, y) }
+      if (ncr.corrective_action) { y = addSection('Corrective Action', y); y = addBody(ncr.corrective_action, y) }
+
+      // Footer
+      const fy = doc.internal.pageSize.getHeight() - 12
+      doc.setDrawColor(107, 114, 128)
+      doc.line(m, fy - 4, pw - m, fy - 4)
+      doc.setFontSize(7)
+      doc.setTextColor(107, 114, 128)
+      doc.text('ISOGuardian (Pty) Ltd | Reg: 2026/082362/07 | www.isoguardian.co.za', m, fy)
+      doc.text(`Printed: ${new Date().toLocaleDateString('en-ZA')} | CONFIDENTIAL`, pw - m, fy, { align: 'right' })
+
+      doc.save(`${ncr.ncr_number}_Report.pdf`)
+    } catch (err) {
+      console.error('Export error:', err)
+      alert('Export failed: ' + err.message)
+    }
   }
 
   // Filter NCRs
@@ -410,6 +447,11 @@ const NCRs = () => {
                     <label className="text-sm text-white/60">Due Date</label>
                     <div className="text-white">{new Date(selectedNCR.due_date).toLocaleDateString()}</div>
                   </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-white/60">Assigned To</label>
+                  <div className="text-white">{selectedNCR.assigned_name || 'Unassigned'}</div>
                 </div>
 
                 {/* Action Buttons */}
