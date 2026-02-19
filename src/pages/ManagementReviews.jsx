@@ -237,6 +237,17 @@ const ManagementReviews = () => {
     } catch (err) { alert('Failed: ' + err.message); }
   };
 
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const { error } = await supabase.from('management_reviews').update({ status: newStatus }).eq('id', id);
+      if (error) throw error;
+      await logAction('status_changed', id, { new_status: newStatus });
+      alert(`Status updated to ${newStatus}`);
+      fetchReviews();
+      setSelectedReview(null);
+    } catch (err) { alert('Failed: ' + err.message); }
+  };
+
   const fmt = (d) => d ? new Date(d).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set';
 
   const Detail = ({ r }) => (
@@ -253,6 +264,19 @@ const ManagementReviews = () => {
             <div key={l} className="bg-white/5 rounded-xl p-3"><p className="text-xs text-white/50 mb-1">{l}</p><p className="text-white text-sm whitespace-pre-wrap">{v}</p></div>
           ) : null)}
           {r.archived && <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3"><p className="text-xs text-red-300">Archived: {r.archive_reason} • {fmt(r.archived_at)}</p></div>}
+
+          {/* Action buttons */}
+          {!r.archived && (
+            <div className="flex gap-2 flex-wrap pt-2 border-t border-white/10">
+              {r.status !== 'In Progress' && (
+                <button onClick={() => handleStatusChange(r.id, 'In Progress')} className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-sm font-semibold">Mark In Progress</button>
+              )}
+              {r.status !== 'Completed' && (
+                <button onClick={() => handleStatusChange(r.id, 'Completed')} className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg text-sm font-semibold">Mark Completed</button>
+              )}
+              <button onClick={() => handleArchive(r.id)} className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg text-sm font-semibold">Archive</button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -289,9 +313,11 @@ const ManagementReviews = () => {
                   <div className="text-sm text-white/50">{fmt(r.review_date)} • Chaired by {r.chairperson || 'TBC'}</div>
                 </div>
                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                  {viewMode === 'active' ? (
-                    <button onClick={() => handleArchive(r.id)} className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg text-sm font-semibold">Archive</button>
-                  ) : (<>
+                  {viewMode === 'active' ? (<>
+                    {r.status === 'Scheduled' && <button onClick={() => handleStatusChange(r.id, 'In Progress')} className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-xs font-semibold">Start</button>}
+                    {r.status === 'In Progress' && <button onClick={() => handleStatusChange(r.id, 'Completed')} className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg text-xs font-semibold">Complete</button>}
+                    <button onClick={() => handleArchive(r.id)} className="px-3 py-1.5 bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg text-xs font-semibold">Archive</button>
+                  </>) : (<>
                     <button onClick={() => handleRestore(r.id)} className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg text-sm font-semibold">Restore</button>
                     {isLeadAuditor && <button onClick={() => handlePermanentDelete(r.id)} className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm font-bold">Delete</button>}
                   </>)}
