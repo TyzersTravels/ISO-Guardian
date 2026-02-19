@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import { useNavigate } from 'react-router-dom'
+import OnboardingWelcome, { useOnboarding } from '../components/OnboardingWelcome'
 
 const Dashboard = () => {
   const { userProfile } = useAuth()
@@ -18,6 +19,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
 
   const isSuperAdmin = userProfile?.email === 'krugerreece@gmail.com'
+  const { showOnboarding, completeOnboarding } = useOnboarding()
 
   useEffect(() => {
     if (userProfile) {
@@ -111,6 +113,12 @@ const Dashboard = () => {
 
   return (
     <Layout>
+      {showOnboarding && (
+        <OnboardingWelcome
+          userName={userProfile?.full_name}
+          onComplete={completeOnboarding}
+        />
+      )}
       <div className="space-y-6">
         {/* Welcome */}
         <div className="glass glass-border rounded-2xl p-6">
@@ -206,7 +214,7 @@ const Dashboard = () => {
         <div className="glass glass-border rounded-2xl p-6">
           <h3 className="text-lg font-bold text-white mb-3">Your Standards Access</h3>
           <div className="flex gap-3 flex-wrap">
-            {userProfile.standards_access.map(standard => (
+            {(userProfile?.standards_access || []).map(standard => (
               <div key={standard} className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-cyan-300 font-semibold text-sm">
                 {standard.replace('_', ' ')}
               </div>
