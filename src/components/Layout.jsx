@@ -22,6 +22,7 @@ const Layout = ({ children }) => {
     { path: '/data-export', label: 'Export Data', icon: 'download' },
     { path: '/activity-trail', label: 'Activity Trail', icon: 'trail' },
     { path: '/analytics', label: 'Analytics', icon: 'chart' },
+    { path: '/settings', label: 'Settings', icon: 'settings' },
   ]
 
   const isActive = (path) => location.pathname === path
@@ -110,7 +111,7 @@ const Layout = ({ children }) => {
             >
               Privacy Policy
             </a>
-            <span className="text-white/20">•</span>
+            <span className="text-white/20">â€¢</span>
             <a 
               href="/Terms_of_Service_.pdf" 
               target="_blank" 
@@ -119,7 +120,7 @@ const Layout = ({ children }) => {
             >
               Terms of Service
             </a>
-            <span className="text-white/20">•</span>
+            <span className="text-white/20">â€¢</span>
             <a 
               href="/_PAIA_AND_POPIA_MANUAL_.pdf" 
               target="_blank" 
@@ -128,7 +129,7 @@ const Layout = ({ children }) => {
             >
               PAIA Manual
             </a>
-            <span className="text-white/20">•</span>
+            <span className="text-white/20">â€¢</span>
             <a 
               href="/Upload_confirmation_and_disclaimer_.pdf" 
               target="_blank" 
@@ -137,7 +138,7 @@ const Layout = ({ children }) => {
             >
               Upload Disclaimer
             </a>
-            <span className="text-white/20">•</span>
+            <span className="text-white/20">â€¢</span>
             <a 
               href="/Supabase_User_DPA_August_5_2025.pdf" 
               target="_blank" 
@@ -178,7 +179,7 @@ const Layout = ({ children }) => {
               </span>
             </div>
             <div className="text-xs text-white/40">
-              © {new Date().getFullYear()} ISOGuardian (Pty) Ltd. All rights reserved. • Registered in South Africa
+              Â© {new Date().getFullYear()} ISOGuardian (Pty) Ltd. All rights reserved. â€¢ Registered in South Africa
             </div>
           </div>
         </div>

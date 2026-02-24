@@ -99,118 +99,110 @@ const Audits = () => {
     }
   }
 
-  const exportAudit = async (audit) => {
-    try {
-      const { default: jsPDF } = await import('jspdf')
-      const doc = new jsPDF('p', 'mm', 'a4')
-      const pw = doc.internal.pageSize.getWidth()
-      const ph = doc.internal.pageSize.getHeight()
-      const m = 20
-      const cw = pw - m * 2
+  const exportAudit = (audit) => {
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Calibri, Arial, sans-serif; margin: 2cm; }
+    h1 { color: #0066cc; text-align: center; border-bottom: 3px solid #0066cc; padding-bottom: 10px; }
+    h2 { color: #0066cc; margin-top: 25px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+    .header { background: #f0f0f0; padding: 15px; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    td { padding: 8px; border: 1px solid #ddd; }
+    .label { font-weight: bold; background: #f8f8f8; width: 40%; }
+    .section { margin: 20px 0; }
+    .findings { background: #fafafa; padding: 15px; border-left: 4px solid #ff9800; }
+    .footer { margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd; font-size: 10pt; color: #666; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>AUDIT REPORT</h1>
+  
+  <div class="header">
+    <table>
+      <tr>
+        <td class="label">Audit Number:</td>
+        <td>${audit.audit_number}</td>
+      </tr>
+      <tr>
+        <td class="label">Audit Type:</td>
+        <td>${audit.audit_type}</td>
+      </tr>
+      <tr>
+        <td class="label">Standard:</td>
+        <td>${audit.standard.replace('_', ' ')}</td>
+      </tr>
+      <tr>
+        <td class="label">Status:</td>
+        <td><strong>${audit.status}</strong></td>
+      </tr>
+    </table>
+  </div>
 
-      // Load BOTH logos
-      let companyLogo = null
-      let igLogo = null
-      const loadImg = async (url) => { try { const resp = await fetch(url); const bl = await resp.blob(); return await new Promise(r => { const rd = new FileReader(); rd.onload = () => r(rd.result); rd.readAsDataURL(bl); }); } catch(e) { return null; } }
-      const companyLogoUrl = userProfile?.company?.logo_url
-      if (companyLogoUrl) companyLogo = await loadImg(companyLogoUrl)
-      igLogo = await loadImg('/isoguardian-logo.png')
-      const companyCode = userProfile?.company?.company_code || 'XX'
-      const companyName = userProfile?.company?.name || 'Company'
+  <div class="section">
+    <h2>Audit Details</h2>
+    <table>
+      <tr>
+        <td class="label">Audit Date:</td>
+        <td>${new Date(audit.audit_date).toLocaleDateString()}</td>
+      </tr>
+      <tr>
+        <td class="label">Audit Time:</td>
+        <td>${audit.audit_time || 'Not specified'}</td>
+      </tr>
+      <tr>
+        <td class="label">Auditor:</td>
+        <td>${audit.auditor}</td>
+      </tr>
+      <tr>
+        <td class="label">Scope:</td>
+        <td>${audit.scope}</td>
+      </tr>
+    </table>
+  </div>
 
-      const addHF = (pg) => {
-        doc.setFillColor(124, 58, 237); doc.rect(0, 0, pw, 30, 'F')
-        if (companyLogo) try { doc.addImage(companyLogo, 'PNG', m, 2, 26, 26) } catch(e) {}
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(255, 255, 255)
-        doc.text(companyName, companyLogo ? m + 30 : m, 13)
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(220, 220, 255)
-        doc.text('Integrated Management System', companyLogo ? m + 30 : m, 19)
-        if (igLogo) try { doc.addImage(igLogo, 'PNG', pw - m - 10, 5, 8, 8) } catch(e) {}
-        doc.setFontSize(5); doc.setTextColor(200, 200, 255)
-        doc.text('Powered by ISOGuardian', pw - m, 17, { align: 'right' })
-        doc.text(`Page ${pg}`, pw - m, 26, { align: 'right' })
-        doc.setDrawColor(124, 58, 237); doc.line(m, ph - 13, pw - m, ph - 13)
-        doc.setFontSize(6); doc.setTextColor(107, 114, 128)
-        doc.text(`${companyName} | ISOGuardian (Pty) Ltd | Reg: 2026/082362/07`, m, ph - 9)
-        doc.text(`Printed: ${new Date().toLocaleDateString('en-ZA')} | CONFIDENTIAL`, pw - m, ph - 9, { align: 'right' })
-      }
+  ${audit.findings ? `
+  <div class="section">
+    <h2>Audit Findings</h2>
+    <div class="findings">${audit.findings}</div>
+  </div>
+  ` : `
+  <div class="section">
+    <h2>Audit Findings</h2>
+    <p><em>No findings recorded yet. This section will be completed after the audit.</em></p>
+  </div>
+  `}
 
-      addHF(1)
+  ${audit.ncrs_raised ? `
+  <div class="section">
+    <h2>NCRs Raised</h2>
+    <p>${audit.ncrs_raised}</p>
+  </div>
+  ` : ''}
 
-      // Doc control
-      const docNum = `IG-${companyCode}-AUD-${String(audit.audit_number || '').replace(/\D/g, '').slice(-3).padStart(3, '0')}`
-      doc.setFillColor(249, 250, 251); doc.rect(m, 33, cw, 14, 'F')
-      doc.setDrawColor(200, 200, 200); doc.rect(m, 33, cw, 14, 'S')
-      const cl = cw / 3
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(30, 27, 75)
-      doc.text('Document No.', m + 3, 38); doc.text('Revision', m + cl + 3, 38); doc.text('Date of Review', m + cl * 2 + 3, 38)
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(124, 58, 237)
-      doc.text(docNum, m + 3, 44); doc.text('Rev 01', m + cl + 3, 44); doc.text('31 January 2027', m + cl * 2 + 3, 44)
-      doc.line(m + cl, 33, m + cl, 47); doc.line(m + cl * 2, 33, m + cl * 2, 47)
+  <div class="footer">
+    <p><strong>Export Information:</strong></p>
+    <p>Exported by: ${userProfile.email}</p>
+    <p>Export date: ${new Date().toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })}</p>
+    <p>Company: ${userProfile.company?.name || 'N/A'}</p>
+    <p style="margin-top: 10px; font-style: italic;">ISOGuardian - POPIA Compliant Export</p>
+  </div>
+</body>
+</html>
+`
 
-      let y = 54
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(30, 27, 75)
-      doc.text('AUDIT REPORT', m, y); y += 6
-      doc.setFontSize(9); doc.setTextColor(107, 114, 128); doc.setFont('helvetica', 'normal')
-      doc.text(`Company: ${companyName}`, m, y); y += 4
-      doc.text(`Generated: ${new Date().toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' })}`, m, y); y += 6
-      doc.setDrawColor(124, 58, 237); doc.setLineWidth(0.5); doc.line(m, y, pw - m, y); y += 6
-
-      const lbl = (l, v, yp) => { doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(107, 114, 128); doc.text(l + ':', m, yp); doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 27, 75); doc.text(String(v || 'N/A'), m + doc.getTextWidth(l + ': ') + 2, yp); return yp + 5; }
-      const sc = (t, yp) => { if (yp > ph - 35) { doc.addPage(); addHF(doc.getNumberOfPages()); yp = 40; } doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(124, 58, 237); doc.text(t, m, yp); return yp + 6; }
-      const bd = (t, yp) => { doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(30, 27, 75); const ls = doc.splitTextToSize(String(t || ''), cw); if (yp + ls.length * 4 > ph - 30) { doc.addPage(); addHF(doc.getNumberOfPages()); yp = 40; } doc.text(ls, m, yp); return yp + ls.length * 4 + 3; }
-
-      y = sc('Audit Details', y)
-      y = lbl('Audit Number', audit.audit_number, y)
-      y = lbl('Audit Type', audit.audit_type, y)
-      y = lbl('Standard', audit.standard?.replace('_', ' '), y)
-      y = lbl('Status', audit.status, y)
-      y = lbl('Audit Date', audit.audit_date ? new Date(audit.audit_date).toLocaleDateString('en-ZA') : 'N/A', y)
-      y = lbl('Audit Time', audit.audit_time || 'Not specified', y)
-      y = lbl('Lead Auditor', audit.assigned_auditor_name || audit.auditor, y)
-      y += 3
-
-      if (audit.scope) { y = sc('Audit Scope', y); y = bd(audit.scope, y); }
-      if (audit.findings) { y = sc('Audit Findings (ISO 19011:6.5)', y); y = bd(audit.findings, y); }
-      if (audit.observations) { y = sc('Observations', y); y = bd(audit.observations, y); }
-      if (audit.ncrs_raised) { y = lbl('NCRs Raised', audit.ncrs_raised, y); y += 2; }
-      if (audit.evidence_reviewed) { y = sc('Evidence Reviewed', y); y = bd(audit.evidence_reviewed, y); }
-      if (audit.corrective_actions) { y = sc('Corrective Actions Required', y); y = bd(audit.corrective_actions, y); }
-
-      // Signatures
-      if (y > ph - 55) { doc.addPage(); addHF(doc.getNumberOfPages()); y = 40; }
-      y += 4; y = sc('Signatures', y)
-      const sw = (cw - 20) / 3
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(30, 27, 75)
-
-      // Lead Auditor
-      doc.text('Lead Auditor:', m, y); doc.line(m, y + 10, m + sw, y + 10)
-      doc.setFontSize(7); doc.setTextColor(107, 114, 128)
-      doc.text('Signature', m, y + 14)
-      doc.text('Name: ' + (audit.assigned_auditor_name || audit.auditor || '________'), m, y + 19)
-      doc.text('Date: ________', m, y + 24)
-
-      // Auditee Representative
-      doc.setFontSize(8); doc.setTextColor(30, 27, 75)
-      doc.text('Auditee Rep:', m + sw + 10, y); doc.line(m + sw + 10, y + 10, m + sw * 2 + 10, y + 10)
-      doc.setFontSize(7); doc.setTextColor(107, 114, 128)
-      doc.text('Signature', m + sw + 10, y + 14)
-      doc.text('Name: ________', m + sw + 10, y + 19)
-      doc.text('Date: ________', m + sw + 10, y + 24)
-
-      // Management Rep
-      doc.setFontSize(8); doc.setTextColor(30, 27, 75)
-      doc.text('Management Rep:', m + sw * 2 + 20, y); doc.line(m + sw * 2 + 20, y + 10, pw - m, y + 10)
-      doc.setFontSize(7); doc.setTextColor(107, 114, 128)
-      doc.text('Signature', m + sw * 2 + 20, y + 14)
-      doc.text('Name: ________', m + sw * 2 + 20, y + 19)
-      doc.text('Date: ________', m + sw * 2 + 20, y + 24)
-
-      doc.save(`${audit.audit_number || 'AUD'}_Audit_Report.pdf`)
-    } catch (err) {
-      console.error('Export error:', err)
-      alert('Export failed: ' + err.message)
-    }
+    const blob = new Blob([html], { type: 'application/msword' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${audit.audit_number}_Report.doc`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
   }
 
   const filteredAudits = audits.filter(audit => {
@@ -439,11 +431,11 @@ const AuditCard = ({ audit, onClick, isArchived }) => {
           <div className="font-semibold text-white mb-1">{audit.standard.replace('_', ' ')}</div>
           <div className="text-sm text-white/60 mb-2">{audit.scope}</div>
           <div className="flex items-center gap-4 text-xs text-white/50">
-            <span>ðŸ“… {formatDate(audit.audit_date)}</span>
-            {audit.audit_time && <span>ðŸ• {audit.audit_time}</span>}
-            <span>ðŸ‘¤ {audit.assigned_auditor_name}</span>
+            <span className="flex items-center gap-1"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> {formatDate(audit.audit_date)}</span>
+            {audit.audit_time && <span className="flex items-center gap-1"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> {audit.audit_time}</span>}
+            <span className="flex items-center gap-1"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> {audit.assigned_auditor_name}</span>
             {audit.reminder_method !== 'none' && (
-              <span>ðŸ”” {audit.reminder_method}</span>
+              <span className="flex items-center gap-1"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg> {audit.reminder_method}</span>
             )}
           </div>
         </div>
@@ -520,10 +512,15 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
           <div><label className="text-sm text-white/60">Scope</label><div className="text-white/80 glass glass-border rounded-lg p-3">{audit.scope || 'No scope defined'}</div></div>
 
           {/* Show existing findings if completed */}
-          {audit.status === 'Complete' && audit.findings && (
+          {audit.status === 'Complete' && audit.findings && !showCompleteForm && (
             <>
-              <div className="border-t border-white/10 pt-4">
-                <h4 className="text-lg font-semibold text-green-400 mb-3">Audit Close-Out Report</h4>
+              <div className="border-t border-white/10 pt-4 flex items-center justify-between">
+                <h4 className="text-lg font-semibold text-green-400">Audit Close-Out Report</h4>
+                <button onClick={() => { setShowCompleteForm(true); setCloseOut({ findings: audit.findings || '', observations: audit.observations || '', ncrs_raised: String(audit.ncrs_raised || '0'), conclusion: audit.conclusion || '', evidence_reviewed: audit.evidence_reviewed || '', corrective_actions: audit.corrective_actions || '', auditor_recommendation: audit.auditor_recommendation || 'Conforming' }); }}
+                  className="text-xs px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  Edit Close-Out
+                </button>
               </div>
               <div><label className="text-sm text-white/60">Findings (ISO 19011:6.5)</label><div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap">{audit.findings}</div></div>
               {audit.observations && <div><label className="text-sm text-white/60">Observations</label><div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap">{audit.observations}</div></div>}
@@ -531,8 +528,8 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
             </>
           )}
 
-          {/* Complete Audit Form - ISO 19011 compliant */}
-          {showCompleteForm && audit.status === 'In Progress' && (
+          {/* Complete/Edit Audit Form - ISO 19011 compliant */}
+          {showCompleteForm && (audit.status === 'In Progress' || audit.status === 'Complete') && (
             <div className="border-t border-white/10 pt-4 space-y-4">
               <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-3">
                 <p className="text-xs text-cyan-300 font-semibold">ISO 19011:2018 Clause 6.5 â€” Audit Close-Out Requirements</p>
@@ -590,7 +587,7 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
                   className="flex-1 py-3 px-6 glass glass-border text-white rounded-lg hover:bg-white/10">Cancel</button>
                 <button onClick={handleCompleteAudit} disabled={completing}
                   className="flex-1 py-3 px-6 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg disabled:opacity-50">
-                  {completing ? 'Completing...' : 'Submit & Complete Audit'}
+                  {completing ? 'Saving...' : audit.status === 'Complete' ? 'Update Close-Out' : 'Submit & Complete Audit'}
                 </button>
               </div>
             </div>
