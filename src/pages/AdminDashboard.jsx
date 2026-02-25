@@ -9,8 +9,8 @@ const AdminDashboard = () => {
   const [analytics, setAnalytics] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Only allow admin@compliancehub.co.za to access
-  const isSystemAdmin = userProfile?.email === 'admin@compliancehub.co.za'
+  // Only allow super admin to access
+  const isSystemAdmin = userProfile?.email === 'krugerreece@gmail.com'
 
   useEffect(() => {
     if (isSystemAdmin) {

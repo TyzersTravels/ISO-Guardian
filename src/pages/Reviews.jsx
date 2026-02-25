@@ -21,7 +21,7 @@ const Reviews = () => {
         .from('user_roles')
         .select('role')
         .eq('user_id', user?.id)
-        .in('role', ['lead_auditor', 'superadmin']);
+        .in('role', ['lead_auditor', 'super_admin']);
       
       if (data && data.length > 0) {
         setIsLeadAuditor(true);

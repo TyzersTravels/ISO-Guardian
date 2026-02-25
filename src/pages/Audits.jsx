@@ -51,7 +51,7 @@ const Audits = () => {
 
   const deleteAudit = async (auditId, permanent = false) => {
     const confirmMsg = permanent 
-      ? 'âš ï¸ PERMANENTLY DELETE this audit? This cannot be undone.'
+      ? '⚠️ PERMANENTLY DELETE this audit? This cannot be undone.'
       : 'Archive this audit? It can be restored later.'
     
     if (!confirm(confirmMsg)) return
@@ -439,7 +439,7 @@ const AuditCard = ({ audit, onClick, isArchived }) => {
             )}
           </div>
         </div>
-        <button className="text-cyan-400 text-sm hover:underline">View â†’</button>
+        <button className="text-cyan-400 text-sm hover:underline">View →</button>
       </div>
     </div>
   )
@@ -495,7 +495,7 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
       <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-bold text-white">{audit.audit_number}</h3>
-          <button onClick={onClose} className="text-white/60 hover:text-white">âœ•</button>
+          <button onClick={onClose} className="text-white/60 hover:text-white">✕</button>
         </div>
 
         <div className="space-y-4">
@@ -532,14 +532,14 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
           {showCompleteForm && (audit.status === 'In Progress' || audit.status === 'Complete') && (
             <div className="border-t border-white/10 pt-4 space-y-4">
               <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-3">
-                <p className="text-xs text-cyan-300 font-semibold">ISO 19011:2018 Clause 6.5 â€” Audit Close-Out Requirements</p>
+                <p className="text-xs text-cyan-300 font-semibold">ISO 19011:2018 Clause 6.5 — Audit Close-Out Requirements</p>
                 <p className="text-xs text-cyan-300/70 mt-1">All findings, evidence, and conclusions must be documented before closing an audit.</p>
               </div>
 
               <div>
                 <label className="text-sm text-white/60 block mb-2">Audit Findings * <span className="text-white/40">(Conformities & non-conformities identified)</span></label>
                 <textarea value={closeOut.findings} onChange={e => setCloseOut({...closeOut, findings: e.target.value})}
-                  rows={4} placeholder="Document all findings from the audit â€” what was conforming, what was not, specific clause references..."
+                  rows={4} placeholder="Document all findings from the audit — what was conforming, what was not, specific clause references..."
                   className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
               </div>
 
@@ -567,10 +567,10 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
                   <label className="text-sm text-white/60 block mb-2">Auditor Recommendation</label>
                   <select value={closeOut.auditor_recommendation} onChange={e => setCloseOut({...closeOut, auditor_recommendation: e.target.value})}
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-cyan-500">
-                    <option value="Conforming" className="bg-slate-800">Conforming â€” No major issues</option>
-                    <option value="Minor NCR" className="bg-slate-800">Minor NCR â€” Corrective action needed</option>
-                    <option value="Major NCR" className="bg-slate-800">Major NCR â€” Significant non-conformance</option>
-                    <option value="Critical" className="bg-slate-800">Critical â€” Immediate action required</option>
+                    <option value="Conforming" className="bg-slate-800">Conforming — No major issues</option>
+                    <option value="Minor NCR" className="bg-slate-800">Minor NCR — Corrective action needed</option>
+                    <option value="Major NCR" className="bg-slate-800">Major NCR — Significant non-conformance</option>
+                    <option value="Critical" className="bg-slate-800">Critical — Immediate action required</option>
                   </select>
                 </div>
               </div>
@@ -578,7 +578,7 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
               <div>
                 <label className="text-sm text-white/60 block mb-2">Audit Conclusion * <span className="text-white/40">(Overall assessment)</span></label>
                 <textarea value={closeOut.conclusion} onChange={e => setCloseOut({...closeOut, conclusion: e.target.value})}
-                  rows={3} placeholder="Overall conclusion of the audit â€” extent to which audit criteria have been fulfilled..."
+                  rows={3} placeholder="Overall conclusion of the audit — extent to which audit criteria have been fulfilled..."
                   className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
               </div>
 
@@ -614,7 +614,7 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
               ) : (
                 <button onClick={() => onDelete(audit.id)} className="py-3 px-6 bg-orange-500/80 hover:bg-orange-600 text-white font-semibold rounded-lg">Archive</button>
               )}
-              {['superadmin', 'admin', 'lead_auditor'].includes(userProfile?.role) && (
+              {(['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role) || userProfile?.email === 'krugerreece@gmail.com') && (
                 <button onClick={() => onDelete(audit.id, true)} className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg">Delete Forever</button>
               )}
               <button onClick={onClose} className="py-3 px-6 glass glass-border text-white font-semibold rounded-lg hover:bg-white/10">Close</button>

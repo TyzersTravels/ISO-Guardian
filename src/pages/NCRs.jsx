@@ -497,7 +497,7 @@ const NCRs = () => {
                       Archive
                     </button>
                   )}
-                  {['superadmin', 'admin', 'lead_auditor'].includes(userProfile.role) && (
+                  {(['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role) || userProfile?.email === 'krugerreece@gmail.com') && (
                     <button
                       onClick={() => deleteNCR(selectedNCR.id, true)}
                       className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg"

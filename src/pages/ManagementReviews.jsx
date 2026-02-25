@@ -90,7 +90,7 @@ const ManagementReviews = () => {
   const checkUserRole = async () => {
     const email = userProfile?.email || user?.email || '';
     if (email === 'krugerreece@gmail.com') { setIsLeadAuditor(true); return; }
-    try { const { data } = await supabase.from('user_roles').select('role').eq('user_id', user?.id).in('role', ['lead_auditor', 'superadmin']); if (data?.length > 0) setIsLeadAuditor(true); } catch (err) {}
+    try { const { data } = await supabase.from('user_roles').select('role').eq('user_id', user?.id).in('role', ['lead_auditor', 'super_admin']); if (data?.length > 0) setIsLeadAuditor(true); } catch (err) {}
   };
 
   const fetchReviews = async () => {

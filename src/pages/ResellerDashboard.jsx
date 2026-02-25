@@ -28,7 +28,7 @@ const ResellerDashboard = () => {
 
       if (rolesError) throw rolesError;
 
-      const hasSuperAdmin = roles?.some(r => r.role === 'superadmin');
+      const hasSuperAdmin = roles?.some(r => r.role === 'super_admin') || userProfile?.email === 'krugerreece@gmail.com';
       setIsSuperAdmin(hasSuperAdmin);
 
       // SuperAdmin can see everything
