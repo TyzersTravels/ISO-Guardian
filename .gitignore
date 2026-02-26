@@ -35,5 +35,9 @@ Thumbs.db
 # Testing
 /coverage
 
+# Generated output
+/generated-pdfs
+
 # Misc
 .eslintcache
+.mcp.json
