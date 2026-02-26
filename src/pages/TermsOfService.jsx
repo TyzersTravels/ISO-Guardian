@@ -1,8 +1,13 @@
+import { useAuth } from '../contexts/AuthContext'
 import Layout from '../components/Layout'
+import PublicLayout from '../components/PublicLayout'
 
 const TermsOfService = () => {
+  const { user } = useAuth()
+  const Wrapper = user ? Layout : PublicLayout
+
   return (
-    <Layout>
+    <Wrapper>
       <div className="max-w-4xl mx-auto space-y-6 pb-20">
         <div className="glass glass-border rounded-2xl p-6">
           <h1 className="text-3xl font-bold text-white mb-4">Terms of Service</h1>
@@ -197,7 +202,7 @@ const TermsOfService = () => {
           </p>
         </div>
       </div>
-    </Layout>
+    </Wrapper>
   )
 }
 

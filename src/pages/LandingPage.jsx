@@ -78,6 +78,7 @@ export default function LandingPage() {
   const howRef = useFadeIn()
   const pricingRef = useFadeIn()
   const securityRef = useFadeIn()
+  const resellerRef = useFadeIn()
   const ctaRef = useFadeIn()
 
   return (
@@ -793,6 +794,112 @@ export default function LandingPage() {
 
       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
 
+      {/* ─── BECOME A RESELLER ─────────────────────────────────────────── */}
+      <section id="reseller" ref={resellerRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left — copy */}
+            <div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 rounded-full text-xs font-semibold text-cyan-300 mb-6">
+                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+                Partner Programme
+              </div>
+
+              <h2 className="text-4xl font-extrabold mb-4">
+                Independent ISO consultant?{' '}
+                <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                  Grow with us.
+                </span>
+              </h2>
+
+              <p className="text-white/70 mb-6 leading-relaxed">
+                If you help South African businesses achieve ISO certification, ISOGuardian gives you a
+                branded platform to manage all your clients from one place {'\u2014'} while earning recurring
+                revenue for every client you bring on board.
+              </p>
+
+              <ul className="space-y-4 mb-8">
+                {[
+                  {
+                    title: '25% recurring commission',
+                    desc: 'Earn 25% of every client\u2019s monthly subscription \u2014 for the lifetime of that client. Not a one-off. Recurring.',
+                  },
+                  {
+                    title: 'Multi-client dashboard',
+                    desc: 'Switch between clients instantly. View compliance scores, open NCRs, and audit schedules across your entire portfolio.',
+                  },
+                  {
+                    title: 'Your brand, our platform',
+                    desc: 'Clients see their own branded PDF exports with their logo. You look professional without building your own software.',
+                  },
+                  {
+                    title: 'No upfront cost',
+                    desc: 'No licence fees for resellers. You earn from day one. We only succeed when your clients succeed.',
+                  },
+                ].map(({ title, desc }) => (
+                  <li key={title} className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-cyan-400 mt-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                    </svg>
+                    <div>
+                      <p className="font-bold text-white">{title}</p>
+                      <p className="text-white/60 text-sm">{desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              <a
+                href={`mailto:${SUPPORT_EMAIL}?subject=Reseller%20Partnership%20Enquiry`}
+                className="inline-block px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-2xl transition-all shadow-xl shadow-purple-900/50 text-lg"
+              >
+                Apply to Become a Reseller
+              </a>
+            </div>
+
+            {/* Right — visual card */}
+            <div className="relative">
+              <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-1">Reseller at a Glance</h3>
+                  <p className="text-sm text-white/50">What a typical month looks like</p>
+                </div>
+
+                <div className="space-y-4">
+                  {[
+                    { label: 'Your clients on ISOGuardian', value: '8', color: 'text-cyan-400' },
+                    { label: 'Avg. client MRR', value: 'R3,200', color: 'text-purple-400' },
+                    { label: 'Your monthly commission (25%)', value: 'R6,400', color: 'text-green-400' },
+                    { label: 'Annual recurring income', value: 'R76,800', color: 'text-green-400' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className="flex items-center justify-between py-3 border-b border-white/10 last:border-0">
+                      <span className="text-sm text-white/60">{label}</span>
+                      <span className={`font-bold text-lg ${color}`}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-xs text-white/30 text-center mt-4">
+                  Illustrative example only. Actual earnings depend on client subscriptions.
+                </p>
+              </div>
+
+              {/* Floating badge */}
+              <div className="absolute -top-3 -right-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl px-4 py-2 shadow-xl text-sm font-bold">
+                Lifetime commission
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
+
       {/* ─── J. CTA SECTION ────────────────────────────────────────────── */}
       <section id="contact" ref={ctaRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
         <div className="max-w-4xl mx-auto px-6">
@@ -837,10 +944,10 @@ export default function LandingPage() {
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-3">
                 <img src="/isoguardian-logo.png" alt="ISOGuardian" className="w-8 h-8 object-contain" />
-                <span className="font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">ISOGuardian</span>
+                <span className="font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">ISOGuardian{'\u2122'}</span>
               </div>
               <p className="text-xs text-white/40 leading-relaxed">
-                Your Shield Against Non-Compliance.{'\u2122\n'}
+                Your Shield Against Non-Compliance.{'\n'}
                 Enterprise ISO management for South African businesses.
               </p>
             </div>

@@ -1,8 +1,13 @@
+import { useAuth } from '../contexts/AuthContext'
 import Layout from '../components/Layout'
+import PublicLayout from '../components/PublicLayout'
 
 const POPIACompliance = () => {
+  const { user } = useAuth()
+  const Wrapper = user ? Layout : PublicLayout
+
   return (
-    <Layout>
+    <Wrapper>
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="glass glass-border rounded-2xl p-6">
           <h1 className="text-3xl font-bold text-white mb-4">POPIA Compliance & Data Protection</h1>
@@ -133,7 +138,7 @@ const POPIACompliance = () => {
           border: 1px solid rgba(255, 255, 255, 0.2);
         }
       `}</style>
-    </Layout>
+    </Wrapper>
   )
 }
 

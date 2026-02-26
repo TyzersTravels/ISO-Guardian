@@ -24,6 +24,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/popia" element={<POPIACompliance />} />
+          <Route path="/privacy" element={<POPIACompliance />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
