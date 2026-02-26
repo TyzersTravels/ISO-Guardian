@@ -47,10 +47,11 @@ const PublicLayout = ({ children }) => {
       <footer className="border-t border-white/10 py-6 px-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/30">
           <p>{'\u00a9'} {new Date().getFullYear()} ISOGuardian (Pty) Ltd. All rights reserved.</p>
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-wrap justify-center">
             <a href="/terms" className="hover:text-white/60 transition-colors">Terms</a>
             <a href="/popia" className="hover:text-white/60 transition-colors">POPIA</a>
-            <a href="/privacy" className="hover:text-white/60 transition-colors">Privacy</a>
+            <a href="/docs/ISOGuardian_Client_Subscription_SLA_v1.0.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-white/60 transition-colors">SLA</a>
+            <a href="/docs/ISOGuardian_Company_Profile_2026.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-white/60 transition-colors">Company Profile</a>
           </div>
           <p>Registered in South Africa {'\u00b7'} Reg: 2026/082362/07</p>
         </div>

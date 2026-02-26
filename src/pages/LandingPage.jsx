@@ -965,7 +965,7 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm text-white/50">
                 <li><a href="/terms" className="hover:text-white transition-colors">Terms of Service</a></li>
                 <li><a href="/popia" className="hover:text-white transition-colors">Privacy &amp; POPIA</a></li>
-                <li><a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a></li>
+                <li><a href="/docs/ISOGuardian_Client_Subscription_SLA_v1.0.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Client SLA</a></li>
               </ul>
             </div>
 
@@ -973,6 +973,7 @@ export default function LandingPage() {
             <div>
               <p className="text-xs font-semibold text-white/60 uppercase tracking-wider mb-3">Company</p>
               <ul className="space-y-2 text-sm text-white/50">
+                <li><a href="/docs/ISOGuardian_Company_Profile_2026.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Company Profile</a></li>
                 <li><button onClick={() => scrollTo('contact')} className="hover:text-white transition-colors">Contact Us</button></li>
                 <li><a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-white transition-colors">Email Support</a></li>
                 <li>
