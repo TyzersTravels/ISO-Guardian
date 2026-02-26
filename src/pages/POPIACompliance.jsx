@@ -3,8 +3,8 @@ import Layout from '../components/Layout'
 import PublicLayout from '../components/PublicLayout'
 
 const POPIACompliance = () => {
-  const { user } = useAuth()
-  const Wrapper = user ? Layout : PublicLayout
+  const { userProfile } = useAuth()
+  const Wrapper = userProfile ? Layout : PublicLayout
 
   return (
     <Wrapper>

@@ -645,17 +645,17 @@ export default function LandingPage() {
               {
                 tier: 'Starter',
                 highlight: false,
-                features: ['Up to 10 users', '5 GB document storage', 'ISO 9001, 14001 & 45001', 'Document management', 'NCR tracking', 'Audit scheduling', 'Activity trail', 'Email support (business hours)'],
+                features: ['Up to 10 users', 'ISO 9001, 14001 & 45001', 'Document management', 'NCR tracking', 'Audit scheduling', 'Management reviews', 'Compliance scoring', 'Branded PDF exports', 'Activity trail', 'Email support (business hours)'],
               },
               {
                 tier: 'Growth',
                 highlight: true,
-                features: ['Up to 20 users', '15 GB document storage', 'ISO 9001, 14001 & 45001', 'All Starter features', 'Management reviews', 'Compliance scoring', 'Branded PDF exports', 'Priority email support'],
+                features: ['Up to 20 users', 'ISO 9001, 14001 & 45001', 'Document management', 'NCR tracking', 'Audit scheduling', 'Management reviews', 'Compliance scoring', 'Branded PDF exports', 'Activity trail', 'Priority email support'],
               },
               {
                 tier: 'Enterprise',
                 highlight: false,
-                features: ['21+ users', 'Custom storage', 'ISO 9001, 14001 & 45001', 'All Growth features', 'Reseller / multi-tenant', 'Custom onboarding', 'Dedicated account manager', 'SLA agreement'],
+                features: ['21+ users', 'ISO 9001, 14001 & 45001', 'All Growth features', 'Custom onboarding', 'Dedicated account manager', 'SLA agreement'],
               },
             ].map(({ tier, highlight, features }) => (
               <div
@@ -821,8 +821,8 @@ export default function LandingPage() {
               <ul className="space-y-4 mb-8">
                 {[
                   {
-                    title: '25% recurring commission',
-                    desc: 'Earn 25% of every client\u2019s monthly subscription \u2014 for the lifetime of that client. Not a one-off. Recurring.',
+                    title: 'Customer lifetime commission*',
+                    desc: 'Earn recurring commission on every client you refer \u2014 for as long as that client remains active. Not a one-off.',
                   },
                   {
                     title: 'Multi-client dashboard',
@@ -872,10 +872,10 @@ export default function LandingPage() {
 
                 <div className="space-y-4">
                   {[
-                    { label: 'Your clients on ISOGuardian', value: '8', color: 'text-cyan-400' },
-                    { label: 'Avg. client MRR', value: 'R3,200', color: 'text-purple-400' },
-                    { label: 'Your monthly commission (25%)', value: 'R6,400', color: 'text-green-400' },
-                    { label: 'Annual recurring income', value: 'R76,800', color: 'text-green-400' },
+                    { label: 'Manage all your clients', value: 'One dashboard', color: 'text-cyan-400' },
+                    { label: 'Commission type', value: 'Recurring', color: 'text-purple-400' },
+                    { label: 'Commission duration', value: 'Customer lifetime*', color: 'text-green-400' },
+                    { label: 'Upfront cost to you', value: 'R0', color: 'text-green-400' },
                   ].map(({ label, value, color }) => (
                     <div key={label} className="flex items-center justify-between py-3 border-b border-white/10 last:border-0">
                       <span className="text-sm text-white/60">{label}</span>
@@ -885,13 +885,13 @@ export default function LandingPage() {
                 </div>
 
                 <p className="text-xs text-white/30 text-center mt-4">
-                  Illustrative example only. Actual earnings depend on client subscriptions.
+                  *Commission earned for as long as referred client remains an active subscriber. Full terms provided on application.
                 </p>
               </div>
 
               {/* Floating badge */}
               <div className="absolute -top-3 -right-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl px-4 py-2 shadow-xl text-sm font-bold">
-                Lifetime commission
+                Recurring income
               </div>
             </div>
           </div>
