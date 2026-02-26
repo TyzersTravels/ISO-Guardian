@@ -111,35 +111,35 @@ const Layout = ({ children }) => {
             >
               Privacy Policy
             </a>
-            <span className="text-white/20">â€¢</span>
-            <a 
-              href="/Terms_of_Service_.pdf" 
-              target="_blank" 
+            <span className="text-white/20">{'\u2022'}</span>
+            <a
+              href="/Terms_of_Service_.pdf"
+              target="_blank"
               rel="noopener noreferrer"
               className="hover:text-cyan-400 transition-colors"
             >
               Terms of Service
             </a>
-            <span className="text-white/20">â€¢</span>
-            <a 
-              href="/_PAIA_AND_POPIA_MANUAL_.pdf" 
-              target="_blank" 
+            <span className="text-white/20">{'\u2022'}</span>
+            <a
+              href="/_PAIA_AND_POPIA_MANUAL_.pdf"
+              target="_blank"
               rel="noopener noreferrer"
               className="hover:text-cyan-400 transition-colors"
             >
               PAIA Manual
             </a>
-            <span className="text-white/20">â€¢</span>
-            <a 
-              href="/Upload_confirmation_and_disclaimer_.pdf" 
-              target="_blank" 
+            <span className="text-white/20">{'\u2022'}</span>
+            <a
+              href="/Upload_confirmation_and_disclaimer_.pdf"
+              target="_blank"
               rel="noopener noreferrer"
               className="hover:text-cyan-400 transition-colors"
             >
               Upload Disclaimer
             </a>
-            <span className="text-white/20">â€¢</span>
-            <a 
+            <span className="text-white/20">{'\u2022'}</span>
+            <a
               href="/Supabase_User_DPA_August_5_2025.pdf" 
               target="_blank" 
               rel="noopener noreferrer"
@@ -179,7 +179,7 @@ const Layout = ({ children }) => {
               </span>
             </div>
             <div className="text-xs text-white/40">
-              Â© {new Date().getFullYear()} ISOGuardian (Pty) Ltd. All rights reserved. â€¢ Registered in South Africa
+              {'\u00A9'} {new Date().getFullYear()} ISOGuardian (Pty) Ltd. All rights reserved. {'\u2022'} Registered in South Africa
             </div>
           </div>
         </div>
