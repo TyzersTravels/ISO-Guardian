@@ -156,7 +156,7 @@ export default function LandingPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-full text-xs font-semibold text-purple-300 mb-6">
               <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
-              Enterprise ISO Compliance \u2014 South Africa
+              Enterprise ISO Compliance {'\u2014'} South Africa
             </div>
 
             <h1 className="text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
@@ -168,7 +168,7 @@ export default function LandingPage() {
 
             <p className="text-xl text-white/70 mb-8 leading-relaxed">
               ISOGuardian brings document control, NCR tracking, audit management,
-              and compliance scoring into one powerful platform \u2014 purpose-built for
+              and compliance scoring into one powerful platform {'\u2014'} purpose-built for
               South African businesses pursuing ISO 9001, 14001, and 45001.
             </p>
 
@@ -199,7 +199,7 @@ export default function LandingPage() {
               </span>
               <span className="flex items-center gap-1">
                 <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                ISO 9001 \u00b7 14001 \u00b7 45001
+                ISO 9001 {'\u00b7'} 14001 {'\u00b7'} 45001
               </span>
               <span className="flex items-center gap-1">
                 <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
@@ -275,7 +275,7 @@ export default function LandingPage() {
 
             {/* Floating badge */}
             <div className="absolute -top-4 -right-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl px-4 py-2 shadow-xl text-sm font-bold">
-              \u2713 Real-time scoring
+              {'\u2713'} Real-time scoring
             </div>
             <div className="absolute -bottom-4 -left-4 bg-gradient-to-r from-purple-600 to-purple-500 rounded-2xl px-4 py-2 shadow-xl text-sm font-bold">
               POPIA Ready
@@ -316,7 +316,7 @@ export default function LandingPage() {
             ))}
           </div>
           <p className="text-center text-xs text-white/30 mt-5">
-            ISOGuardian (Pty) Ltd is currently working towards ISO 27001:2022 certification \u2014 because we hold ourselves to the same standard we help you achieve.
+            ISOGuardian (Pty) Ltd is currently working towards ISO 27001:2022 certification {'\u2014'} because we hold ourselves to the same standard we help you achieve.
           </p>
         </div>
       </section>
@@ -395,7 +395,7 @@ export default function LandingPage() {
       <section ref={featuresRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-extrabold mb-4">Everything you need. Nothing you don\u2019t.</h2>
+            <h2 className="text-4xl font-extrabold mb-4">Everything you need. Nothing you don{'\u2019'}t.</h2>
             <p className="text-white/60">Six powerful modules. One unified platform.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -492,7 +492,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-extrabold mb-4">Built for the standards that matter.</h2>
-            <p className="text-white/60">Full clause coverage from day one \u2014 no add-ons, no hidden upgrades.</p>
+            <p className="text-white/60">Full clause coverage from day one {'\u2014'} no add-ons, no hidden upgrades.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 mb-8">
@@ -543,7 +543,7 @@ export default function LandingPage() {
           </div>
 
           <p className="text-center text-xs text-white/40 max-w-2xl mx-auto">
-            ISOGuardian (Pty) Ltd is currently working towards ISO 27001:2022 certification \u2014 because we hold ourselves to the same standard we help you achieve.
+            ISOGuardian (Pty) Ltd is currently working towards ISO 27001:2022 certification {'\u2014'} because we hold ourselves to the same standard we help you achieve.
             ISO 27001 support for clients is on our product roadmap.
           </p>
         </div>
@@ -695,7 +695,7 @@ export default function LandingPage() {
           </div>
 
           <p className="text-center text-xs text-white/40 mt-6">
-            All plans include full ISO 9001, 14001 &amp; 45001 support \u00b7 12-month term \u00b7 5-day CPA cooling-off period \u00b7 All amounts in ZAR excl. VAT
+            All plans include full ISO 9001, 14001 &amp; 45001 support {'\u00b7'} 12-month term {'\u00b7'} 5-day CPA cooling-off period {'\u00b7'} All amounts in ZAR excl. VAT
           </p>
         </div>
       </section>
@@ -708,8 +708,8 @@ export default function LandingPage() {
           <div className="text-center mb-12">
             <h2 className="text-4xl font-extrabold mb-4">Enterprise security. South African compliance.</h2>
             <p className="text-white/60 max-w-2xl mx-auto">
-              Security isn\u2019t a feature we bolt on \u2014 it\u2019s the foundation we build on.
-              Every architectural decision is made with your data\u2019s protection in mind.
+              Security isn{'\u2019'}t a feature we bolt on {'\u2014'} it{'\u2019'}s the foundation we build on.
+              Every architectural decision is made with your data{'\u2019'}s protection in mind.
             </p>
           </div>
 
@@ -840,7 +840,7 @@ export default function LandingPage() {
                 <span className="font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">ISOGuardian</span>
               </div>
               <p className="text-xs text-white/40 leading-relaxed">
-                Your Shield Against Non-Compliance.\u2122{'\n'}
+                Your Shield Against Non-Compliance.{'\u2122\n'}
                 Enterprise ISO management for South African businesses.
               </p>
             </div>
@@ -891,10 +891,10 @@ export default function LandingPage() {
           {/* Bottom bar */}
           <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-white/30">
             <p>
-              \u00a9 {new Date().getFullYear()} ISOGuardian (Pty) Ltd. All rights reserved.
+              {'\u00a9'} {new Date().getFullYear()} ISOGuardian (Pty) Ltd. All rights reserved.
             </p>
             <p>{SUPPORT_EMAIL}</p>
-            <p>Registered in South Africa \u00b7 Reg: 2026/082362/07</p>
+            <p>Registered in South Africa {'\u00b7'} Reg: 2026/082362/07</p>
           </div>
         </div>
       </footer>
