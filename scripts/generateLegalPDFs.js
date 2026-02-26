@@ -28,7 +28,7 @@ const PUBLIC_DOCS = join(ROOT, 'public', 'docs');
 // ────────────────────────────────────────────────────────────
 const NAVY    = [20, 25, 45];      // Primary text — deep navy
 const ACCENT  = [79, 70, 160];     // Headings — muted indigo (toned-down purple)
-const TEAL    = [20, 148, 156];    // Secondary accent — professional teal
+const TEAL    = [109, 80, 200];    // Secondary accent — ISOGuardian purple
 const SLATE   = [100, 116, 139];   // Captions, meta text
 const DARK    = [30, 41, 59];      // Body text
 const WHITE   = [255, 255, 255];
@@ -125,7 +125,7 @@ function addFooter(doc, pw, ph, m, pageNum, totalPages) {
   doc.setFont('helvetica', 'normal');
   doc.text(`${COMPANY.name}  |  Reg: ${COMPANY.reg}  |  ${COMPANY.email}`, m, y);
   const pageText = totalPages ? `Page ${pageNum} of ${totalPages}` : `Page ${pageNum}`;
-  doc.text(`${pageText}  |  CONFIDENTIAL`, pw - m, y, { align: 'right' });
+  doc.text(pageText, pw - m, y, { align: 'right' });
 }
 
 function addControlBlock(doc, m, cw, ref, ver, effective, updated) {
@@ -701,35 +701,12 @@ function generateCompanyProfile() {
   doc.text('Enterprise ISO Compliance Management', pw / 2, 150, { align: 'center' });
   doc.text('South Africa', pw / 2, 157, { align: 'center' });
 
-  // Stats row on cover
-  const statsY = 180;
-  doc.setFillColor(30, 35, 60);
-  doc.roundedRect(m + 5, statsY - 8, cw - 10, 28, 3, 3, 'F');
-
-  const statPositions = [
-    { value: '3', label: 'ISO Standards', x: m + cw * 0.17 },
-    { value: '99%', label: 'Uptime Target', x: m + cw * 0.39 },
-    { value: 'AES-256', label: 'Encryption', x: m + cw * 0.61 },
-    { value: 'SOC 2', label: 'Certified Infra', x: m + cw * 0.83 },
-  ];
-  statPositions.forEach(({ value, label, x }) => {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(...TEAL);
-    doc.text(value, x, statsY + 4, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.5);
-    doc.setTextColor(150, 160, 180);
-    doc.text(label, x, statsY + 10, { align: 'center' });
-  });
-
   // Bottom of cover
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(120, 130, 150);
   doc.text(`${COMPANY.name}  |  Reg: ${COMPANY.reg}`, pw / 2, ph - 30, { align: 'center' });
   doc.text(`${COMPANY.email}  |  ${COMPANY.website}`, pw / 2, ph - 25, { align: 'center' });
-  doc.text('CONFIDENTIAL', pw / 2, ph - 18, { align: 'center' });
 
   // ── PAGE 2: WHO WE ARE ──
   doc.addPage();
@@ -786,9 +763,9 @@ function generateCompanyProfile() {
   y += 2;
 
   const features = [
-    ['01', 'Document Management', 'Upload, organise, and retrieve ISO documentation with automated document numbering (IG-[CODE]-DOC-001), version control, and full Activity Trail logging. Never lose a document again.'],
+    ['01', 'Document Management', 'Upload, organise, and retrieve ISO documentation with automated document numbering, version control, and full Activity Trail logging. Never lose a document again.'],
     ['02', 'NCR Tracking', 'Full lifecycle management from creation through root cause analysis and corrective action to formal close-out. Track every non-conformance from discovery to resolution.'],
-    ['03', 'Audit Scheduling', 'Internal and external audit scheduling with close-out reports compliant with ISO 19011:2018. Automated reminders ensure nothing falls through the cracks.'],
+    ['03', 'Audit Scheduling', 'Internal and external audit scheduling with comprehensive close-out reports. Automated reminders ensure nothing falls through the cracks.'],
     ['04', 'Management Reviews', 'Per ISO 9001:9.3 \u2014 meeting minutes, decisions, action items, and branded PDF export. Management reviews become effortless, not dreaded.'],
     ['05', 'Compliance Scoring', 'Clause-by-clause tracking per standard with aggregated scoring dashboards. Know exactly where you stand at a glance \u2014 and where you need to focus.'],
     ['06', 'Activity Trail', 'Immutable audit log providing full traceability per ISO 7.5.3. Every action recorded, every change tracked, every export logged.'],
