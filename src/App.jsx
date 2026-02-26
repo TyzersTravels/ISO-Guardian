@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
+import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
 import Documents from './pages/Documents'
 import NCRs from './pages/NCRs'
@@ -35,7 +36,7 @@ function App() {
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/activity-trail" element={<ProtectedRoute><ActivityTrail /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<LandingPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

@@ -417,7 +417,7 @@ const CompanySettings = () => {
               <p className="text-sm text-purple-300 font-semibold">POPIA Compliance Notice</p>
               <p className="text-xs text-purple-300/70 mt-1">
                 Your company data is isolated using Row Level Security (RLS). No other company on this platform can access your documents, NCRs, audits, or reviews. 
-                All data is encrypted at rest (AES-256) and in transit (TLS 1.2+). For data subject requests, contact your Information Officer or email krugerreece@gmail.com.
+                All data is encrypted at rest (AES-256) and in transit (TLS 1.2+). For data subject requests, contact your Information Officer or email support@isoguardian.co.za.
               </p>
             </div>
           </div>

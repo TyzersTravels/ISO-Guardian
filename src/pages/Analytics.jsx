@@ -166,7 +166,7 @@ const Analytics = () => {
               Analytics is available to authorized reseller partners and platform administrators.
             </p>
             <a
-              href="mailto:krugerreece@gmail.com"
+              href="mailto:support@isoguardian.co.za"
               className="inline-block px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:scale-105 transition-transform"
             >
               Contact Support
@@ -373,7 +373,7 @@ const Analytics = () => {
                   Start onboarding clients to see their compliance data and your commission earnings here.
                 </p>
                 <a
-                  href="mailto:krugerreece@gmail.com?subject=New Client Onboarding"
+                  href="mailto:support@isoguardian.co.za?subject=New Client Onboarding"
                   className="inline-block px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold"
                 >
                   Request Client Setup

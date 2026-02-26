@@ -271,7 +271,7 @@ const Login = () => {
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <a 
-                  href="mailto:krugerreece@gmail.com" 
+                  href="mailto:support@isoguardian.co.za"
                   className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 rounded-lg text-cyan-300 text-sm transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -110,7 +110,7 @@ const POPIACompliance = () => {
           <h2 className="text-xl font-bold text-white mb-4">Contact Information Officer</h2>
           <div className="text-white/80 text-sm">
             <p className="mb-2">For any data protection queries or to exercise your rights:</p>
-            <p><strong>Email:</strong> krugerreece@gmail.com</p>
+            <p><strong>Email:</strong> support@isoguardian.co.za</p>
             <p><strong>Response Time:</strong> Within 30 days as required by POPIA</p>
           </div>
         </div>

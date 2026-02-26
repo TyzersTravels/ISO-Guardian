@@ -184,8 +184,8 @@ const TermsOfService = () => {
           <h2 className="text-xl font-bold text-white mb-4">Contact Information</h2>
           <div className="text-white/80 text-sm space-y-2">
             <p><strong>Information Officer &amp; Director:</strong> Tyreece Kruger</p>
-            <p><strong>Support &amp; Legal:</strong> krugerreece@gmail.com</p>
-            <p><strong>POPIA / PAIA Queries:</strong> krugerreece@gmail.com</p>
+            <p><strong>Support &amp; Legal:</strong> support@isoguardian.co.za</p>
+            <p><strong>POPIA / PAIA Queries:</strong> support@isoguardian.co.za</p>
             <p><strong>Address:</strong> 1 Goodwood Avenue, Comet, Boksburg, Gauteng, 1459</p>
           </div>
         </div>

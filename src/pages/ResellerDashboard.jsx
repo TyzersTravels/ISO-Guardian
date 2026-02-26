@@ -142,7 +142,7 @@ const ResellerDashboard = () => {
             <h2 className="text-2xl font-bold text-white mb-2">Access Required</h2>
             <p className="text-white/70 mb-4">{error}</p>
             <a 
-              href="mailto:krugerreece@gmail.com?subject=Reseller Access Request"
+              href="mailto:support@isoguardian.co.za?subject=Reseller Access Request"
               className="inline-block px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:scale-105 transition-transform"
             >
               Contact Support
