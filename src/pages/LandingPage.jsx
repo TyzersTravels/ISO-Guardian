@@ -965,7 +965,7 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm text-white/50">
                 <li><a href="/terms" className="hover:text-white transition-colors">Terms of Service</a></li>
                 <li><a href="/popia" className="hover:text-white transition-colors">Privacy &amp; POPIA</a></li>
-                <li><a href="/docs/ISOGuardian_Client_Subscription_SLA_v1.0.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Client SLA</a></li>
+                <li><a href="/popia" className="hover:text-white transition-colors">Privacy Policy</a></li>
               </ul>
             </div>
 

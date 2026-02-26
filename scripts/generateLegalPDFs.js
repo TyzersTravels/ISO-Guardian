@@ -1,34 +1,41 @@
 /**
- * ISOGuardian Legal Document PDF Generator
+ * ISOGuardian Legal Document PDF Generator v2
  *
  * Generates branded legal PDFs with ISOGuardian styling:
- * - Terms of Service v1.1
- * - POPIA Compliance & Privacy Policy
- * - Client Subscription & SLA v1.0
- * - Company Profile
+ * - Terms of Service v1.1         (public)
+ * - POPIA Compliance & Privacy    (public)
+ * - Company Profile               (public - marketing)
+ * - Client Subscription & SLA     (PRIVATE - serious buyers only)
  *
  * Usage: node scripts/generateLegalPDFs.js
- * Output: ./generated-pdfs/ directory
- *
- * Prerequisites: npm install jspdf
+ * Output:
+ *   ./public/docs/   — public PDFs (served by Vercel)
+ *   ./generated-pdfs/ — ALL PDFs including private ones
  */
 
 import { jsPDF } from 'jspdf';
-import { mkdirSync, existsSync } from 'fs';
+import { mkdirSync, existsSync, readFileSync, writeFileSync, copyFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUTPUT_DIR = join(__dirname, '..', 'generated-pdfs');
+const ROOT = join(__dirname, '..');
+const OUTPUT_DIR = join(ROOT, 'generated-pdfs');
+const PUBLIC_DOCS = join(ROOT, 'public', 'docs');
 
-// Brand constants
-const PURPLE = [124, 58, 237];
-const DARK = [30, 27, 75];
-const CYAN = [6, 182, 212];
-const GREY = [107, 114, 128];
-const WHITE = [255, 255, 255];
-const LIGHT_BG = [249, 250, 251];
-const RED = [220, 38, 38];
+// ────────────────────────────────────────────────────────────
+// Brand palette — professional, muted, confident
+// ────────────────────────────────────────────────────────────
+const NAVY    = [20, 25, 45];      // Primary text — deep navy
+const ACCENT  = [79, 70, 160];     // Headings — muted indigo (toned-down purple)
+const TEAL    = [20, 148, 156];    // Secondary accent — professional teal
+const SLATE   = [100, 116, 139];   // Captions, meta text
+const DARK    = [30, 41, 59];      // Body text
+const WHITE   = [255, 255, 255];
+const LIGHT   = [248, 250, 252];   // Light background fills
+const BORDER  = [226, 232, 240];   // Subtle borders
+const RED_BOX = [254, 226, 226];   // Important box bg
+const RED_TXT = [185, 28, 28];     // Important text
 
 const COMPANY = {
   name: 'ISOGuardian (Pty) Ltd',
@@ -40,210 +47,297 @@ const COMPANY = {
   phone: '+27 71 606 0250',
 };
 
-// ============================================================
-// PDF Builder helpers
-// ============================================================
+// ────────────────────────────────────────────────────────────
+// Logo loader
+// ────────────────────────────────────────────────────────────
+let LOGO_DATA = null;
+try {
+  const logoPath = join(ROOT, 'public', 'isoguardian-logo.png');
+  const buf = readFileSync(logoPath);
+  LOGO_DATA = 'data:image/jpeg;base64,' + buf.toString('base64');
+} catch (e) {
+  console.warn('Logo not found, generating without logo');
+}
+
+// ────────────────────────────────────────────────────────────
+// Core PDF helpers
+// ────────────────────────────────────────────────────────────
 
 function createDoc() {
   const doc = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 20;
-  const contentWidth = pageWidth - margin * 2;
-  return { doc, pageWidth, pageHeight, margin, contentWidth };
+  const pw = doc.internal.pageSize.getWidth();   // 210
+  const ph = doc.internal.pageSize.getHeight();   // 297
+  const m = 18;
+  const cw = pw - m * 2;
+  return { doc, pw, ph, m, cw };
 }
 
-function addHeader(doc, pageWidth, margin, title, version) {
-  // Purple header bar
-  doc.setFillColor(...PURPLE);
-  doc.rect(0, 0, pageWidth, 28, 'F');
+function addHeader(doc, pw, m, title, version) {
+  // Clean navy header bar
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 0, pw, 24, 'F');
 
-  // Thin cyan accent line
-  doc.setFillColor(...CYAN);
-  doc.rect(0, 28, pageWidth, 1.5, 'F');
+  // Thin teal accent stripe
+  doc.setFillColor(...TEAL);
+  doc.rect(0, 24, pw, 0.8, 'F');
+
+  // Logo in header
+  if (LOGO_DATA) {
+    try {
+      doc.addImage(LOGO_DATA, 'JPEG', m, 2, 14, 20);
+    } catch (e) { /* skip */ }
+  }
+
+  const textX = LOGO_DATA ? m + 18 : m;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setTextColor(...WHITE);
-  doc.text('ISOGuardian', margin, 12);
+  doc.text('ISOGuardian', textX, 11);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.setTextColor(220, 220, 255);
-  doc.text('Enterprise ISO Compliance Management', margin, 18);
-  doc.text(COMPANY.website, margin, 23);
+  doc.setTextColor(180, 190, 210);
+  doc.text('Enterprise ISO Compliance Management', textX, 16.5);
+  doc.text(COMPANY.website, textX, 21);
 
-  // Title + version right-aligned
+  // Right side: doc title
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(...WHITE);
-  doc.text(title, pageWidth - margin, 12, { align: 'right' });
+  doc.text(title, pw - m, 11, { align: 'right' });
   if (version) {
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.text(version, pageWidth - margin, 18, { align: 'right' });
+    doc.setFontSize(6.5);
+    doc.setTextColor(180, 190, 210);
+    doc.text(version, pw - m, 16, { align: 'right' });
   }
 }
 
-function addFooter(doc, pageWidth, pageHeight, margin, pageNum, totalPages) {
-  const y = pageHeight - 10;
-  doc.setDrawColor(...PURPLE);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y - 4, pageWidth - margin, y - 4);
+function addFooter(doc, pw, ph, m, pageNum, totalPages) {
+  const y = ph - 8;
+  doc.setDrawColor(...BORDER);
+  doc.setLineWidth(0.2);
+  doc.line(m, y - 3, pw - m, y - 3);
 
-  doc.setFontSize(6.5);
-  doc.setTextColor(...GREY);
+  doc.setFontSize(6);
+  doc.setTextColor(...SLATE);
   doc.setFont('helvetica', 'normal');
-  doc.text(
-    `${COMPANY.name} | Reg: ${COMPANY.reg} | ${COMPANY.email}`,
-    margin, y
-  );
-  doc.text(
-    `Page ${pageNum}${totalPages ? ' of ' + totalPages : ''} | CONFIDENTIAL`,
-    pageWidth - margin, y, { align: 'right' }
-  );
+  doc.text(`${COMPANY.name}  |  Reg: ${COMPANY.reg}  |  ${COMPANY.email}`, m, y);
+  const pageText = totalPages ? `Page ${pageNum} of ${totalPages}` : `Page ${pageNum}`;
+  doc.text(`${pageText}  |  CONFIDENTIAL`, pw - m, y, { align: 'right' });
 }
 
-function addDocControlBlock(doc, margin, contentWidth, docRef, version, effectiveDate, lastUpdated) {
-  const y = 33;
-  doc.setFillColor(...LIGHT_BG);
-  doc.rect(margin, y, contentWidth, 16, 'F');
-  doc.setDrawColor(200, 200, 200);
-  doc.rect(margin, y, contentWidth, 16, 'S');
+function addControlBlock(doc, m, cw, ref, ver, effective, updated) {
+  const y = 28;
+  doc.setFillColor(...LIGHT);
+  doc.roundedRect(m, y, cw, 14, 1.5, 1.5, 'F');
+  doc.setDrawColor(...BORDER);
+  doc.setLineWidth(0.2);
+  doc.roundedRect(m, y, cw, 14, 1.5, 1.5, 'S');
 
-  const colW = contentWidth / 4;
-  const labels = ['Document Ref', 'Version', 'Effective Date', 'Last Updated'];
-  const values = [docRef, version, effectiveDate, lastUpdated];
-
-  doc.setFontSize(7);
-  labels.forEach((label, i) => {
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...GREY);
-    doc.text(label, margin + i * colW + 3, y + 5);
+  const cols = [
+    ['Document Ref', ref],
+    ['Version', ver],
+    ['Effective', effective],
+    ['Updated', updated],
+  ];
+  const colW = cw / 4;
+  cols.forEach(([label, value], i) => {
+    const x = m + i * colW + 3;
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...PURPLE);
-    doc.setFontSize(8);
-    doc.text(values[i], margin + i * colW + 3, y + 11);
-    doc.setFontSize(7);
+    doc.setFontSize(6);
+    doc.setTextColor(...SLATE);
+    doc.text(label, x, y + 5);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...ACCENT);
+    doc.text(value, x, y + 10);
     if (i < 3) {
-      doc.setDrawColor(200, 200, 200);
-      doc.line(margin + (i + 1) * colW, y, margin + (i + 1) * colW, y + 16);
+      doc.setDrawColor(...BORDER);
+      doc.line(m + (i + 1) * colW, y + 2, m + (i + 1) * colW, y + 12);
     }
   });
-
-  return y + 20;
+  return y + 18;
 }
 
-function addTitle(doc, title, y, margin) {
+function addTitle(doc, text, y, m) {
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.setTextColor(...DARK);
-  doc.text(title, margin, y);
+  doc.setFontSize(18);
+  doc.setTextColor(...NAVY);
+  doc.text(text, m, y);
   return y + 10;
 }
 
-function addSectionHeading(doc, text, y, margin, num) {
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(...PURPLE);
+function addSubtitle(doc, text, y, m) {
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...TEAL);
+  doc.text(text, m, y);
+  return y + 6;
+}
+
+function heading(doc, text, y, m, num) {
   const label = num ? `${num}. ${text}` : text;
-  doc.text(label, margin, y);
-
-  // Underline
-  doc.setDrawColor(...CYAN);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y + 1.5, margin + doc.getTextWidth(label), y + 1.5);
-
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.setTextColor(...NAVY);
+  doc.text(label, m, y);
+  // Subtle teal underline
+  doc.setDrawColor(...TEAL);
+  doc.setLineWidth(0.4);
+  const w = Math.min(doc.getTextWidth(label), 80);
+  doc.line(m, y + 1.5, m + w, y + 1.5);
   return y + 7;
 }
 
-function addParagraph(doc, text, y, margin, contentWidth, opts = {}) {
-  const { bold = false, size = 9, color = DARK, indent = 0 } = opts;
+function para(doc, text, y, m, cw, opts = {}) {
+  const { bold = false, size = 8.5, color = DARK, indent = 0 } = opts;
   doc.setFont('helvetica', bold ? 'bold' : 'normal');
   doc.setFontSize(size);
   doc.setTextColor(...color);
-  const lines = doc.splitTextToSize(text, contentWidth - indent);
-  doc.text(lines, margin + indent, y);
-  return y + lines.length * (size * 0.42) + 3;
+  const lines = doc.splitTextToSize(text, cw - indent);
+  doc.text(lines, m + indent, y);
+  return y + lines.length * (size * 0.4) + 2.5;
 }
 
-function addBullet(doc, text, y, margin, contentWidth) {
+function bullet(doc, text, y, m, cw, opts = {}) {
+  const { size = 8.5 } = opts;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(size);
   doc.setTextColor(...DARK);
-  doc.text('\u2022', margin + 4, y);
-  const lines = doc.splitTextToSize(text, contentWidth - 12);
-  doc.text(lines, margin + 10, y);
-  return y + lines.length * 3.8 + 1.5;
+  doc.setTextColor(...TEAL);
+  doc.text('\u2022', m + 3, y);
+  doc.setTextColor(...DARK);
+  const lines = doc.splitTextToSize(text, cw - 10);
+  doc.text(lines, m + 8, y);
+  return y + lines.length * (size * 0.4) + 1.5;
 }
 
-function addImportantBox(doc, text, y, margin, contentWidth) {
-  const lines = doc.splitTextToSize(text, contentWidth - 12);
-  const boxH = lines.length * 4 + 6;
-  doc.setFillColor(254, 242, 242);
-  doc.setDrawColor(...RED);
-  doc.setLineWidth(0.4);
-  doc.rect(margin, y - 2, contentWidth, boxH, 'FD');
+function importantBox(doc, text, y, m, cw) {
+  const lines = doc.splitTextToSize(text, cw - 10);
+  const boxH = lines.length * 3.5 + 8;
+  doc.setFillColor(...RED_BOX);
+  doc.setDrawColor(252, 165, 165);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(m, y - 1, cw, boxH, 1.5, 1.5, 'FD');
+
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(...RED);
-  doc.text('IMPORTANT', margin + 4, y + 3);
+  doc.setFontSize(7);
+  doc.setTextColor(...RED_TXT);
+  doc.text('IMPORTANT', m + 4, y + 4);
+
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(...DARK);
-  doc.text(lines, margin + 4, y + 8);
-  return y + boxH + 4;
+  doc.text(lines, m + 4, y + 9);
+  return y + boxH + 3;
 }
 
-function checkPageBreak(doc, y, pageHeight, margin, needed = 30) {
-  if (y + needed > pageHeight - 20) {
+function featureCard(doc, title, desc, y, m, cw, iconText) {
+  const cardW = cw;
+  const descLines = doc.splitTextToSize(desc, cardW - 16);
+  const cardH = descLines.length * 3.5 + 14;
+
+  doc.setFillColor(...LIGHT);
+  doc.setDrawColor(...BORDER);
+  doc.setLineWidth(0.2);
+  doc.roundedRect(m, y, cardW, cardH, 2, 2, 'FD');
+
+  // Left accent bar
+  doc.setFillColor(...TEAL);
+  doc.roundedRect(m, y, 2.5, cardH, 1, 1, 'F');
+
+  // Icon circle
+  doc.setFillColor(...ACCENT);
+  doc.circle(m + 10, y + 7, 3.5, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(...WHITE);
+  doc.text(iconText, m + 10, y + 8.5, { align: 'center' });
+
+  // Title
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(...NAVY);
+  doc.text(title, m + 17, y + 8.5);
+
+  // Desc
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...SLATE);
+  doc.text(descLines, m + 8, y + 14);
+
+  return y + cardH + 3;
+}
+
+function statBlock(doc, value, label, x, y) {
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(...TEAL);
+  doc.text(value, x, y, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(...SLATE);
+  doc.text(label, x, y + 5, { align: 'center' });
+}
+
+function divider(doc, y, m, cw) {
+  doc.setDrawColor(...BORDER);
+  doc.setLineWidth(0.15);
+  doc.line(m, y, m + cw, y);
+  return y + 4;
+}
+
+// ────────────────────────────────────────────────────────────
+// Page break helper
+// ────────────────────────────────────────────────────────────
+function makePageManager(doc, pw, ph, m, headerTitle, headerVer) {
+  let pageNum = 1;
+  const render = () => {
+    addHeader(doc, pw, m, headerTitle, headerVer);
+    addFooter(doc, pw, ph, m, pageNum, null);
+  };
+  const newPage = () => {
     doc.addPage();
-    return margin + 10; // fresh Y after top margin
-  }
-  return y;
+    pageNum++;
+    render();
+    return 32;
+  };
+  const bp = (y, need = 24) => (y + need > ph - 16) ? newPage() : y;
+  const finalize = () => {
+    const total = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= total; i++) {
+      doc.setPage(i);
+      if (i > 1) addHeader(doc, pw, m, headerTitle, headerVer);
+      addFooter(doc, pw, ph, m, i, total);
+    }
+  };
+  render();
+  return { bp, newPage, finalize, getPage: () => pageNum };
 }
 
 // ============================================================
 // DOCUMENT 1: Terms of Service v1.1
 // ============================================================
 function generateTermsOfService() {
-  const { doc, pageWidth, pageHeight, margin, contentWidth } = createDoc();
-  let pageNum = 1;
+  const { doc, pw, ph, m, cw } = createDoc();
+  const pg = makePageManager(doc, pw, ph, m, 'Terms of Service', 'Version 1.1');
 
-  const renderPage = () => {
-    addHeader(doc, pageWidth, margin, 'Terms of Service', 'Version 1.1');
-    addFooter(doc, pageWidth, pageHeight, margin, pageNum, null);
-  };
+  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-TOS', 'v1.1', 'January 2026', '20 February 2026');
+  y = addTitle(doc, 'Terms of Service', y, m);
 
-  const newPage = () => {
-    doc.addPage();
-    pageNum++;
-    renderPage();
-    return 38;
-  };
+  // 1
+  y = pg.bp(y);
+  y = heading(doc, 'Acceptance of Terms', y, m, 1);
+  y = para(doc, 'By accessing and using ISOGuardian (\u201Cthe Service\u201D), you accept and agree to be bound by these Terms of Service, our Privacy Policy, POPIA Compliance Policy, and PAIA Manual (collectively, \u201Cthe Terms\u201D). If you do not agree, do not use the Service. If acting for a company, you warrant authority to bind it.', y, m, cw);
+  y = para(doc, 'These Terms are governed by the laws of the Republic of South Africa, including the Consumer Protection Act 68 of 2008 (CPA), the Protection of Personal Information Act 4 of 2013 (POPIA), and the Electronic Communications and Transactions Act 25 of 2002 (ECTA).', y, m, cw);
 
-  const bp = (y, need = 28) => {
-    if (y + need > pageHeight - 20) {
-      return newPage();
-    }
-    return y;
-  };
-
-  renderPage();
-  let y = addDocControlBlock(doc, margin, contentWidth, 'IG-LEGAL-TOS', 'v1.1', 'January 2026', '20 February 2026');
-  y = addTitle(doc, 'Terms of Service', y, margin);
-
-  // 1. Acceptance
-  y = bp(y);
-  y = addSectionHeading(doc, 'Acceptance of Terms', y, margin, 1);
-  y = addParagraph(doc, 'By accessing and using ISOGuardian (\u201Cthe Service\u201D), you accept and agree to be bound by these Terms of Service, our Privacy Policy, POPIA Compliance Policy, and PAIA Manual (collectively, \u201Cthe Terms\u201D). If you do not agree, do not use the Service. If acting for a company, you warrant authority to bind it.', y, margin, contentWidth);
-  y = addParagraph(doc, 'These Terms are governed by the laws of the Republic of South Africa, including the Consumer Protection Act 68 of 2008 (CPA), the Protection of Personal Information Act 4 of 2013 (POPIA), and the Electronic Communications and Transactions Act 25 of 2002 (ECTA).', y, margin, contentWidth);
-
-  // 2. Service Description
-  y = bp(y);
-  y = addSectionHeading(doc, 'Service Description', y, margin, 2);
-  y = addParagraph(doc, 'ISOGuardian is a cloud-based ISO compliance management platform that provides:', y, margin, contentWidth);
-  const features = [
+  // 2
+  y = pg.bp(y);
+  y = heading(doc, 'Service Description', y, m, 2);
+  y = para(doc, 'ISOGuardian is a cloud-based ISO compliance management platform that provides:', y, m, cw);
+  for (const f of [
     'ISO compliance management across ISO 9001:2015, ISO 14001:2015, and ISO 45001:2018',
     'Document management \u2014 upload, store, organise, and retrieve ISO documentation with automated numbering and Activity Trail logging',
     'Non-Conformance Report (NCR) tracking \u2014 full lifecycle management from creation through corrective action to closure',
@@ -252,24 +346,23 @@ function generateTermsOfService() {
     'Compliance scoring and reporting across all supported standards, organised by clause',
     'Activity Trail \u2014 comprehensive audit logging for ISO 7.5.3 traceability',
     'Branded PDF document exports with company branding and signature blocks',
-  ];
-  features.forEach(f => {
-    y = bp(y, 8);
-    y = addBullet(doc, f, y, margin, contentWidth);
-  });
+  ]) {
+    y = pg.bp(y, 8);
+    y = bullet(doc, f, y, m, cw);
+  }
 
-  // 3. Platform Development
-  y = bp(y);
-  y = addSectionHeading(doc, 'Platform Development & Future Features', y, margin, 3);
-  y = addParagraph(doc, 'ISOGuardian is an actively developed platform. We continuously enhance the Service by adding new features, improving existing functionality, and expanding standards coverage. Planned enhancements may include (without limitation): document generation, digital signatures, automated notifications, additional ISO standards (including ISO 27001), and AI-powered compliance advisory tools.', y, margin, contentWidth);
-  y = addParagraph(doc, 'No Commitment: References to planned or future features do not constitute a commitment that such features will be delivered by any specific date. Your subscription covers all features available on the Platform at the time of use.', y, margin, contentWidth, { bold: true, size: 8 });
-  y = addParagraph(doc, 'Feature Changes: We reserve the right to modify, enhance, or retire features with thirty (30) days\u2019 notice. Core functionality as described in your Client Subscription Agreement will not be removed during your subscription term without equivalent replacement.', y, margin, contentWidth, { bold: true, size: 8 });
+  // 3
+  y = pg.bp(y);
+  y = heading(doc, 'Platform Development & Future Features', y, m, 3);
+  y = para(doc, 'ISOGuardian is an actively developed platform. We continuously enhance the Service by adding new features, improving existing functionality, and expanding standards coverage.', y, m, cw);
+  y = para(doc, 'No Commitment: References to planned or future features do not constitute a commitment that such features will be delivered by any specific date.', y, m, cw, { bold: true, size: 7.5 });
+  y = para(doc, 'Feature Changes: We reserve the right to modify, enhance, or retire features with thirty (30) days\u2019 notice. Core functionality will not be removed during your subscription term without equivalent replacement.', y, m, cw, { bold: true, size: 7.5 });
 
-  // 4. User Responsibilities
-  y = bp(y);
-  y = addSectionHeading(doc, 'User Responsibilities', y, margin, 4);
-  y = addParagraph(doc, 'You agree to:', y, margin, contentWidth);
-  const responsibilities = [
+  // 4
+  y = pg.bp(y);
+  y = heading(doc, 'User Responsibilities', y, m, 4);
+  y = para(doc, 'You agree to:', y, m, cw);
+  for (const r of [
     'Provide accurate information and maintain its accuracy',
     'Keep credentials confidential and notify us of any suspected unauthorised access',
     'Use the Service in compliance with all applicable South African laws',
@@ -277,500 +370,611 @@ function generateTermsOfService() {
     'Not reverse-engineer, decompile, or derive source code of the Platform',
     'Not upload malicious content or material infringing third-party IP rights',
     'Maintain your own backups of critical data',
-  ];
-  responsibilities.forEach(r => {
-    y = bp(y, 8);
-    y = addBullet(doc, r, y, margin, contentWidth);
-  });
+  ]) {
+    y = pg.bp(y, 6);
+    y = bullet(doc, r, y, m, cw);
+  }
 
-  // 5. Data Ownership
-  y = bp(y);
-  y = addSectionHeading(doc, 'Data Ownership & License', y, margin, 5);
-  y = addParagraph(doc, 'Your Data: You retain all rights to data you upload to ISOGuardian.', y, margin, contentWidth, { bold: true });
-  y = addParagraph(doc, 'License Grant: You grant us a limited licence to store, process, and display your data solely for providing the Service.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Our IP: The Platform, including software, design, templates, branded export formats, and documentation, is owned by ISOGuardian (Pty) Ltd. You are granted a non-exclusive, non-transferable licence for the duration of your subscription.', y, margin, contentWidth);
+  // 5
+  y = pg.bp(y);
+  y = heading(doc, 'Data Ownership & License', y, m, 5);
+  y = para(doc, 'Your Data: You retain all rights to data you upload to ISOGuardian.', y, m, cw, { bold: true });
+  y = para(doc, 'License Grant: You grant us a limited licence to store, process, and display your data solely for providing the Service.', y, m, cw);
+  y = para(doc, 'Our IP: The Platform, including software, design, templates, branded export formats, and documentation, is owned by ISOGuardian (Pty) Ltd. You are granted a non-exclusive, non-transferable licence for the duration of your subscription.', y, m, cw);
 
-  // 6. Limitation of Liability
-  y = bp(y);
-  y = addSectionHeading(doc, 'Limitation of Liability', y, margin, 6);
-  y = addImportantBox(doc, 'ISOGuardian is a management tool designed to assist with compliance management. It does not guarantee ISO certification, 100% compliance with any standard, elimination of all compliance risks, or that any feature will produce a particular regulatory outcome. You remain solely responsible for achieving and maintaining compliance. Consult qualified professionals for compliance decisions.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Exclusion: To the maximum extent permitted by law, we are not liable for indirect, incidental, special, or consequential damages, including loss of profits, data, or goodwill.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Maximum Liability: Our total aggregate liability shall not exceed fees paid by you in the 12 months preceding the claim.', y, margin, contentWidth);
+  // 6
+  y = pg.bp(y);
+  y = heading(doc, 'Limitation of Liability', y, m, 6);
+  y = importantBox(doc, 'ISOGuardian is a management tool designed to assist with compliance management. It does not guarantee ISO certification, 100% compliance with any standard, elimination of all compliance risks, or that any feature will produce a particular regulatory outcome. You remain solely responsible for achieving and maintaining compliance.', y, m, cw);
+  y = para(doc, 'Exclusion: To the maximum extent permitted by law, we are not liable for indirect, incidental, special, or consequential damages, including loss of profits, data, or goodwill.', y, m, cw);
+  y = para(doc, 'Maximum Liability: Our total aggregate liability shall not exceed fees paid by you in the 12 months preceding the claim.', y, m, cw);
 
-  // 7. Service Availability
-  y = bp(y);
-  y = addSectionHeading(doc, 'Service Availability', y, margin, 7);
-  y = addParagraph(doc, 'Uptime Target: We target 99% monthly uptime. This excludes scheduled maintenance, force majeure, and third-party outages.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Maintenance: Communicated at least 48 hours in advance where practicable.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Support: Email support during business hours (Monday\u2013Friday, 08:00\u201317:00 SAST, excl. SA public holidays).', y, margin, contentWidth);
-  y = addParagraph(doc, 'Service Credits: Where a Client Subscription Agreement applies, service credits are specified therein.', y, margin, contentWidth);
+  // 7
+  y = pg.bp(y);
+  y = heading(doc, 'Service Availability', y, m, 7);
+  y = para(doc, 'Uptime Target: We target 99% monthly uptime. This excludes scheduled maintenance, force majeure, and third-party outages.', y, m, cw);
+  y = para(doc, 'Maintenance: Communicated at least 48 hours in advance where practicable.', y, m, cw);
+  y = para(doc, 'Support: Email support during business hours (Monday\u2013Friday, 08:00\u201317:00 SAST, excl. SA public holidays).', y, m, cw);
 
-  // 8. Payment
-  y = bp(y);
-  y = addSectionHeading(doc, 'Payment & Subscription', y, margin, 8);
-  y = addParagraph(doc, 'Billing: Subscription-based. Plans detailed on the website or in your Client Subscription Agreement. All amounts in ZAR, exclusive of VAT.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Payment: Due in advance on the 1st of each month via EFT. Late payment beyond 7 days may restrict access; beyond 14 days, suspension.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Price Changes: Once per annum with 30 days\u2019 notice. Increases capped at 10% or CPI + 2%, whichever is greater.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Fixed-Term: Where a 12-month agreement applies, early cancellation is subject to early termination provisions in your Subscription Agreement.', y, margin, contentWidth);
+  // 8
+  y = pg.bp(y);
+  y = heading(doc, 'Payment & Subscription', y, m, 8);
+  y = para(doc, 'Billing: Subscription-based. All amounts in ZAR, exclusive of VAT.', y, m, cw);
+  y = para(doc, 'Payment: Due in advance on the 1st of each month via EFT. Late payment beyond 7 days may restrict access; beyond 14 days, suspension.', y, m, cw);
+  y = para(doc, 'Price Changes: Once per annum with 30 days\u2019 notice. Increases capped at 10% or CPI + 2%, whichever is greater.', y, m, cw);
 
-  // 9. Cancellation
-  y = bp(y);
-  y = addSectionHeading(doc, 'Cancellation & Refunds', y, margin, 9);
-  y = addParagraph(doc, 'CPA Cooling-Off: Where the CPA applies (distance selling), cancel within 5 business days of signup for a full refund less prorated usage.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Fixed-Term: Early cancellation subject to a reasonable termination fee per your Subscription Agreement, calculated per CPA Section 14.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Month-to-Month: Cancel with 30 days\u2019 written notice. Effective at end of billing cycle.', y, margin, contentWidth);
-  y = addParagraph(doc, 'No Partial Refunds: No refunds for partial months or unused time, except where required by law.', y, margin, contentWidth);
+  // 9
+  y = pg.bp(y);
+  y = heading(doc, 'Cancellation & Refunds', y, m, 9);
+  y = para(doc, 'CPA Cooling-Off: Where the CPA applies, cancel within 5 business days of signup for a full refund less prorated usage.', y, m, cw);
+  y = para(doc, 'Month-to-Month: Cancel with 30 days\u2019 written notice. Effective at end of billing cycle.', y, m, cw);
+  y = para(doc, 'Fixed-Term: Early cancellation subject to a reasonable termination fee calculated per CPA Section 14.', y, m, cw);
 
-  // 10. Account Termination
-  y = bp(y);
-  y = addSectionHeading(doc, 'Account Termination', y, margin, 10);
-  y = addParagraph(doc, 'By You: Contact support to terminate your account.', y, margin, contentWidth);
-  y = addParagraph(doc, 'By Us: We may suspend or terminate for breach, non-payment exceeding 30 days, fraud, or abuse. 14 days\u2019 notice and opportunity to remedy provided for breach.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Data Retention: Data retained for 30 days post-termination for export, then permanently deleted unless legal retention applies.', y, margin, contentWidth);
+  // 10
+  y = pg.bp(y);
+  y = heading(doc, 'Account Termination', y, m, 10);
+  y = para(doc, 'By You: Contact support to terminate your account.', y, m, cw);
+  y = para(doc, 'By Us: We may suspend or terminate for breach, non-payment exceeding 30 days, fraud, or abuse. 14 days\u2019 notice and opportunity to remedy provided.', y, m, cw);
+  y = para(doc, 'Data Retention: Data retained for 30 days post-termination for export, then permanently deleted.', y, m, cw);
 
-  // 11. Data Protection
-  y = bp(y);
-  y = addSectionHeading(doc, 'Data Protection & POPIA', y, margin, 11);
-  y = addParagraph(doc, 'We process personal information under POPIA. You are the Responsible Party; ISOGuardian is the Operator.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Data Hosting: Supabase infrastructure in the EU (London), compliant under POPIA Section 72.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Security: AES-256 encryption at rest, TLS in transit, Row Level Security, role-based access, audit logging, CAPTCHA protection.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Breach Notification: Within 72 hours per POPIA Section 22.', y, margin, contentWidth);
+  // 11
+  y = pg.bp(y);
+  y = heading(doc, 'Data Protection & POPIA', y, m, 11);
+  y = para(doc, 'We process personal information under POPIA. You are the Responsible Party; ISOGuardian is the Operator.', y, m, cw);
+  y = para(doc, 'Data Hosting: Supabase infrastructure in the EU (London), compliant under POPIA Section 72.', y, m, cw);
+  y = para(doc, 'Security: AES-256 encryption at rest, TLS in transit, Row Level Security, role-based access, audit logging.', y, m, cw);
+  y = para(doc, 'Breach Notification: Within 72 hours per POPIA Section 22.', y, m, cw);
 
-  // 12. Security
-  y = bp(y);
-  y = addSectionHeading(doc, 'Security', y, margin, 12);
-  y = addParagraph(doc, 'Commercially reasonable security measures including:', y, margin, contentWidth);
-  const securityItems = [
+  // 12
+  y = pg.bp(y);
+  y = heading(doc, 'Security', y, m, 12);
+  for (const s of [
     'AES-256 encryption at rest and TLS 1.2+ in transit',
     'Row Level Security (RLS) for multi-tenant data isolation',
     'Role-based access controls with company-scoped permissions',
     'Comprehensive audit logging of all actions',
-    'Cloudflare Turnstile CAPTCHA',
+    'Cloudflare Turnstile CAPTCHA protection',
     'Session management with automatic timeout',
-  ];
-  securityItems.forEach(s => {
-    y = bp(y, 8);
-    y = addBullet(doc, s, y, margin, contentWidth);
-  });
-  y = addParagraph(doc, 'No method of transmission or storage is 100% secure. We maintain commercially acceptable safeguards.', y, margin, contentWidth);
+  ]) {
+    y = pg.bp(y, 6);
+    y = bullet(doc, s, y, m, cw);
+  }
 
   // 13-16
-  y = bp(y);
-  y = addSectionHeading(doc, 'Changes to Terms', y, margin, 13);
-  y = addParagraph(doc, 'We may update these Terms with 30 days\u2019 written notice per CPA Section 14(2)(b)(i)(bb). Material changes communicated via email. Continued use after the notice period constitutes acceptance. If you disagree, you may terminate per Clause 9.', y, margin, contentWidth);
+  y = pg.bp(y);
+  y = heading(doc, 'Changes to Terms', y, m, 13);
+  y = para(doc, 'We may update these Terms with 30 days\u2019 written notice per CPA Section 14(2)(b)(i)(bb). Material changes communicated via email. Continued use constitutes acceptance.', y, m, cw);
 
-  y = bp(y);
-  y = addSectionHeading(doc, 'Force Majeure', y, margin, 14);
-  y = addParagraph(doc, 'Not liable for failure or delay caused by events beyond reasonable control: acts of God, disasters, power outages, internet failures, government actions, pandemics, civil unrest, or third-party provider outages.', y, margin, contentWidth);
+  y = pg.bp(y);
+  y = heading(doc, 'Force Majeure', y, m, 14);
+  y = para(doc, 'Not liable for failure or delay caused by events beyond reasonable control: acts of God, disasters, power outages, internet failures, government actions, pandemics, or third-party provider outages.', y, m, cw);
 
-  y = bp(y);
-  y = addSectionHeading(doc, 'Governing Law', y, margin, 15);
-  y = addParagraph(doc, 'South African law applies. Disputes first to mediation in Gauteng; if unresolved within 30 days, to the courts of South Africa, Gauteng Division.', y, margin, contentWidth);
+  y = pg.bp(y);
+  y = heading(doc, 'Governing Law', y, m, 15);
+  y = para(doc, 'South African law applies. Disputes first to mediation in Gauteng; if unresolved within 30 days, to the courts of South Africa, Gauteng Division.', y, m, cw);
 
-  y = bp(y);
-  y = addSectionHeading(doc, 'Miscellaneous', y, margin, 16);
-  y = addParagraph(doc, 'These Terms, together with your Client Subscription Agreement (if applicable), Privacy Policy, and PAIA Manual, constitute the entire agreement. Invalid provisions do not affect the remainder. No waiver effective unless written. We may assign to a successor; you may not assign without our consent. Electronic signatures recognised per ECTA.', y, margin, contentWidth);
+  y = pg.bp(y);
+  y = heading(doc, 'Miscellaneous', y, m, 16);
+  y = para(doc, 'These Terms, together with your Client Subscription Agreement (if applicable), Privacy Policy, and PAIA Manual, constitute the entire agreement. Invalid provisions do not affect the remainder. Electronic signatures recognised per ECTA.', y, m, cw);
 
   // Contact
-  y = bp(y, 30);
-  y = addSectionHeading(doc, 'Contact Information', y, margin);
-  y = addParagraph(doc, `Information Officer & Director: ${COMPANY.director}`, y, margin, contentWidth, { bold: true });
-  y = addParagraph(doc, `Support & Legal: ${COMPANY.email}`, y, margin, contentWidth);
-  y = addParagraph(doc, `Address: ${COMPANY.address}`, y, margin, contentWidth);
-  y += 4;
-  y = addParagraph(doc, `${COMPANY.name} | Registration: ${COMPANY.reg} | VAT: Pending`, y, margin, contentWidth, { size: 7, color: GREY });
+  y = pg.bp(y, 24);
+  y = divider(doc, y, m, cw);
+  y = heading(doc, 'Contact Information', y, m);
+  y = para(doc, `Information Officer & Director: ${COMPANY.director}`, y, m, cw, { bold: true });
+  y = para(doc, `Email: ${COMPANY.email}  |  Address: ${COMPANY.address}`, y, m, cw);
+  y += 3;
+  y = para(doc, `${COMPANY.name}  |  Registration: ${COMPANY.reg}  |  VAT: Pending`, y, m, cw, { size: 6.5, color: SLATE });
 
-  // Renumber pages
-  const total = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= total; i++) {
-    doc.setPage(i);
-    if (i > 1) addHeader(doc, pageWidth, margin, 'Terms of Service', 'Version 1.1');
-    addFooter(doc, pageWidth, pageHeight, margin, i, total);
-  }
-
+  pg.finalize();
   return doc;
 }
 
 // ============================================================
-// DOCUMENT 2: POPIA Compliance & Privacy Policy
+// DOCUMENT 2: POPIA & Privacy Policy
 // ============================================================
 function generatePOPIA() {
-  const { doc, pageWidth, pageHeight, margin, contentWidth } = createDoc();
-  let pageNum = 1;
+  const { doc, pw, ph, m, cw } = createDoc();
+  const pg = makePageManager(doc, pw, ph, m, 'POPIA & Privacy Policy', 'Version 1.0');
 
-  const renderPage = () => {
-    addHeader(doc, pageWidth, margin, 'POPIA & Privacy Policy', 'Version 1.0');
-    addFooter(doc, pageWidth, pageHeight, margin, pageNum, null);
-  };
+  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-POPIA', 'v1.0', 'January 2026', 'February 2026');
+  y = addTitle(doc, 'POPIA Compliance & Data Protection', y, m);
+  y = para(doc, 'ISOGuardian is committed to protecting your personal information in accordance with the Protection of Personal Information Act (POPIA), 2013.', y, m, cw);
 
-  const newPage = () => {
-    doc.addPage();
-    pageNum++;
-    renderPage();
-    return 38;
-  };
+  y = pg.bp(y);
+  y = heading(doc, 'Information We Collect', y, m);
+  y = para(doc, 'Account Information: Name, email, company name, role', y, m, cw, { bold: true });
+  y = para(doc, 'Compliance Data: Documents, NCRs, audit records, compliance scores', y, m, cw, { bold: true });
+  y = para(doc, 'Usage Data: Login times, feature usage (for service improvement)', y, m, cw, { bold: true });
 
-  const bp = (y, need = 28) => {
-    if (y + need > pageHeight - 20) return newPage();
-    return y;
-  };
-
-  renderPage();
-  let y = addDocControlBlock(doc, margin, contentWidth, 'IG-LEGAL-POPIA', 'v1.0', 'January 2026', 'February 2026');
-  y = addTitle(doc, 'POPIA Compliance & Data Protection', y, margin);
-
-  y = addParagraph(doc, 'ISOGuardian is committed to protecting your personal information in accordance with the Protection of Personal Information Act (POPIA), 2013.', y, margin, contentWidth);
-
-  y = bp(y);
-  y = addSectionHeading(doc, 'Information We Collect', y, margin);
-  y = addParagraph(doc, 'Account Information: Name, email, company name, role', y, margin, contentWidth, { bold: true });
-  y = addParagraph(doc, 'Compliance Data: Documents, NCRs, audit records, compliance scores', y, margin, contentWidth, { bold: true });
-  y = addParagraph(doc, 'Usage Data: Login times, feature usage (for service improvement)', y, margin, contentWidth, { bold: true });
-
-  y = bp(y);
-  y = addSectionHeading(doc, 'How We Protect Your Data', y, margin);
-  const protections = [
+  y = pg.bp(y);
+  y = heading(doc, 'How We Protect Your Data', y, m);
+  for (const [title, desc] of [
     ['256-bit Encryption', 'All data transmitted and stored is encrypted using industry-standard AES-256 encryption.'],
-    ['Multi-Tenant Isolation', 'Your company\u2019s data is completely isolated. Other companies cannot access your information.'],
+    ['Multi-Tenant Isolation', 'Your company\u2019s data is completely isolated through database-enforced Row Level Security. Other companies cannot access your information.'],
     ['Secure Data Centres', 'Data hosted in EU (London) on Supabase infrastructure with SOC 2 Type II certification.'],
-    ['Role-Based Access Control', 'Only authorised users within your company can access specific data based on their role.'],
-  ];
-  protections.forEach(([title, desc]) => {
-    y = bp(y, 12);
-    y = addParagraph(doc, title, y, margin, contentWidth, { bold: true, color: PURPLE });
-    y = addParagraph(doc, desc, y, margin, contentWidth, { indent: 4 });
-  });
-
-  y = bp(y);
-  y = addSectionHeading(doc, 'Your Rights Under POPIA', y, margin);
-  const rights = [
-    'Right to Access: Request a copy of all your data',
-    'Right to Correction: Update incorrect information',
-    'Right to Deletion: Request permanent deletion of your data',
-    'Right to Data Portability: Export your data in machine-readable format',
-    'Right to Object: Object to processing of your personal information',
-  ];
-  rights.forEach(r => {
-    y = bp(y, 8);
-    y = addBullet(doc, r, y, margin, contentWidth);
-  });
-
-  y = bp(y);
-  y = addSectionHeading(doc, 'Data Retention', y, margin);
-  y = addBullet(doc, 'Active accounts: Duration of subscription + 30 days', y, margin, contentWidth);
-  y = addBullet(doc, 'Compliance records: As required by ISO standards (typically 3 years)', y, margin, contentWidth);
-  y = addBullet(doc, 'After account closure: 30 days grace period, then permanent deletion', y, margin, contentWidth);
-
-  y = bp(y);
-  y = addSectionHeading(doc, 'Third-Party Services', y, margin);
-  y = addParagraph(doc, 'Supabase (Database & Auth): EU servers, SOC 2 certified', y, margin, contentWidth, { bold: true });
-  y = addParagraph(doc, 'Vercel (Hosting): Global CDN, ISO 27001 certified', y, margin, contentWidth, { bold: true });
-  y = addParagraph(doc, 'We do not sell, rent, or share your data with third parties for marketing purposes.', y, margin, contentWidth, { size: 8, color: GREY });
-
-  y = bp(y, 30);
-  y = addSectionHeading(doc, 'Contact Information Officer', y, margin);
-  y = addParagraph(doc, 'For any data protection queries or to exercise your rights:', y, margin, contentWidth);
-  y = addParagraph(doc, `Information Officer: ${COMPANY.director}`, y, margin, contentWidth, { bold: true });
-  y = addParagraph(doc, `Email: ${COMPANY.email}`, y, margin, contentWidth);
-  y = addParagraph(doc, 'Response Time: Within 30 days as required by POPIA', y, margin, contentWidth);
-  y += 4;
-  y = addParagraph(doc, `Last Updated: February 2026 | Information Regulator Registration: Pending | ${COMPANY.name} | Reg: ${COMPANY.reg}`, y, margin, contentWidth, { size: 7, color: GREY });
-
-  const total = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= total; i++) {
-    doc.setPage(i);
-    if (i > 1) addHeader(doc, pageWidth, margin, 'POPIA & Privacy Policy', 'Version 1.0');
-    addFooter(doc, pageWidth, pageHeight, margin, i, total);
+    ['Role-Based Access Control', 'Only authorised users within your company can access specific data based on their assigned role.'],
+  ]) {
+    y = pg.bp(y, 12);
+    y = para(doc, title, y, m, cw, { bold: true, color: ACCENT });
+    y = para(doc, desc, y, m, cw, { indent: 4 });
   }
 
+  y = pg.bp(y);
+  y = heading(doc, 'Your Rights Under POPIA', y, m);
+  for (const r of [
+    'Right to Access \u2014 Request a copy of all your personal data',
+    'Right to Correction \u2014 Update or correct inaccurate information',
+    'Right to Deletion \u2014 Request permanent deletion of your data',
+    'Right to Data Portability \u2014 Export your data in machine-readable format',
+    'Right to Object \u2014 Object to processing of your personal information',
+  ]) {
+    y = pg.bp(y, 6);
+    y = bullet(doc, r, y, m, cw);
+  }
+
+  y = pg.bp(y);
+  y = heading(doc, 'Data Retention', y, m);
+  y = bullet(doc, 'Active accounts: Duration of subscription + 30 days', y, m, cw);
+  y = bullet(doc, 'Compliance records: As required by ISO standards (typically 3 years)', y, m, cw);
+  y = bullet(doc, 'After account closure: 30 days grace period, then permanent deletion', y, m, cw);
+
+  y = pg.bp(y);
+  y = heading(doc, 'Third-Party Services', y, m);
+  y = para(doc, 'Supabase (Database & Auth): EU servers, SOC 2 Type II certified', y, m, cw, { bold: true });
+  y = para(doc, 'Vercel (Hosting): Global CDN, ISO 27001 certified', y, m, cw, { bold: true });
+  y = para(doc, 'We do not sell, rent, or share your data with third parties for marketing purposes.', y, m, cw, { size: 7.5, color: SLATE });
+
+  y = pg.bp(y, 22);
+  y = divider(doc, y, m, cw);
+  y = heading(doc, 'Contact Information Officer', y, m);
+  y = para(doc, `Information Officer: ${COMPANY.director}`, y, m, cw, { bold: true });
+  y = para(doc, `Email: ${COMPANY.email}  |  Response Time: Within 30 days as required by POPIA`, y, m, cw);
+  y += 3;
+  y = para(doc, `Last Updated: February 2026  |  Information Regulator Registration: Pending  |  ${COMPANY.name}  |  Reg: ${COMPANY.reg}`, y, m, cw, { size: 6, color: SLATE });
+
+  pg.finalize();
   return doc;
 }
 
 // ============================================================
-// DOCUMENT 3: Client Subscription & SLA v1.0
+// DOCUMENT 3: Client Subscription & SLA v1.0 (PRIVATE)
 // ============================================================
 function generateSLA() {
-  const { doc, pageWidth, pageHeight, margin, contentWidth } = createDoc();
-  let pageNum = 1;
+  const { doc, pw, ph, m, cw } = createDoc();
+  const pg = makePageManager(doc, pw, ph, m, 'Client Subscription & SLA', 'Version 1.0');
 
-  const renderPage = () => {
-    addHeader(doc, pageWidth, margin, 'Client Subscription & SLA', 'Version 1.0');
-    addFooter(doc, pageWidth, pageHeight, margin, pageNum, null);
-  };
+  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-SLA', 'v1.0', 'January 2026', 'February 2026');
+  y = addTitle(doc, 'Client Subscription & Service Level Agreement', y, m);
 
-  const newPage = () => {
-    doc.addPage();
-    pageNum++;
-    renderPage();
-    return 38;
-  };
+  y = heading(doc, 'Parties', y, m, 1);
+  y = para(doc, `Service Provider: ${COMPANY.name}, Registration: ${COMPANY.reg}, represented by ${COMPANY.director} (Director)`, y, m, cw);
+  y = para(doc, 'Client: As specified in the signed Subscription Agreement', y, m, cw);
 
-  const bp = (y, need = 28) => {
-    if (y + need > pageHeight - 20) return newPage();
-    return y;
-  };
+  y = pg.bp(y);
+  y = heading(doc, 'Service Description', y, m, 2);
+  y = para(doc, 'ISOGuardian provides a cloud-based ISO compliance management platform covering ISO 9001:2015, ISO 14001:2015, and ISO 45001:2018. The Service includes document management, NCR tracking, audit scheduling, management review documentation, compliance scoring, activity trail, and branded PDF exports.', y, m, cw);
 
-  renderPage();
-  let y = addDocControlBlock(doc, margin, contentWidth, 'IG-LEGAL-SLA', 'v1.0', 'January 2026', 'February 2026');
-  y = addTitle(doc, 'Client Subscription & Service Level Agreement', y, margin);
+  y = pg.bp(y);
+  y = heading(doc, 'Subscription Terms', y, m, 3);
+  y = para(doc, 'Term: 12-month fixed term from the Commencement Date, renewing automatically unless terminated per Clause 8.', y, m, cw);
+  y = para(doc, 'Billing: Monthly in advance on the 1st of each month via EFT. All amounts in ZAR, exclusive of VAT (15%).', y, m, cw);
+  y = para(doc, 'Late Payment: Access restricted after 7 days; suspended after 14 days.', y, m, cw);
+  y = para(doc, 'Price Adjustment: Once per annum with 30 days\u2019 notice. Capped at 10% or CPI + 2%, whichever is greater.', y, m, cw);
 
-  // Parties
-  y = addSectionHeading(doc, 'Parties', y, margin, 1);
-  y = addParagraph(doc, `Service Provider: ${COMPANY.name}, Registration: ${COMPANY.reg}, represented by ${COMPANY.director} (Director)`, y, margin, contentWidth);
-  y = addParagraph(doc, 'Client: As specified in the signed Subscription Agreement', y, margin, contentWidth);
+  y = pg.bp(y);
+  y = heading(doc, 'Service Level Agreement', y, m, 4);
+  y = para(doc, 'Uptime Target: 99% monthly uptime, measured as total minutes minus downtime divided by total minutes.', y, m, cw, { bold: true });
+  y = para(doc, 'Exclusions: Scheduled maintenance (48 hours\u2019 notice), force majeure, third-party outages (Supabase, Vercel, Cloudflare), and Client-caused issues.', y, m, cw);
 
-  // Service Description
-  y = bp(y);
-  y = addSectionHeading(doc, 'Service Description', y, margin, 2);
-  y = addParagraph(doc, 'ISOGuardian provides a cloud-based ISO compliance management platform covering ISO 9001:2015, ISO 14001:2015, and ISO 45001:2018. The Service includes document management, NCR tracking, audit scheduling, management review documentation, compliance scoring, activity trail, and branded PDF exports.', y, margin, contentWidth);
-
-  // Subscription Terms
-  y = bp(y);
-  y = addSectionHeading(doc, 'Subscription Terms', y, margin, 3);
-  y = addParagraph(doc, 'Term: 12-month fixed term from the Commencement Date, renewing automatically unless terminated per Clause 8.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Billing: Monthly in advance on the 1st of each month via EFT. All amounts in ZAR, exclusive of VAT (15%).', y, margin, contentWidth);
-  y = addParagraph(doc, 'Late Payment: Access restricted after 7 days; suspended after 14 days. Interest at the prescribed rate under the National Credit Act.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Price Adjustment: Once per annum with 30 days\u2019 notice. Capped at 10% or CPI + 2%, whichever is greater.', y, margin, contentWidth);
-
-  // SLA
-  y = bp(y);
-  y = addSectionHeading(doc, 'Service Level Agreement', y, margin, 4);
-  y = addParagraph(doc, 'Uptime Target: 99% monthly uptime, measured as total minutes minus downtime divided by total minutes.', y, margin, contentWidth, { bold: true });
-  y = addParagraph(doc, 'Exclusions: Scheduled maintenance (48 hours\u2019 notice), force majeure, third-party outages (Supabase, Vercel, Cloudflare), and Client-caused issues.', y, margin, contentWidth);
-
-  y = bp(y);
-  y = addParagraph(doc, 'Response Times:', y, margin, contentWidth, { bold: true, color: PURPLE });
-  const slaTable = [
+  y = pg.bp(y);
+  y = para(doc, 'Response Times:', y, m, cw, { bold: true, color: ACCENT });
+  for (const [sev, resp, res] of [
     ['Critical (service down)', '4 business hours', 'Best effort same-day'],
     ['High (feature impaired)', '8 business hours', '2 business days'],
     ['Medium (workaround exists)', '2 business days', '5 business days'],
     ['Low (enhancement request)', '5 business days', 'Next release cycle'],
-  ];
-  slaTable.forEach(([severity, response, resolution]) => {
-    y = bp(y, 8);
-    y = addBullet(doc, `${severity}: Response \u2014 ${response} | Resolution \u2014 ${resolution}`, y, margin, contentWidth);
-  });
-
-  y = addParagraph(doc, 'Business Hours: Monday\u2013Friday, 08:00\u201317:00 SAST, excluding SA public holidays.', y, margin, contentWidth);
-
-  // Service Credits
-  y = bp(y);
-  y = addSectionHeading(doc, 'Service Credits', y, margin, 5);
-  y = addParagraph(doc, 'If monthly uptime falls below 99%, the Client is entitled to service credits:', y, margin, contentWidth);
-  y = addBullet(doc, '95%\u201398.99% uptime: 10% credit on monthly fee', y, margin, contentWidth);
-  y = addBullet(doc, '90%\u201394.99% uptime: 25% credit on monthly fee', y, margin, contentWidth);
-  y = addBullet(doc, 'Below 90% uptime: 50% credit on monthly fee', y, margin, contentWidth);
-  y = addParagraph(doc, 'Maximum aggregate service credits: 50% of monthly fee. Credits must be claimed within 30 days of the affected month. Credits are applied to subsequent invoices, not refunded.', y, margin, contentWidth, { size: 8, color: GREY });
-
-  // Data & Security
-  y = bp(y);
-  y = addSectionHeading(doc, 'Data Protection & Security', y, margin, 6);
-  y = addParagraph(doc, 'POPIA Roles: Client is the Responsible Party; ISOGuardian is the Operator.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Data Hosting: Supabase (EU \u2014 London), SOC 2 Type II certified.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Encryption: AES-256 at rest, TLS 1.2+ in transit.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Isolation: Row-Level Security (RLS) enforced at database level for multi-tenant data isolation.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Backups: Daily automated backups with 7-day retention.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Breach Notification: Within 72 hours per POPIA Section 22.', y, margin, contentWidth);
-
-  // Liability
-  y = bp(y);
-  y = addSectionHeading(doc, 'Limitation of Liability', y, margin, 7);
-  y = addImportantBox(doc, 'ISOGuardian is a compliance management tool. It does not guarantee ISO certification or audit success. The Client remains solely responsible for compliance outcomes. Maximum aggregate liability: fees paid in the 12 months preceding the claim.', y, margin, contentWidth);
-
-  // Termination
-  y = bp(y);
-  y = addSectionHeading(doc, 'Termination', y, margin, 8);
-  y = addParagraph(doc, 'CPA Cooling-Off: 5 business days from date of signing (distance selling). Full refund less prorated usage.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Early Termination (months 1\u20136): 50% of remaining term fees.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Early Termination (months 7\u201312): 25% of remaining term fees.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Renewal Cancellation: 30 days\u2019 written notice before renewal date.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Post-Termination: Data available for export for 30 days, then permanently deleted.', y, margin, contentWidth);
-
-  // Governing Law
-  y = bp(y);
-  y = addSectionHeading(doc, 'Governing Law & Disputes', y, margin, 9);
-  y = addParagraph(doc, 'South African law applies. Disputes referred to mediation in Gauteng. If unresolved within 30 days, to the courts of South Africa, Gauteng Division.', y, margin, contentWidth);
-
-  // Signatures
-  y = bp(y, 50);
-  y = addSectionHeading(doc, 'Signatures', y, margin);
-  y += 4;
-
-  // Two-column signature block
-  const colW = contentWidth / 2 - 5;
-  doc.setDrawColor(...GREY);
-
-  // Left: Service Provider
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(...PURPLE);
-  doc.text('Service Provider', margin, y);
-  y += 5;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(...DARK);
-  doc.text(COMPANY.name, margin, y); y += 12;
-  doc.text('Signature: ___________________________', margin, y); y += 8;
-  doc.text(`Name: ${COMPANY.director}`, margin, y); y += 5;
-  doc.text('Title: Director', margin, y); y += 5;
-  doc.text('Date: ___________________________', margin, y);
-
-  // Right: Client
-  let yRight = y - 30;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(...PURPLE);
-  doc.text('Client', margin + colW + 10, yRight - 5);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(...DARK);
-  doc.text('Company: ___________________________', margin + colW + 10, yRight + 7); yRight += 12;
-  doc.text('Signature: ___________________________', margin + colW + 10, yRight); yRight += 8;
-  doc.text('Name: ___________________________', margin + colW + 10, yRight); yRight += 5;
-  doc.text('Title: ___________________________', margin + colW + 10, yRight); yRight += 5;
-  doc.text('Date: ___________________________', margin + colW + 10, yRight);
-
-  const total = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= total; i++) {
-    doc.setPage(i);
-    if (i > 1) addHeader(doc, pageWidth, margin, 'Client Subscription & SLA', 'Version 1.0');
-    addFooter(doc, pageWidth, pageHeight, margin, i, total);
+  ]) {
+    y = pg.bp(y, 6);
+    y = bullet(doc, `${sev}: Response \u2014 ${resp}  |  Resolution \u2014 ${res}`, y, m, cw);
   }
+  y = para(doc, 'Business Hours: Monday\u2013Friday, 08:00\u201317:00 SAST, excluding SA public holidays.', y, m, cw);
 
+  y = pg.bp(y);
+  y = heading(doc, 'Service Credits', y, m, 5);
+  y = para(doc, 'If monthly uptime falls below 99%, the Client is entitled to service credits:', y, m, cw);
+  y = bullet(doc, '95%\u201398.99% uptime: 10% credit on monthly fee', y, m, cw);
+  y = bullet(doc, '90%\u201394.99% uptime: 25% credit on monthly fee', y, m, cw);
+  y = bullet(doc, 'Below 90% uptime: 50% credit on monthly fee', y, m, cw);
+  y = para(doc, 'Maximum aggregate credits: 50% of monthly fee. Credits applied to subsequent invoices.', y, m, cw, { size: 7.5, color: SLATE });
+
+  y = pg.bp(y);
+  y = heading(doc, 'Data Protection & Security', y, m, 6);
+  y = para(doc, 'POPIA Roles: Client is the Responsible Party; ISOGuardian is the Operator.', y, m, cw);
+  y = para(doc, 'Data Hosting: Supabase (EU \u2014 London), SOC 2 Type II certified.', y, m, cw);
+  y = para(doc, 'Encryption: AES-256 at rest, TLS 1.2+ in transit.', y, m, cw);
+  y = para(doc, 'Isolation: Row-Level Security (RLS) enforced at database level.', y, m, cw);
+  y = para(doc, 'Breach Notification: Within 72 hours per POPIA Section 22.', y, m, cw);
+
+  y = pg.bp(y);
+  y = heading(doc, 'Limitation of Liability', y, m, 7);
+  y = importantBox(doc, 'ISOGuardian is a compliance management tool. It does not guarantee ISO certification or audit success. The Client remains solely responsible for compliance outcomes. Maximum aggregate liability: fees paid in the 12 months preceding the claim.', y, m, cw);
+
+  y = pg.bp(y);
+  y = heading(doc, 'Termination', y, m, 8);
+  y = para(doc, 'CPA Cooling-Off: 5 business days from date of signing (distance selling).', y, m, cw);
+  y = para(doc, 'Early Termination (months 1\u20136): 50% of remaining term fees.', y, m, cw);
+  y = para(doc, 'Early Termination (months 7\u201312): 25% of remaining term fees.', y, m, cw);
+  y = para(doc, 'Renewal Cancellation: 30 days\u2019 written notice before renewal date.', y, m, cw);
+  y = para(doc, 'Post-Termination: Data available for export for 30 days, then permanently deleted.', y, m, cw);
+
+  y = pg.bp(y);
+  y = heading(doc, 'Governing Law & Disputes', y, m, 9);
+  y = para(doc, 'South African law applies. Disputes referred to mediation in Gauteng. If unresolved within 30 days, to the courts of South Africa, Gauteng Division.', y, m, cw);
+
+  // Signature block
+  y = pg.bp(y, 55);
+  y = divider(doc, y, m, cw);
+  y = heading(doc, 'Signatures', y, m);
+  y += 2;
+
+  const colW = cw / 2 - 5;
+
+  // Service Provider
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...ACCENT);
+  doc.text('Service Provider', m, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...DARK);
+  doc.text(COMPANY.name, m, y + 5);
+  doc.text('Signature: ___________________________', m, y + 16);
+  doc.text(`Name: ${COMPANY.director}`, m, y + 23);
+  doc.text('Title: Director', m, y + 28);
+  doc.text('Date: ___________________________', m, y + 33);
+
+  // Client
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...ACCENT);
+  doc.text('Client', m + colW + 10, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...DARK);
+  doc.text('Company: ___________________________', m + colW + 10, y + 5);
+  doc.text('Signature: ___________________________', m + colW + 10, y + 16);
+  doc.text('Name: ___________________________', m + colW + 10, y + 23);
+  doc.text('Title: ___________________________', m + colW + 10, y + 28);
+  doc.text('Date: ___________________________', m + colW + 10, y + 33);
+
+  pg.finalize();
   return doc;
 }
 
 // ============================================================
-// DOCUMENT 4: Company Profile
+// DOCUMENT 4: Company Profile (THE SHOWSTOPPER)
 // ============================================================
 function generateCompanyProfile() {
-  const { doc, pageWidth, pageHeight, margin, contentWidth } = createDoc();
+  const { doc, pw, ph, m, cw } = createDoc();
+  const pg = makePageManager(doc, pw, ph, m, 'Company Profile', '2026');
 
-  addHeader(doc, pageWidth, margin, 'Company Profile', '2026');
+  // ── PAGE 1: COVER ──
+  // Full-page navy background with centred branding
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 24.8, pw, ph - 24.8, 'F');
 
-  let y = addDocControlBlock(doc, margin, contentWidth, 'IG-CORP-PROFILE', 'v1.0', 'February 2026', 'February 2026');
+  // Decorative teal accent shapes
+  doc.setFillColor(20, 148, 156, 0.15);
+  doc.circle(pw * 0.8, ph * 0.3, 60, 'F');
+  doc.setFillColor(79, 70, 160, 0.1);
+  doc.circle(pw * 0.2, ph * 0.7, 45, 'F');
 
-  y = addTitle(doc, 'ISOGuardian (Pty) Ltd', y, margin);
-  y = addParagraph(doc, 'Enterprise ISO Compliance Management', y, margin, contentWidth, { size: 11, color: PURPLE, bold: true });
+  // Large centred logo
+  if (LOGO_DATA) {
+    try {
+      doc.addImage(LOGO_DATA, 'JPEG', pw / 2 - 18, 55, 36, 52);
+    } catch (e) { /* skip */ }
+  }
+
+  // Company name
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(28);
+  doc.setTextColor(...WHITE);
+  doc.text('ISOGuardian', pw / 2, 125, { align: 'center' });
+
+  // Tagline
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(...TEAL);
+  doc.text('Your Shield Against Non-Compliance', pw / 2, 135, { align: 'center' });
+
+  // Horizontal rule
+  doc.setDrawColor(...TEAL);
+  doc.setLineWidth(0.5);
+  doc.line(pw / 2 - 30, 142, pw / 2 + 30, 142);
+
+  // Sub-info
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(180, 190, 210);
+  doc.text('Enterprise ISO Compliance Management', pw / 2, 150, { align: 'center' });
+  doc.text('South Africa', pw / 2, 157, { align: 'center' });
+
+  // Stats row on cover
+  const statsY = 180;
+  doc.setFillColor(30, 35, 60);
+  doc.roundedRect(m + 5, statsY - 8, cw - 10, 28, 3, 3, 'F');
+
+  const statPositions = [
+    { value: '3', label: 'ISO Standards', x: m + cw * 0.17 },
+    { value: '99%', label: 'Uptime Target', x: m + cw * 0.39 },
+    { value: 'AES-256', label: 'Encryption', x: m + cw * 0.61 },
+    { value: 'SOC 2', label: 'Certified Infra', x: m + cw * 0.83 },
+  ];
+  statPositions.forEach(({ value, label, x }) => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(...TEAL);
+    doc.text(value, x, statsY + 4, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(150, 160, 180);
+    doc.text(label, x, statsY + 10, { align: 'center' });
+  });
+
+  // Bottom of cover
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(120, 130, 150);
+  doc.text(`${COMPANY.name}  |  Reg: ${COMPANY.reg}`, pw / 2, ph - 30, { align: 'center' });
+  doc.text(`${COMPANY.email}  |  ${COMPANY.website}`, pw / 2, ph - 25, { align: 'center' });
+  doc.text('CONFIDENTIAL', pw / 2, ph - 18, { align: 'center' });
+
+  // ── PAGE 2: WHO WE ARE ──
+  doc.addPage();
+  addHeader(doc, pw, m, 'Company Profile', '2026');
+
+  let y = 32;
+  y = addTitle(doc, 'Who We Are', y, m);
+  y = addSubtitle(doc, 'Built in South Africa. Built for compliance.', y, m);
   y += 2;
 
-  y = addSectionHeading(doc, 'Company Overview', y, margin);
-  y = addParagraph(doc, 'ISOGuardian is a South African technology company specialising in cloud-based ISO compliance management. Our platform enables organisations to manage their ISO 9001:2015 (Quality), ISO 14001:2015 (Environmental), and ISO 45001:2018 (Occupational Health & Safety) compliance requirements through a single, integrated digital platform.', y, margin, contentWidth);
-  y = addParagraph(doc, 'Founded in 2026, ISOGuardian was born from the recognition that South African businesses deserve modern, affordable compliance tools that meet international standards while respecting local legislative requirements including POPIA, the CPA, and ECTA.', y, margin, contentWidth);
+  y = para(doc, 'ISOGuardian is a South African technology company on a mission to make ISO compliance accessible, affordable, and effortless for businesses of all sizes.', y, m, cw, { size: 9 });
+  y += 1;
+  y = para(doc, 'We believe that compliance shouldn\u2019t be a burden. It should be a competitive advantage. Our platform replaces the spreadsheets, filing cabinets, and manual processes that cost businesses thousands of hours each year \u2014 with a single, intelligent system that does the heavy lifting for you.', y, m, cw);
+  y += 1;
+  y = para(doc, 'Founded in 2026 by Tyreece Kruger, ISOGuardian was born from first-hand experience of the pain points that South African businesses face when pursuing and maintaining ISO certification. We\u2019re not just building software \u2014 we\u2019re building the future of compliance in Africa.', y, m, cw);
 
-  y = addSectionHeading(doc, 'Company Details', y, margin);
+  y += 4;
+  y = divider(doc, y, m, cw);
+
+  // Company details in clean two-column layout
+  y = heading(doc, 'Company Details', y, m);
   const details = [
     ['Registered Name', COMPANY.name],
-    ['Registration Number', COMPANY.reg],
-    ['VAT Number', 'Pending'],
+    ['Registration', COMPANY.reg],
     ['Director', COMPANY.director],
     ['Information Officer', COMPANY.director],
-    ['Registered Address', COMPANY.address],
     ['Email', COMPANY.email],
     ['Website', COMPANY.website],
     ['Phone', COMPANY.phone],
+    ['Address', COMPANY.address],
+    ['VAT', 'Pending'],
   ];
   details.forEach(([label, value]) => {
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(...GREY);
-    doc.text(label + ':', margin + 4, y);
+    doc.setFontSize(7.5);
+    doc.setTextColor(...SLATE);
+    doc.text(label, m + 4, y);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...DARK);
-    doc.text(value, margin + 50, y);
-    y += 5;
-  });
-  y += 4;
-
-  y = addSectionHeading(doc, 'Our Platform', y, margin);
-  y = addParagraph(doc, 'ISOGuardian provides a comprehensive suite of compliance management tools:', y, margin, contentWidth);
-  const platformFeatures = [
-    'Document Management \u2014 Upload, store, organise, and retrieve ISO documentation with automated document numbering (IG-[CODE]-DOC-001) and full Activity Trail logging',
-    'Non-Conformance Report (NCR) Tracking \u2014 Full lifecycle management from creation through root cause analysis, corrective action, to formal close-out',
-    'Audit Scheduling & Management \u2014 Internal and external audit scheduling with close-out reports per ISO 19011:2018',
-    'Management Review Documentation \u2014 Per ISO 9001:9.3, including meeting minutes, decisions, action items, and branded PDF export',
-    'Compliance Scoring \u2014 Clause-by-clause tracking per standard, with aggregated scoring dashboards',
-    'Activity Trail \u2014 Immutable audit log providing full traceability per ISO 7.5.3',
-    'Branded PDF Exports \u2014 Professional document output with client company branding, signature blocks, and document control',
-  ];
-  platformFeatures.forEach(f => {
-    y = checkPageBreak(doc, y, pageHeight, margin, 10);
-    y = addBullet(doc, f, y, margin, contentWidth);
+    doc.setTextColor(...NAVY);
+    doc.text(value, m + 42, y);
+    y += 4.5;
   });
 
-  y = checkPageBreak(doc, y, pageHeight, margin, 30);
-  y = addSectionHeading(doc, 'Standards Supported', y, margin);
-  const standards = [
-    ['ISO 9001:2015', 'Quality Management Systems'],
-    ['ISO 14001:2015', 'Environmental Management Systems'],
-    ['ISO 45001:2018', 'Occupational Health & Safety Management Systems'],
-  ];
-  standards.forEach(([std, name]) => {
-    y = addParagraph(doc, `${std} \u2014 ${name}`, y, margin, contentWidth, { bold: true });
-  });
+  // ── PAGE 3: THE PLATFORM ──
+  doc.addPage();
+  addHeader(doc, pw, m, 'Company Profile', '2026');
+
+  y = 32;
+  y = addTitle(doc, 'The Platform', y, m);
+  y = addSubtitle(doc, 'Everything you need. Nothing you don\u2019t.', y, m);
   y += 2;
-  y = addParagraph(doc, 'ISOGuardian (Pty) Ltd is currently working towards ISO 27001:2022 (Information Security) certification for our own operations.', y, margin, contentWidth, { size: 8, color: GREY });
 
-  y = checkPageBreak(doc, y, pageHeight, margin, 30);
-  y = addSectionHeading(doc, 'Security & Compliance', y, margin);
-  y = addBullet(doc, 'AES-256 encryption at rest and TLS 1.2+ in transit', y, margin, contentWidth);
-  y = addBullet(doc, 'Row-Level Security (RLS) for database-enforced multi-tenant data isolation', y, margin, contentWidth);
-  y = addBullet(doc, 'POPIA compliant \u2014 Information Officer appointed, breach notification within 72 hours', y, margin, contentWidth);
-  y = addBullet(doc, 'Data hosted in EU (London) on Supabase infrastructure with SOC 2 Type II certification', y, margin, contentWidth);
-  y = addBullet(doc, 'Cloudflare Turnstile CAPTCHA for bot protection', y, margin, contentWidth);
-  y = addBullet(doc, 'Role-based access controls with company-scoped permissions', y, margin, contentWidth);
+  y = para(doc, 'ISOGuardian replaces fragmented tools with one unified platform. Every feature is purpose-built for ISO compliance \u2014 designed by people who understand what auditors expect and what quality managers need.', y, m, cw);
+  y += 2;
 
-  y = checkPageBreak(doc, y, pageHeight, margin, 20);
-  y = addSectionHeading(doc, 'Contact Us', y, margin);
-  y = addParagraph(doc, `Email: ${COMPANY.email}`, y, margin, contentWidth, { bold: true });
-  y = addParagraph(doc, `Phone: ${COMPANY.phone}`, y, margin, contentWidth);
-  y = addParagraph(doc, `Website: ${COMPANY.website}`, y, margin, contentWidth);
-  y = addParagraph(doc, `Address: ${COMPANY.address}`, y, margin, contentWidth);
+  const features = [
+    ['01', 'Document Management', 'Upload, organise, and retrieve ISO documentation with automated document numbering (IG-[CODE]-DOC-001), version control, and full Activity Trail logging. Never lose a document again.'],
+    ['02', 'NCR Tracking', 'Full lifecycle management from creation through root cause analysis and corrective action to formal close-out. Track every non-conformance from discovery to resolution.'],
+    ['03', 'Audit Scheduling', 'Internal and external audit scheduling with close-out reports compliant with ISO 19011:2018. Automated reminders ensure nothing falls through the cracks.'],
+    ['04', 'Management Reviews', 'Per ISO 9001:9.3 \u2014 meeting minutes, decisions, action items, and branded PDF export. Management reviews become effortless, not dreaded.'],
+    ['05', 'Compliance Scoring', 'Clause-by-clause tracking per standard with aggregated scoring dashboards. Know exactly where you stand at a glance \u2014 and where you need to focus.'],
+    ['06', 'Activity Trail', 'Immutable audit log providing full traceability per ISO 7.5.3. Every action recorded, every change tracked, every export logged.'],
+  ];
 
+  for (const [num, title, desc] of features) {
+    y = pg.bp(y, 20);
+    y = featureCard(doc, title, desc, y, m, cw, num);
+  }
+
+  // ── PAGE 4: STANDARDS + SECURITY ──
+  doc.addPage();
+  addHeader(doc, pw, m, 'Company Profile', '2026');
+
+  y = 32;
+  y = addTitle(doc, 'Standards We Support', y, m);
+  y = addSubtitle(doc, 'Built for the standards that matter most.', y, m);
+  y += 2;
+
+  const standards = [
+    ['ISO 9001:2015', 'Quality Management Systems', 'The international benchmark for quality. We cover every clause from Context of the Organisation (4) through Improvement (10).'],
+    ['ISO 14001:2015', 'Environmental Management Systems', 'Manage your environmental obligations with the same rigour as quality. Full clause coverage with environmental-specific compliance tracking.'],
+    ['ISO 45001:2018', 'Occupational Health & Safety', 'Protect your people. Full OH&S management with hazard identification, risk assessment tracking, and incident management.'],
+  ];
+
+  for (const [std, name, desc] of standards) {
+    y = pg.bp(y, 22);
+    // Standard card
+    doc.setFillColor(...LIGHT);
+    doc.setDrawColor(...BORDER);
+    doc.roundedRect(m, y, cw, 18, 2, 2, 'FD');
+
+    // Teal badge
+    doc.setFillColor(...TEAL);
+    doc.roundedRect(m + 3, y + 3, 30, 6, 1, 1, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.setTextColor(...WHITE);
+    doc.text('INCLUDED', m + 18, y + 7.5, { align: 'center' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(...NAVY);
+    doc.text(std, m + 36, y + 7.5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...SLATE);
+    doc.text(name, m + 36, y + 12);
+
+    doc.setFontSize(7);
+    const descLines = doc.splitTextToSize(desc, cw - 10);
+    doc.text(descLines[0] || '', m + 5, y + 17);
+
+    y += 22;
+  }
+
+  y += 2;
+  y = para(doc, 'ISOGuardian (Pty) Ltd is currently working towards ISO 27001:2022 (Information Security) certification for our own operations \u2014 because we hold ourselves to the same standards we help you achieve.', y, m, cw, { size: 7.5, color: SLATE });
+
+  y += 4;
+  y = divider(doc, y, m, cw);
+
+  // Security section
+  y = addTitle(doc, 'Enterprise Security', y, m);
+  y = addSubtitle(doc, 'Your data is our responsibility. We take it seriously.', y, m);
+  y += 2;
+
+  const securityItems = [
+    ['AES-256 Encryption', 'Data encrypted at rest and in transit via TLS 1.2+. Industry-standard cryptographic protection.'],
+    ['Row-Level Security', 'Database-enforced multi-tenant isolation. No company can ever access another company\u2019s data. Not through the UI, not through the API, not ever.'],
+    ['POPIA Compliant', 'Information Officer appointed. Breach notification within 72 hours. Full data export rights. Your data, your control.'],
+    ['Immutable Audit Trail', 'Every action logged and tamper-proof. Full POPIA-compliant access records for complete accountability.'],
+    ['SOC 2 Infrastructure', 'Hosted on Supabase (EU \u2014 London) with SOC 2 Type II certification. Enterprise-grade infrastructure.'],
+    ['Bot Protection', 'Cloudflare Turnstile CAPTCHA prevents automated attacks. Session management with automatic timeout.'],
+  ];
+  for (const [title, desc] of securityItems) {
+    y = pg.bp(y, 12);
+    y = para(doc, title, y, m, cw, { bold: true, color: NAVY, size: 8.5 });
+    y = para(doc, desc, y, m, cw, { size: 7.5, indent: 4, color: SLATE });
+  }
+
+  // ── PAGE 5: WHY ISOGUARDIAN + CONTACT ──
+  doc.addPage();
+  addHeader(doc, pw, m, 'Company Profile', '2026');
+
+  y = 32;
+  y = addTitle(doc, 'Why ISOGuardian?', y, m);
+  y += 2;
+
+  const whyItems = [
+    ['Stop wasting time on spreadsheets', 'The average quality manager spends 15+ hours per week on manual compliance tracking. ISOGuardian reduces that to minutes.'],
+    ['Be audit-ready, always', 'No more last-minute scrambles before an audit. Your documentation, NCRs, and records are always up to date, always accessible, always organised.'],
+    ['Built for South Africa', 'POPIA-compliant from day one. ZAR pricing. South African support. We understand the local regulatory landscape because we operate in it.'],
+    ['One platform, three standards', 'Manage ISO 9001, 14001, and 45001 from a single dashboard. No more juggling multiple systems, spreadsheets, or consultants.'],
+    ['Professional exports that impress', 'Generate branded PDF reports with your company logo, signature blocks, and document control \u2014 the kind of documentation that makes auditors smile.'],
+    ['Your data stays yours', 'Full data export at any time. 30-day post-termination access. We don\u2019t hold your data hostage.'],
+  ];
+  for (const [title, desc] of whyItems) {
+    y = pg.bp(y, 14);
+    y = para(doc, title, y, m, cw, { bold: true, color: NAVY });
+    y = para(doc, desc, y, m, cw, { size: 7.5, indent: 4, color: SLATE });
+  }
+
+  y += 4;
+  y = pg.bp(y, 45);
+  y = divider(doc, y, m, cw);
+
+  // Final CTA box
+  doc.setFillColor(25, 30, 52);
+  doc.roundedRect(m, y, cw, 38, 3, 3, 'F');
+  doc.setDrawColor(...TEAL);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(m, y, cw, 38, 3, 3, 'S');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(...WHITE);
+  doc.text('Ready to get compliant?', pw / 2, y + 10, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(180, 190, 210);
+  doc.text('Book a free 30-minute demo. No commitment. No credit card required.', pw / 2, y + 17, { align: 'center' });
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(...TEAL);
+  doc.text(COMPANY.email, pw / 2, y + 25, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(150, 160, 180);
+  doc.text(`${COMPANY.website}  |  ${COMPANY.phone}  |  ${COMPANY.address}`, pw / 2, y + 31, { align: 'center' });
+
+  // Finalize all page headers/footers
   const total = doc.internal.getNumberOfPages();
   for (let i = 1; i <= total; i++) {
     doc.setPage(i);
-    if (i > 1) addHeader(doc, pageWidth, margin, 'Company Profile', '2026');
-    addFooter(doc, pageWidth, pageHeight, margin, i, total);
+    if (i > 1) addHeader(doc, pw, m, 'Company Profile', '2026');
+    addFooter(doc, pw, ph, m, i, total);
   }
 
   return doc;
 }
 
 // ============================================================
-// MAIN — Generate all PDFs
+// MAIN
 // ============================================================
 async function main() {
-  if (!existsSync(OUTPUT_DIR)) {
-    mkdirSync(OUTPUT_DIR, { recursive: true });
+  for (const dir of [OUTPUT_DIR, PUBLIC_DOCS]) {
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   }
 
-  console.log('Generating ISOGuardian Legal PDFs...\n');
+  console.log('Generating ISOGuardian Legal PDFs v2...\n');
 
   const documents = [
-    { name: 'ISOGuardian_Terms_of_Service_v1.1', generator: generateTermsOfService },
-    { name: 'ISOGuardian_POPIA_Privacy_Policy_v1.0', generator: generatePOPIA },
-    { name: 'ISOGuardian_Client_Subscription_SLA_v1.0', generator: generateSLA },
-    { name: 'ISOGuardian_Company_Profile_2026', generator: generateCompanyProfile },
+    { name: 'ISOGuardian_Terms_of_Service_v1.1', gen: generateTermsOfService, public: true },
+    { name: 'ISOGuardian_POPIA_Privacy_Policy_v1.0', gen: generatePOPIA, public: true },
+    { name: 'ISOGuardian_Company_Profile_2026', gen: generateCompanyProfile, public: true },
+    { name: 'ISOGuardian_Client_Subscription_SLA_v1.0', gen: generateSLA, public: false },
   ];
 
-  for (const { name, generator } of documents) {
+  for (const { name, gen, public: isPublic } of documents) {
     try {
-      const doc = generator();
-      const outputPath = join(OUTPUT_DIR, `${name}.pdf`);
+      const d = gen();
+      const buf = Buffer.from(d.output('arraybuffer'));
 
-      // jsPDF v4 output
-      const arrayBuffer = doc.output('arraybuffer');
-      const { writeFileSync } = await import('fs');
-      writeFileSync(outputPath, Buffer.from(arrayBuffer));
+      // Always save to generated-pdfs/
+      const outPath = join(OUTPUT_DIR, `${name}.pdf`);
+      writeFileSync(outPath, buf);
 
-      console.log(`  \u2713 ${name}.pdf`);
+      // Copy public ones to public/docs/
+      if (isPublic) {
+        copyFileSync(outPath, join(PUBLIC_DOCS, `${name}.pdf`));
+        console.log(`  \u2713 ${name}.pdf  (public)`);
+      } else {
+        console.log(`  \u2713 ${name}.pdf  (private \u2014 generated-pdfs/ only)`);
+      }
     } catch (err) {
       console.error(`  \u2717 ${name}: ${err.message}`);
     }
   }
 
-  console.log(`\nOutput directory: ${OUTPUT_DIR}`);
+  console.log(`\nPublic docs:  ${PUBLIC_DOCS}`);
+  console.log(`All docs:     ${OUTPUT_DIR}`);
   console.log('Done.');
 }
 
