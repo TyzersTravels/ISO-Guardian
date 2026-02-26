@@ -67,7 +67,7 @@ const LegalFooter = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .glass {
           background: rgba(255, 255, 255, 0.05);
           backdrop-filter: blur(20px);

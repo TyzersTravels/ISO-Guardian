@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
+import { exportAuditPDF } from '../lib/brandedPDFExport'
 import Layout from '../components/Layout'
 
 const Audits = () => {
@@ -99,110 +100,25 @@ const Audits = () => {
     }
   }
 
-  const exportAudit = (audit) => {
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body { font-family: Calibri, Arial, sans-serif; margin: 2cm; }
-    h1 { color: #0066cc; text-align: center; border-bottom: 3px solid #0066cc; padding-bottom: 10px; }
-    h2 { color: #0066cc; margin-top: 25px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-    .header { background: #f0f0f0; padding: 15px; margin-bottom: 20px; }
-    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-    td { padding: 8px; border: 1px solid #ddd; }
-    .label { font-weight: bold; background: #f8f8f8; width: 40%; }
-    .section { margin: 20px 0; }
-    .findings { background: #fafafa; padding: 15px; border-left: 4px solid #ff9800; }
-    .footer { margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd; font-size: 10pt; color: #666; text-align: center; }
-  </style>
-</head>
-<body>
-  <h1>AUDIT REPORT</h1>
-  
-  <div class="header">
-    <table>
-      <tr>
-        <td class="label">Audit Number:</td>
-        <td>${audit.audit_number}</td>
-      </tr>
-      <tr>
-        <td class="label">Audit Type:</td>
-        <td>${audit.audit_type}</td>
-      </tr>
-      <tr>
-        <td class="label">Standard:</td>
-        <td>${audit.standard.replace('_', ' ')}</td>
-      </tr>
-      <tr>
-        <td class="label">Status:</td>
-        <td><strong>${audit.status}</strong></td>
-      </tr>
-    </table>
-  </div>
-
-  <div class="section">
-    <h2>Audit Details</h2>
-    <table>
-      <tr>
-        <td class="label">Audit Date:</td>
-        <td>${new Date(audit.audit_date).toLocaleDateString()}</td>
-      </tr>
-      <tr>
-        <td class="label">Audit Time:</td>
-        <td>${audit.audit_time || 'Not specified'}</td>
-      </tr>
-      <tr>
-        <td class="label">Auditor:</td>
-        <td>${audit.auditor}</td>
-      </tr>
-      <tr>
-        <td class="label">Scope:</td>
-        <td>${audit.scope}</td>
-      </tr>
-    </table>
-  </div>
-
-  ${audit.findings ? `
-  <div class="section">
-    <h2>Audit Findings</h2>
-    <div class="findings">${audit.findings}</div>
-  </div>
-  ` : `
-  <div class="section">
-    <h2>Audit Findings</h2>
-    <p><em>No findings recorded yet. This section will be completed after the audit.</em></p>
-  </div>
-  `}
-
-  ${audit.ncrs_raised ? `
-  <div class="section">
-    <h2>NCRs Raised</h2>
-    <p>${audit.ncrs_raised}</p>
-  </div>
-  ` : ''}
-
-  <div class="footer">
-    <p><strong>Export Information:</strong></p>
-    <p>Exported by: ${userProfile.email}</p>
-    <p>Export date: ${new Date().toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })}</p>
-    <p>Company: ${userProfile.company?.name || 'N/A'}</p>
-    <p style="margin-top: 10px; font-style: italic;">ISOGuardian - POPIA Compliant Export</p>
-  </div>
-</body>
-</html>
-`
-
-    const blob = new Blob([html], { type: 'application/msword' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${audit.audit_number}_Report.doc`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
+  const exportAudit = async (audit) => {
+    try {
+      const mapped = {
+        ...audit,
+        doc_number: audit.audit_number,
+        title: `${audit.audit_type} Audit — ${audit.standard?.replace(/_/g, ' ')}`,
+        lead_auditor: audit.assigned_auditor_name,
+        scheduled_date: audit.audit_date,
+      }
+      await exportAuditPDF(
+        mapped,
+        userProfile?.company?.name || 'ISOGuardian',
+        userProfile?.email || '',
+        userProfile?.company?.company_code || 'IG'
+      )
+    } catch (err) {
+      console.error('Export failed:', err)
+      alert('PDF export failed: ' + err.message)
+    }
   }
 
   const filteredAudits = audits.filter(audit => {
@@ -607,7 +523,7 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
               <button onClick={() => exportAudit(audit)}
                 className="py-3 px-6 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                Export
+                Export PDF
               </button>
               {audit.archived ? (
                 <button onClick={() => onRestore(audit.id)} className="py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg">Restore</button>

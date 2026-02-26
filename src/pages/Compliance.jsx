@@ -204,19 +204,32 @@ const Compliance = () => {
                               <p className="text-white/50 text-xs mt-1">{req.notes}</p>
                             )}
                           </div>
-                          <select
-                            value={req.compliance_status}
-                            onChange={(e) => updateStatus(req.id, e.target.value)}
-                            className={`ml-4 px-3 py-1 rounded-lg text-sm font-semibold ${
-                              req.compliance_status === 'Met' ? 'bg-green-500/20 text-green-300' :
-                              req.compliance_status === 'Partially Met' ? 'bg-orange-500/20 text-orange-300' :
-                              'bg-red-500/20 text-red-300'
-                            }`}
-                          >
-                            <option value="Not Met">Not Met</option>
-                            <option value="Partially Met">Partially Met</option>
-                            <option value="Met">Met</option>
-                          </select>
+                          <div className="ml-4 flex gap-1 shrink-0">
+                            <button
+                              onClick={() => updateStatus(req.id, 'Not Met')}
+                              className={`px-2 py-1 rounded text-xs font-semibold transition-all ${
+                                req.compliance_status === 'Not Met'
+                                  ? 'bg-red-500 text-white shadow-lg shadow-red-500/40'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'
+                              }`}
+                            >Not Met</button>
+                            <button
+                              onClick={() => updateStatus(req.id, 'Partially Met')}
+                              className={`px-2 py-1 rounded text-xs font-semibold transition-all ${
+                                req.compliance_status === 'Partially Met'
+                                  ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/40'
+                                  : 'bg-orange-500/10 text-orange-400 border border-orange-500/30 hover:bg-orange-500/20'
+                              }`}
+                            >Partial</button>
+                            <button
+                              onClick={() => updateStatus(req.id, 'Met')}
+                              className={`px-2 py-1 rounded text-xs font-semibold transition-all ${
+                                req.compliance_status === 'Met'
+                                  ? 'bg-green-500 text-white shadow-lg shadow-green-500/40'
+                                  : 'bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20'
+                              }`}
+                            >Met</button>
+                          </div>
                         </div>
                       ))}
                   </div>
