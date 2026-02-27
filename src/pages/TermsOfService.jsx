@@ -13,7 +13,7 @@ const TermsOfService = () => {
         <div className="glass glass-border rounded-2xl p-6">
           <h2 className="text-xl font-bold text-white mb-4">1. Acceptance of Terms</h2>
           <div className="text-white/80 text-sm space-y-2">
-            <p>By accessing and using ISOGuardian (&ldquo;the Service&rdquo;), you accept and agree to be bound by these Terms of Service, our <a href="/privacy" className="text-cyan-400 underline">Privacy Policy</a>, <a href="/popia" className="text-cyan-400 underline">POPIA Compliance Policy</a>, and <a href="/paia" className="text-cyan-400 underline">PAIA Manual</a> (collectively, &ldquo;the Terms&rdquo;). If you do not agree, do not use the Service. If acting for a company, you warrant authority to bind it.</p>
+            <p>By accessing and using ISOGuardian (&ldquo;the Service&rdquo;), you accept and agree to be bound by these Terms of Service, our <a href="/privacy" className="text-cyan-400 underline">Privacy Policy</a>, <a href="/popia" className="text-cyan-400 underline">POPIA Compliance Policy</a>, and <a href="/_PAIA_AND_POPIA_MANUAL_.pdf" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline">PAIA Manual</a> (collectively, &ldquo;the Terms&rdquo;). If you do not agree, do not use the Service. If acting for a company, you warrant authority to bind it.</p>
             <p>These Terms are governed by the laws of the Republic of South Africa, including the Consumer Protection Act 68 of 2008 (CPA), the Protection of Personal Information Act 4 of 2013 (POPIA), and the Electronic Communications and Transactions Act 25 of 2002 (ECTA).</p>
           </div>
         </div>
@@ -132,7 +132,7 @@ const TermsOfService = () => {
             <p><strong>Data Hosting:</strong> Supabase infrastructure in the EU (London), compliant under POPIA Section 72.</p>
             <p><strong>Security:</strong> AES-256 encryption at rest, TLS in transit, Row Level Security, role-based access, audit logging, CAPTCHA protection.</p>
             <p><strong>Breach Notification:</strong> Within 72 hours per POPIA Section 22.</p>
-            <p>Full details in our <a href="/popia" className="text-cyan-400 underline">POPIA Policy</a> and <a href="/paia" className="text-cyan-400 underline">PAIA Manual</a>.</p>
+            <p>Full details in our <a href="/popia" className="text-cyan-400 underline">POPIA Policy</a> and <a href="/_PAIA_AND_POPIA_MANUAL_.pdf" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline">PAIA Manual</a>.</p>
           </div>
         </div>
 

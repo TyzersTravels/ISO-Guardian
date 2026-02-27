@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
       }
     })
 
-    const publicPaths = ['/', '/login', '/popia', '/terms', '/privacy']
+    const publicPaths = ['/', '/login', '/popia', '/terms', '/privacy', '/password-recovery', '/reset-password']
     const sessionCheck = setInterval(async () => {
       if (publicPaths.includes(window.location.pathname)) return
       const { data: { session }, error } = await supabase.auth.getSession()

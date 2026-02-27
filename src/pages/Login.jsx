@@ -251,6 +251,12 @@ const Login = () => {
               </button>
             </form>
 
+            <div className="text-center mt-3">
+              <a href="/password-recovery" className="text-sm text-cyan-300 hover:text-white transition-colors">
+                Forgot your password?
+              </a>
+            </div>
+
             {/* POPIA Notice */}
             <div className="mt-6 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl backdrop-blur-sm">
               <p className="text-xs text-blue-200 text-center">

@@ -16,16 +16,25 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard'
 import Analytics from './pages/Analytics'
 import ActivityTrail from './pages/ActivityTrail'
 import CompanySettings from './pages/CompanySettings'
+import PasswordRecovery from './pages/PasswordRecovery'
+import ResetPassword from './pages/ResetPassword'
+import ResellerDashboard from './pages/ResellerDashboard'
+import ClientOnboarding from './pages/ClientOnboarding'
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          {/* Public routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/password-recovery" element={<PasswordRecovery />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/popia" element={<POPIACompliance />} />
           <Route path="/privacy" element={<POPIACompliance />} />
           <Route path="/terms" element={<TermsOfService />} />
+
+          {/* Protected routes */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
           <Route path="/ncrs" element={<ProtectedRoute><NCRs /></ProtectedRoute>} />
@@ -37,6 +46,10 @@ function App() {
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/activity-trail" element={<ProtectedRoute><ActivityTrail /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
+          <Route path="/reseller" element={<ProtectedRoute><ResellerDashboard /></ProtectedRoute>} />
+          <Route path="/client-onboarding" element={<ProtectedRoute><ClientOnboarding /></ProtectedRoute>} />
+
+          {/* Landing */}
           <Route path="/" element={<LandingPage />} />
         </Routes>
       </AuthProvider>
