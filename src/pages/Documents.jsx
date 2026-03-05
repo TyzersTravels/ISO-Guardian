@@ -531,7 +531,7 @@ ${htmlContent}
                                 ↩ Restore
                               </button>
                             )}
-                            {(['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role) || userProfile?.email === 'krugerreece@gmail.com') && (
+                            {(['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role)) && (
                               <button 
                                 onClick={() => deleteDocument(doc.id, true)}
                                 className="px-3 py-2 bg-red-600/20 text-red-300 rounded-lg hover:bg-red-600/30 transition-colors text-sm"
@@ -611,7 +611,7 @@ ${htmlContent}
                     Archive
                   </button>
                 )}
-                {(['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role) || userProfile?.email === 'krugerreece@gmail.com') && (
+                {(['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role)) && (
                   <button
                     onClick={() => deleteDocument(previewDoc.id, true)}
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"

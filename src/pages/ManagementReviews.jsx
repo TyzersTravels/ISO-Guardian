@@ -78,7 +78,7 @@ const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'cre
 };
 
 const ManagementReviews = () => {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, getEffectiveCompanyId } = useAuth();
   const toast = useToast();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -90,16 +90,18 @@ const ManagementReviews = () => {
 
   useEffect(() => { checkUserRole(); fetchReviews(); }, [viewMode]);
 
-  const checkUserRole = async () => {
-    const email = userProfile?.email || user?.email || '';
-    if (email === 'krugerreece@gmail.com') { setIsLeadAuditor(true); return; }
-    try { const { data } = await supabase.from('user_roles').select('role').eq('user_id', user?.id).in('role', ['lead_auditor', 'super_admin']); if (data?.length > 0) setIsLeadAuditor(true); } catch (err) {}
+  const checkUserRole = () => {
+    const role = userProfile?.role || '';
+    if (['super_admin', 'admin', 'lead_auditor'].includes(role)) {
+      setIsLeadAuditor(true);
+    }
   };
 
   const fetchReviews = async () => {
     try {
       setLoading(true);
-      let query = supabase.from('management_reviews').select('*').order('created_at', { ascending: false });
+      const companyId = getEffectiveCompanyId();
+      let query = supabase.from('management_reviews').select('*').eq('company_id', companyId).order('created_at', { ascending: false });
       if (viewMode === 'active') query = query.or('archived.is.null,archived.eq.false');
       else query = query.eq('archived', true);
       const { data, error } = await query;

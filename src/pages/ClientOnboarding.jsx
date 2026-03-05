@@ -92,7 +92,9 @@ const ClientOnboarding = () => {
       if (subError) throw subError;
 
       // 3. Create admin user for the client
-      const tempPassword = `Client${Math.random().toString(36).substring(2, 10)}!`;
+      const array = new Uint8Array(16);
+      crypto.getRandomValues(array);
+      const tempPassword = `C!${Array.from(array, b => b.toString(36)).join('').substring(0, 14)}`;
       
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: formData.contact_email,

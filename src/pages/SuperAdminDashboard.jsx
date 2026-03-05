@@ -12,8 +12,7 @@ const SuperAdminDashboard = () => {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview') // 'overview', 'clients', 'revenue', 'activity'
 
-  // Check if user is super admin (replace with your actual email)
-  const isSuperAdmin = userProfile?.email === 'krugerreece@gmail.com'
+  const isSuperAdmin = userProfile?.role === 'super_admin'
 
   useEffect(() => {
     if (isSuperAdmin) {

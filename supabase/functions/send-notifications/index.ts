@@ -15,6 +15,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const CRON_SECRET = Deno.env.get("CRON_SECRET") || "";
+const ADMIN_EMAIL = Deno.env.get("ADMIN_NOTIFICATION_EMAIL") || "krugerreece@gmail.com";
 const FROM_EMAIL = "ISOGuardian <notifications@isoguardian.co.za>";
 const APP_URL = "https://isoguardian.co.za";
 
@@ -348,12 +350,128 @@ async function sendWeeklyDigest(): Promise<number> {
   return sent;
 }
 
+// ─── HTML Escape (prevent XSS in emails) ────────────────────────────────────
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+// ─── Lead Notifications ─────────────────────────────────────────────────────
+
+async function sendLeadNotifications(): Promise<number> {
+  let sent = 0;
+
+  // Check for new assessments in the last 24 hours that haven't been notified
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: assessments } = await supabase
+    .from("iso_readiness_assessments")
+    .select("*")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false });
+
+  for (const a of assessments || []) {
+    // Check if we already notified about this assessment
+    const { data: existing } = await supabase
+      .from("notification_log")
+      .select("id")
+      .eq("notification_type", "new_assessment_lead")
+      .eq("entity_id", a.id)
+      .limit(1);
+
+    if (existing && existing.length > 0) continue;
+
+    const subject = `New ISO Assessment Lead: ${escapeHtml(a.company_name)}`;
+    const body = `
+      <p>A new ISO Readiness Assessment has been submitted:</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+        <tr><td style="padding:8px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.1);">Company</td><td style="padding:8px;color:#fff;border-bottom:1px solid rgba(255,255,255,0.1);">${escapeHtml(a.company_name)}</td></tr>
+        <tr><td style="padding:8px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.1);">Email</td><td style="padding:8px;color:#fff;border-bottom:1px solid rgba(255,255,255,0.1);"><a href="mailto:${escapeHtml(a.email)}" style="color:#06b6d4;">${escapeHtml(a.email)}</a></td></tr>
+        <tr><td style="padding:8px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.1);">Phone</td><td style="padding:8px;color:#fff;border-bottom:1px solid rgba(255,255,255,0.1);">${a.phone ? escapeHtml(a.phone) : "Not provided"}</td></tr>
+        <tr><td style="padding:8px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.1);">Standard</td><td style="padding:8px;color:#fff;border-bottom:1px solid rgba(255,255,255,0.1);">${escapeHtml(a.standard)}</td></tr>
+        <tr><td style="padding:8px;color:#94a3b8;">Score</td><td style="padding:8px;color:#fff;font-weight:bold;">${a.score}%</td></tr>
+      </table>
+      <p style="color:#94a3b8;font-size:13px;">This lead came from the ISO Readiness Assessment on the landing page. Follow up promptly.</p>
+    `;
+
+    const html = emailTemplate(subject, body);
+    if (await sendEmail(ADMIN_EMAIL, subject, html)) {
+      await supabase.from("notification_log").insert({
+        user_email: ADMIN_EMAIL,
+        notification_type: "new_assessment_lead",
+        entity_type: "iso_readiness_assessment",
+        entity_id: a.id,
+      });
+      sent++;
+    }
+  }
+
+  // Check for new consultation requests
+  const { data: consultations } = await supabase
+    .from("consultation_requests")
+    .select("*")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false });
+
+  for (const c of consultations || []) {
+    const { data: existing } = await supabase
+      .from("notification_log")
+      .select("id")
+      .eq("notification_type", "new_consultation_lead")
+      .eq("entity_id", c.id)
+      .limit(1);
+
+    if (existing && existing.length > 0) continue;
+
+    const subject = `New Consultation Request: ${escapeHtml(c.company)}`;
+    const body = `
+      <p>A new consultation request has been submitted:</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+        <tr><td style="padding:8px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.1);">Name</td><td style="padding:8px;color:#fff;border-bottom:1px solid rgba(255,255,255,0.1);">${escapeHtml(c.name)}</td></tr>
+        <tr><td style="padding:8px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.1);">Email</td><td style="padding:8px;color:#fff;border-bottom:1px solid rgba(255,255,255,0.1);"><a href="mailto:${escapeHtml(c.email)}" style="color:#06b6d4;">${escapeHtml(c.email)}</a></td></tr>
+        <tr><td style="padding:8px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.1);">Company</td><td style="padding:8px;color:#fff;border-bottom:1px solid rgba(255,255,255,0.1);">${escapeHtml(c.company)}</td></tr>
+        <tr><td style="padding:8px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.1);">Standard</td><td style="padding:8px;color:#fff;border-bottom:1px solid rgba(255,255,255,0.1);">${escapeHtml(c.standard)}</td></tr>
+        <tr><td style="padding:8px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.1);">Preferred Date</td><td style="padding:8px;color:#fff;border-bottom:1px solid rgba(255,255,255,0.1);">${c.preferred_date || "Flexible"}</td></tr>
+        <tr><td style="padding:8px;color:#94a3b8;">Message</td><td style="padding:8px;color:#fff;">${c.message ? escapeHtml(c.message) : "No message"}</td></tr>
+      </table>
+      <p style="color:#94a3b8;font-size:13px;">Respond within 24 hours to maximise conversion.</p>
+    `;
+
+    const html = emailTemplate(subject, body);
+    if (await sendEmail(ADMIN_EMAIL, subject, html)) {
+      await supabase.from("notification_log").insert({
+        user_email: ADMIN_EMAIL,
+        notification_type: "new_consultation_lead",
+        entity_type: "consultation_request",
+        entity_id: c.id,
+      });
+      sent++;
+    }
+  }
+
+  return sent;
+}
+
 // ─── Main Handler ───────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
-  // Allow manual trigger via POST or scheduled invocation
   if (req.method !== "POST" && req.method !== "GET") {
     return new Response("Method not allowed", { status: 405 });
+  }
+
+  // Auth check: require CRON_SECRET header or Supabase service role
+  const authHeader = req.headers.get("Authorization") || "";
+  const cronHeader = req.headers.get("x-cron-secret") || "";
+  const isAuthorized =
+    (CRON_SECRET && cronHeader === CRON_SECRET) ||
+    authHeader === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` ||
+    authHeader === `Bearer ${CRON_SECRET}`;
+
+  if (!isAuthorized) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -362,6 +480,7 @@ Deno.serve(async (req: Request) => {
       overdue_ncrs: await sendOverdueNCRs(),
       document_reviews: await sendDocumentReviewReminders(),
       weekly_digest: await sendWeeklyDigest(),
+      lead_notifications: await sendLeadNotifications(),
       timestamp: new Date().toISOString(),
     };
 

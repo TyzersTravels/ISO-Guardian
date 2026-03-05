@@ -22,7 +22,7 @@ const CompanySettings = () => {
     contact_email: '',
   })
 
-  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin' || userProfile?.email === 'krugerreece@gmail.com'
+  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin'
 
   useEffect(() => {
     if (userProfile?.company_id) fetchCompany()

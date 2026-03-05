@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 
 const Compliance = () => {
-  const { userProfile } = useAuth()
+  const { userProfile, getEffectiveCompanyId } = useAuth()
   const [selectedStandard, setSelectedStandard] = useState('ISO_9001')
   const [requirements, setRequirements] = useState([])
   const [loading, setLoading] = useState(true)
@@ -23,9 +23,11 @@ const Compliance = () => {
   const fetchRequirements = async () => {
     try {
       setLoading(true)
+      const companyId = getEffectiveCompanyId()
       const { data, error } = await supabase
         .from('compliance_requirements')
         .select('*')
+        .eq('company_id', companyId)
         .eq('standard', selectedStandard)
         .order('clause_number')
 

@@ -6,7 +6,7 @@ import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 
 const NCRs = () => {
-  const { userProfile } = useAuth()
+  const { userProfile, getEffectiveCompanyId } = useAuth()
   const toast = useToast()
   const [ncrs, setNcrs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -24,15 +24,18 @@ const NCRs = () => {
   const fetchNCRs = async () => {
     try {
       setLoading(true)
+      const companyId = getEffectiveCompanyId()
       const { data, error } = await supabase
         .from('ncrs')
         .select('*, assigned_user:users!ncrs_assigned_to_fkey(full_name, email)')
+        .eq('company_id', companyId)
 
       if (error) {
         // Fallback if foreign key name is different
         const { data: fallbackData, error: fbErr } = await supabase
           .from('ncrs')
           .select('*')
+          .eq('company_id', companyId)
         if (fbErr) throw fbErr
         
         // Resolve user names manually
@@ -499,7 +502,7 @@ const NCRs = () => {
                       Archive
                     </button>
                   )}
-                  {(['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role) || userProfile?.email === 'krugerreece@gmail.com') && (
+                  {['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role) && (
                     <button
                       onClick={() => deleteNCR(selectedNCR.id, true)}
                       className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg"

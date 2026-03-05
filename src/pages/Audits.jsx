@@ -7,7 +7,7 @@ import Layout from '../components/Layout'
 import { useToast } from '../contexts/ToastContext'
 
 const Audits = () => {
-  const { userProfile } = useAuth()
+  const { userProfile, getEffectiveCompanyId } = useAuth()
   const toast = useToast()
   const [audits, setAudits] = useState([])
   const [loading, setLoading] = useState(true)
@@ -22,9 +22,11 @@ const Audits = () => {
   const fetchAudits = async () => {
     try {
       setLoading(true)
+      const companyId = getEffectiveCompanyId()
       const { data, error } = await supabase
         .from('audits')
         .select('*')
+        .eq('company_id', companyId)
         .order('audit_date', { ascending: true })
 
       if (error) throw error
@@ -543,7 +545,7 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
               ) : (
                 <button onClick={() => onDelete(audit.id)} className="py-3 px-6 bg-orange-500/80 hover:bg-orange-600 text-white font-semibold rounded-lg">Archive</button>
               )}
-              {(['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role) || userProfile?.email === 'krugerreece@gmail.com') && (
+              {(['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role)) && (
                 <button onClick={() => onDelete(audit.id, true)} className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg">Delete Forever</button>
               )}
               <button onClick={onClose} className="py-3 px-6 glass glass-border text-white font-semibold rounded-lg hover:bg-white/10">Close</button>

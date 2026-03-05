@@ -96,7 +96,7 @@ export default function ReadinessAssessment() {
     setScore(percentage)
 
     try {
-      await supabase.from('iso_readiness_assessments').insert({
+      const { error: insertError } = await supabase.from('iso_readiness_assessments').insert({
         company_name: contactInfo.company_name,
         email: contactInfo.email,
         phone: contactInfo.phone || null,
@@ -104,8 +104,12 @@ export default function ReadinessAssessment() {
         answers,
         score: percentage,
       })
+      if (insertError) {
+        console.error('Assessment save failed:', insertError)
+        setError('Your score is shown below, but we could not save your submission. Please email us at info@isoguardian.co.za.')
+      }
     } catch {
-      // Silently fail — we still show the score
+      setError('Your score is shown below, but we could not save your submission. Please email us at info@isoguardian.co.za.')
     }
 
     setSubmitting(false)

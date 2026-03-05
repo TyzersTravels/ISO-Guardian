@@ -21,7 +21,7 @@ const ResellerDashboard = () => {
       setError(null);
 
       // Check if user is superadmin using the users table role (no user_roles table needed)
-      const hasSuperAdmin = userProfile?.role === 'super_admin' || userProfile?.email === 'krugerreece@gmail.com';
+      const hasSuperAdmin = userProfile?.role === 'super_admin';
       setIsSuperAdmin(hasSuperAdmin);
 
       // SuperAdmin can see everything

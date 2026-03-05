@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Layout from '../components/Layout';
 
 const ActivityTrail = () => {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, getEffectiveCompanyId } = useAuth();
   const [allActivities, setAllActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all');
@@ -16,15 +16,18 @@ const ActivityTrail = () => {
     try {
       setLoading(true);
 
+      const companyId = getEffectiveCompanyId();
       const { data: auditData, error: auditError } = await supabase
         .from('audit_log')
         .select('*')
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false })
         .limit(500);
 
       const { data: deletionData } = await supabase
         .from('deletion_audit_trail')
         .select('*')
+        .eq('company_id', companyId)
         .order('deleted_at', { ascending: false })
         .limit(100);
 

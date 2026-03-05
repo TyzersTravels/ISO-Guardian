@@ -12,7 +12,7 @@ const Analytics = () => {
   const [platformStats, setPlatformStats] = useState(null)
   const [selectedClient, setSelectedClient] = useState(null)
 
-  const isSuperAdmin = userProfile?.email === 'krugerreece@gmail.com'
+  const isSuperAdmin = userProfile?.role === 'super_admin'
 
   useEffect(() => {
     if (userProfile) {

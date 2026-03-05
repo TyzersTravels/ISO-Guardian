@@ -21,7 +21,7 @@ const Dashboard = () => {
   const [adminStats, setAdminStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const isSuperAdmin = userProfile?.email === 'krugerreece@gmail.com'
+  const isSuperAdmin = userProfile?.role === 'super_admin'
   const { showOnboarding, completeOnboarding } = useOnboarding()
 
   useEffect(() => {

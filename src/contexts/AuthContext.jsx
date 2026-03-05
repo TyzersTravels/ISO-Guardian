@@ -69,8 +69,8 @@ export const AuthProvider = ({ children }) => {
       const { data, error } = await supabase
         .from('users')
         .select(`
-          *,
-          company:companies!users_company_id_fkey(*)
+          id, email, full_name, role, company_id, referral_code, referred_by, created_at,
+          company:companies!users_company_id_fkey(id, name, company_code, logo_url, industry)
         `)
         .eq('id', userId)
         .single()
@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }) => {
       // Check if this user is a reseller
       const { data: reseller } = await supabase
         .from('resellers')
-        .select('*')
+        .select('id, company_id, contact_email, commission_rate')
         .eq('contact_email', data.email)
         .single()
 
@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }) => {
         // Fetch their clients
         const { data: clients } = await supabase
           .from('reseller_clients')
-          .select('*')
+          .select('id, reseller_id, client_company_id, client_name, status')
           .eq('reseller_id', reseller.id)
           .order('client_name')
         setResellerClients(clients || [])
@@ -131,6 +131,10 @@ export const AuthProvider = ({ children }) => {
     return userProfile?.company_id
   }
 
+  const isSuperAdmin = userProfile?.role === 'super_admin'
+  const isAdmin = isSuperAdmin || userProfile?.role === 'admin'
+  const isLeadAuditor = isSuperAdmin || userProfile?.role === 'lead_auditor'
+
   const value = {
     user,
     userProfile,
@@ -141,7 +145,10 @@ export const AuthProvider = ({ children }) => {
     resellerClients,
     viewingClient,
     switchClient,
-    getEffectiveCompanyId
+    getEffectiveCompanyId,
+    isSuperAdmin,
+    isAdmin,
+    isLeadAuditor
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -4,7 +4,7 @@ import ClientSelector from './ClientSelector'
 
 const Layout = ({ children }) => {
   const { userProfile, signOut, viewingClient } = useAuth()
-  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin' || userProfile?.email === 'krugerreece@gmail.com'
+  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin'
   const navigate = useNavigate()
   const location = useLocation()
 

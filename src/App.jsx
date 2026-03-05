@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import RoleProtectedRoute from './components/RoleProtectedRoute'
 import Login from './pages/Login'
 import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
@@ -45,13 +46,13 @@ function App() {
           <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
           <Route path="/management-reviews" element={<ProtectedRoute><ManagementReviews /></ProtectedRoute>} />
           <Route path="/data-export" element={<ProtectedRoute><DataExport /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
-          <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-          <Route path="/activity-trail" element={<ProtectedRoute><ActivityTrail /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
-          <Route path="/reseller" element={<ProtectedRoute><ResellerDashboard /></ProtectedRoute>} />
-          <Route path="/client-onboarding" element={<ProtectedRoute><ClientOnboarding /></ProtectedRoute>} />
-          <Route path="/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+          <Route path="/admin" element={<RoleProtectedRoute allowedRoles={['super_admin']}><SuperAdminDashboard /></RoleProtectedRoute>} />
+          <Route path="/analytics" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin']}><Analytics /></RoleProtectedRoute>} />
+          <Route path="/activity-trail" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin']}><ActivityTrail /></RoleProtectedRoute>} />
+          <Route path="/settings" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin']}><CompanySettings /></RoleProtectedRoute>} />
+          <Route path="/reseller" element={<RoleProtectedRoute requireReseller><ResellerDashboard /></RoleProtectedRoute>} />
+          <Route path="/client-onboarding" element={<RoleProtectedRoute requireReseller><ClientOnboarding /></RoleProtectedRoute>} />
+          <Route path="/users" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin']}><UserManagement /></RoleProtectedRoute>} />
 
           {/* Landing */}
           <Route path="/" element={<LandingPage />} />

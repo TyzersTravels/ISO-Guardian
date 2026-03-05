@@ -13,8 +13,8 @@ const UserManagement = () => {
   const [showInviteForm, setShowInviteForm] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
 
-  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin' || userProfile?.email === 'krugerreece@gmail.com'
-  const isSuperAdmin = userProfile?.role === 'super_admin' || userProfile?.email === 'krugerreece@gmail.com'
+  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin'
+  const isSuperAdmin = userProfile?.role === 'super_admin'
 
   useEffect(() => {
     if (userProfile) fetchUsers()
