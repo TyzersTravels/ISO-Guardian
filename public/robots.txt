@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /documents
+Disallow: /ncrs
+Disallow: /compliance
+Disallow: /audits
+Disallow: /management-reviews
+Disallow: /data-export
+Disallow: /admin
+Disallow: /analytics
+Disallow: /activity-trail
+Disallow: /settings
+Disallow: /reseller
+Disallow: /client-onboarding
+Disallow: /users
+Disallow: /login
+Disallow: /password-recovery
+Disallow: /reset-password
+
+Sitemap: https://isoguardian.co.za/sitemap.xml

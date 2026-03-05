@@ -4,6 +4,7 @@ import ClientSelector from './ClientSelector'
 
 const Layout = ({ children }) => {
   const { userProfile, signOut, viewingClient } = useAuth()
+  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin' || userProfile?.email === 'krugerreece@gmail.com'
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -23,7 +24,7 @@ const Layout = ({ children }) => {
     { path: '/activity-trail', label: 'Activity Trail', icon: 'trail' },
     { path: '/analytics', label: 'Analytics', icon: 'chart' },
     { path: '/settings', label: 'Settings', icon: 'settings' },
-  ]
+  ].concat(isAdmin ? [{ path: '/users', label: 'Users', icon: 'users' }] : [])
 
   const isActive = (path) => location.pathname === path
 

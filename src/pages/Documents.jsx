@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 
 const Documents = () => {
   const { userProfile } = useAuth()
+  const toast = useToast()
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -63,7 +65,7 @@ const Documents = () => {
     try {
       if (permanent) {
         const reason = window.prompt('Deletion reason (required for audit trail):')
-        if (!reason?.trim()) { alert('Deletion reason is required'); return; }
+        if (!reason?.trim()) { toast.warning('Deletion reason is required'); return; }
         
         // Log to audit trail
         await supabase.from('deletion_audit_trail').insert([{
@@ -83,21 +85,21 @@ const Documents = () => {
         const { error } = await supabase.from('documents').delete().eq('id', docId)
         if (error) throw error
         await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'permanently_deleted', entityType: 'document', entityId: docId, changes: { name: doc?.name } })
-        alert('Document permanently deleted.')
+        toast.success('Document permanently deleted.')
       } else {
         const archiveReason = window.prompt('Reason for archiving (required):')
-        if (!archiveReason?.trim()) { alert('Archive reason is required'); return; }
+        if (!archiveReason?.trim()) { toast.warning('Archive reason is required'); return; }
         const { error } = await supabase.from('documents').update({ archived: true }).eq('id', docId)
         if (error) throw error
         await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'archived', entityType: 'document', entityId: docId, changes: { name: doc?.name, reason: archiveReason.trim() } })
-        alert('Document archived successfully.')
+        toast.success('Document archived successfully.')
       }
 
       fetchDocuments()
       setPreviewDoc(null)
     } catch (err) {
       console.error('Error deleting document:', err)
-      alert('Failed to delete document: ' + err.message)
+      toast.error('Failed to delete document: ' + err.message)
     }
   }
 
@@ -106,11 +108,11 @@ const Documents = () => {
       const { error } = await supabase.from('documents').update({ archived: false }).eq('id', docId)
       if (error) throw error
       await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'restored', entityType: 'document', entityId: docId, changes: {} })
-      alert('Document restored.')
+      toast.success('Document restored.')
       fetchDocuments()
     } catch (err) {
       console.error('Error restoring document:', err)
-      alert('Failed to restore document: ' + err.message)
+      toast.error('Failed to restore document: ' + err.message)
     }
   }
 
@@ -143,11 +145,11 @@ const Documents = () => {
           document.body.removeChild(a)
         }, 100)
       } else {
-        alert('This document does not have an uploaded file')
+        toast.warning('This document does not have an uploaded file')
       }
     } catch (err) {
       console.error('Error downloading document:', err)
-      alert('Failed to download document: ' + err.message)
+      toast.error('Failed to download document: ' + err.message)
     }
   }
 
@@ -184,18 +186,18 @@ const Documents = () => {
           await handleDownload(doc)
         }
       } else {
-        alert('This document does not have an uploaded file')
+        toast.warning('This document does not have an uploaded file')
       }
     } catch (err) {
       console.error('Error viewing document:', err)
-      alert('Failed to view document: ' + err.message)
+      toast.error('Failed to view document: ' + err.message)
     }
   }
 
   const exportDocumentAsWord = async (doc) => {
     try {
       if (!doc.file_path) {
-        alert('This document does not have an uploaded file')
+        toast.warning('This document does not have an uploaded file')
         return
       }
 
@@ -264,7 +266,7 @@ ${htmlContent}
       }
     } catch (err) {
       console.error('Error exporting document:', err)
-      alert('Failed to export document: ' + err.message)
+      toast.error('Failed to export document: ' + err.message)
     }
   }
 
@@ -683,6 +685,7 @@ ${htmlContent}
 }
 
 const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
+  const toast = useToast()
   const [formData, setFormData] = useState({
     name: '',
     standard: (userProfile?.standards_access || ['ISO_9001'])[0] || 'ISO_9001',
@@ -696,7 +699,7 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!file) {
-      alert('Please select a file to upload')
+      toast.warning('Please select a file to upload')
       return
     }
 
@@ -743,11 +746,11 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
       if (dbError) throw dbError
 
       await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'uploaded', entityType: 'document', entityId: null, changes: { name: formData.name, standard: formData.standard, clause: formData.clause } })
-      alert('Document uploaded successfully!')
+      toast.success('Document uploaded successfully!')
       onUploaded()
     } catch (err) {
       console.error('Error uploading document:', err)
-      alert('Failed to upload document: ' + err.message)
+      toast.error('Failed to upload document: ' + err.message)
     } finally {
       setUploading(false)
     }
@@ -878,6 +881,7 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
 }
 
 const BulkUploadForm = ({ userProfile, onClose, onUploaded }) => {
+  const toast = useToast()
   const [files, setFiles] = useState([])
   const [standard, setStandard] = useState((userProfile?.standards_access || ['ISO_9001'])[0] || 'ISO_9001')
   const [clause, setClause] = useState(7)
@@ -906,7 +910,7 @@ const BulkUploadForm = ({ userProfile, onClose, onUploaded }) => {
   }
 
   const handleBulkUpload = async () => {
-    if (files.length === 0) { alert('Please select files to upload'); return; }
+    if (files.length === 0) { toast.warning('Please select files to upload'); return; }
     setUploading(true)
     setProgress({ current: 0, total: files.length, currentFile: '' })
 
@@ -963,7 +967,7 @@ const BulkUploadForm = ({ userProfile, onClose, onUploaded }) => {
     }
 
     setUploading(false)
-    alert(`Upload complete: ${successCount} successful, ${failCount} failed`)
+    toast.success(`Upload complete: ${successCount} successful, ${failCount} failed`)
     if (successCount > 0) onUploaded()
   }
 

@@ -1,27 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-
-// Scroll-triggered fade-in hook using IntersectionObserver
-function useFadeIn() {
-  const ref = useRef(null)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          el.style.opacity = '1'
-          el.style.transform = 'translateY(0)'
-          observer.disconnect()
-        }
-      },
-      { threshold: 0.12 }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-  return ref
-}
+import { Helmet } from 'react-helmet-async'
+import { useFadeIn, useStaggerFadeIn, useHeroParallax } from '../hooks/useAnimations'
+import { useReferralTracking } from '../hooks/useReferralTracking'
+import ReadinessAssessment from '../components/landing/ReadinessAssessment'
+import ConsultationUpsell from '../components/landing/ConsultationUpsell'
+import TemplateMarketplace from '../components/landing/TemplateMarketplace'
+import AffiliateProgram from '../components/landing/AffiliateProgram'
 
 // Animated counter for hero mockup
 function AnimatedCounter({ target, suffix = '%', duration = 1800 }) {
@@ -59,6 +44,9 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
+  // Referral tracking (reads ?ref= and ?partner= from URL)
+  useReferralTracking()
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
     window.addEventListener('scroll', onScroll)
@@ -81,8 +69,46 @@ export default function LandingPage() {
   const resellerRef = useFadeIn()
   const ctaRef = useFadeIn()
 
+  // Stagger animation refs for grids
+  const featuresStaggerRef = useStaggerFadeIn(120)
+  const howStaggerRef = useStaggerFadeIn(150)
+  const pricingStaggerRef = useStaggerFadeIn(120)
+
+  // Hero parallax
+  const heroParallaxRef = useHeroParallax()
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white overflow-x-hidden">
+      {/* SEO */}
+      <Helmet>
+        <title>ISOGuardian — ISO Compliance Management Platform for South Africa</title>
+        <meta name="description" content="ISOGuardian is South Africa's cloud-based ISO compliance management platform. Document control, NCR tracking, audit scheduling, and compliance scoring for ISO 9001, 14001, and 45001." />
+        <link rel="canonical" href="https://isoguardian.co.za" />
+        <meta property="og:title" content="ISOGuardian — Your Shield Against Non-Compliance" />
+        <meta property="og:description" content="Cloud-based ISO compliance management for South African businesses. ISO 9001, 14001, 45001." />
+        <meta property="og:url" content="https://isoguardian.co.za" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="ISOGuardian" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="ISOGuardian — ISO Compliance Management" />
+        <meta name="twitter:description" content="Document control, NCR tracking, audit scheduling for ISO 9001, 14001, 45001." />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "ISOGuardian",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web",
+          "description": "Cloud-based ISO compliance management platform for South African businesses",
+          "url": "https://isoguardian.co.za",
+          "offers": { "@type": "Offer", "priceCurrency": "ZAR", "price": "2000", "priceValidUntil": "2027-12-31" },
+          "provider": {
+            "@type": "Organization",
+            "name": "ISOGuardian (Pty) Ltd",
+            "url": "https://isoguardian.co.za",
+            "address": { "@type": "PostalAddress", "addressCountry": "ZA" }
+          }
+        })}</script>
+      </Helmet>
 
       {/* ─── A. STICKY NAV ─────────────────────────────────────────────── */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-slate-900/80 backdrop-blur-xl border-b border-white/10 shadow-lg' : ''}`}>
@@ -97,7 +123,9 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/70">
             <button onClick={() => scrollTo('features')} className="hover:text-white transition-colors">Features</button>
             <button onClick={() => scrollTo('standards')} className="hover:text-white transition-colors">Standards</button>
+            <button onClick={() => scrollTo('assessment')} className="hover:text-white transition-colors">Assessment</button>
             <button onClick={() => scrollTo('pricing')} className="hover:text-white transition-colors">Pricing</button>
+            <button onClick={() => scrollTo('templates')} className="hover:text-white transition-colors">Templates</button>
             <button onClick={() => scrollTo('contact')} className="hover:text-white transition-colors">Contact</button>
           </div>
 
@@ -134,7 +162,7 @@ export default function LandingPage() {
         {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-slate-900/95 backdrop-blur-xl border-t border-white/10 px-6 py-4 space-y-3">
-            {['features', 'standards', 'pricing', 'contact'].map(id => (
+            {['features', 'standards', 'assessment', 'pricing', 'templates', 'contact'].map(id => (
               <button key={id} onClick={() => scrollTo(id)} className="block w-full text-left text-white/70 hover:text-white py-2 capitalize">
                 {id}
               </button>
@@ -146,7 +174,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ─── B. HERO ───────────────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden">
+      <section ref={heroParallaxRef} className="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden" style={{ transform: 'translateY(var(--parallax-y, 0px))', opacity: 'var(--parallax-opacity, 1)' }}>
         {/* Background orbs */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-500/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
@@ -174,12 +202,12 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <a
-                href={`mailto:${SUPPORT_EMAIL}?subject=Free%20Demo%20Request`}
+              <button
+                onClick={() => navigate('/login')}
                 className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-2xl transition-all shadow-xl shadow-purple-900/50 text-lg"
               >
-                Book a Free Demo
-              </a>
+                Start Your 14-Day Free Trial
+              </button>
               <button
                 onClick={() => scrollTo('pricing')}
                 className="px-8 py-4 border border-white/20 hover:border-white/40 font-bold rounded-2xl transition-all text-lg text-white/80 hover:text-white"
@@ -396,7 +424,7 @@ export default function LandingPage() {
             <h2 className="text-4xl font-extrabold mb-4">Everything you need. Nothing you don{'\u2019'}t.</h2>
             <p className="text-white/60">Six powerful modules. One unified platform.</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div ref={featuresStaggerRef} className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
                 icon: (
@@ -471,7 +499,7 @@ export default function LandingPage() {
                 iconBg: 'bg-gradient-to-br from-cyan-500/20 to-purple-500/20 text-cyan-400',
               },
             ].map(({ icon, title, desc, gradient, border, iconBg }) => (
-              <div key={title} className={`relative rounded-2xl border ${border} bg-gradient-to-br ${gradient} p-6 hover:scale-[1.02] transition-transform duration-200 group`}>
+              <div data-stagger key={title} className={`relative rounded-2xl border ${border} bg-gradient-to-br ${gradient} p-6 hover:scale-[1.02] transition-transform duration-200 group`}>
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${iconBg}`}>
                   {icon}
                 </div>
@@ -557,7 +585,7 @@ export default function LandingPage() {
             <p className="text-white/60">Three steps from sign-up to full compliance management.</p>
           </div>
 
-          <div className="relative flex flex-col md:flex-row items-start gap-8">
+          <div ref={howStaggerRef} className="relative flex flex-col md:flex-row items-start gap-8">
             {[
               {
                 num: '01',
@@ -590,7 +618,7 @@ export default function LandingPage() {
                 ),
               },
             ].map(({ num, title, desc, icon }, i) => (
-              <div key={num} className="flex-1 relative">
+              <div data-stagger key={num} className="flex-1 relative">
                 {/* Step card */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 relative">
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center text-cyan-400 mb-4">
@@ -617,7 +645,12 @@ export default function LandingPage() {
 
       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
 
-      {/* ─── H. PRICING ────────────────────────────────────────────────── */}
+      {/* ─── H. ISO READINESS ASSESSMENT ──────────────────────────────── */}
+      <ReadinessAssessment />
+
+      <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
+
+      {/* ─── I. PRICING ──────────────────────────────────────────────── */}
       <section id="pricing" ref={pricingRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-4">
@@ -637,7 +670,7 @@ export default function LandingPage() {
             <div className="flex-1 max-w-sm h-4 border-t border-l border-r border-white/10 rounded-t-xl mx-6" />
           </div>
 
-          <div className="grid md:grid-cols-3 gap-0 md:gap-0 items-stretch relative">
+          <div ref={pricingStaggerRef} className="grid md:grid-cols-3 gap-0 md:gap-0 items-stretch relative">
             {[
               {
                 tier: 'Starter',
@@ -656,6 +689,7 @@ export default function LandingPage() {
               },
             ].map(({ tier, highlight, features }) => (
               <div
+                data-stagger
                 key={tier}
                 className={`relative rounded-2xl p-6 flex flex-col ${
                   highlight
@@ -700,7 +734,17 @@ export default function LandingPage() {
 
       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
 
-      {/* ─── I. SECURITY & POPIA ───────────────────────────────────────── */}
+      {/* ─── J. CONSULTATION UPSELL ──────────────────────────────────── */}
+      <ConsultationUpsell />
+
+      <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
+
+      {/* ─── K. TEMPLATE MARKETPLACE ─────────────────────────────────── */}
+      <TemplateMarketplace />
+
+      <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
+
+      {/* ─── L. SECURITY & POPIA ─────────────────────────────────────── */}
       <section ref={securityRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-12">
@@ -897,7 +941,12 @@ export default function LandingPage() {
 
       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
 
-      {/* ─── J. CTA SECTION ────────────────────────────────────────────── */}
+      {/* ─── N. AFFILIATE / REFERRAL PROGRAMME ───────────────────────── */}
+      <AffiliateProgram />
+
+      <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
+
+      {/* ─── O. CTA SECTION ──────────────────────────────────────────── */}
       <section id="contact" ref={ctaRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
         <div className="max-w-4xl mx-auto px-6">
           <div className="bg-gradient-to-br from-purple-900/60 to-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-12 text-center shadow-2xl">
@@ -908,15 +957,15 @@ export default function LandingPage() {
               </span>
             </h2>
             <p className="text-xl text-white/70 mb-8 max-w-xl mx-auto">
-              Book a free 30-minute demo. No commitment. No credit card required.
+              Start your 14-day free trial today. No credit card required. No commitment.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href={`mailto:${SUPPORT_EMAIL}?subject=Free%20Demo%20Request%20%E2%80%94%20ISOGuardian`}
+              <button
+                onClick={() => navigate('/login')}
                 className="px-10 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-2xl transition-all shadow-xl shadow-purple-900/50 text-lg"
               >
-                Book Your Free Demo
-              </a>
+                Start Your Free Trial
+              </button>
               <a
                 href={WHATSAPP_URL}
                 target="_blank"
@@ -955,6 +1004,9 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm text-white/50">
                 <li><button onClick={() => scrollTo('features')} className="hover:text-white transition-colors">Features</button></li>
                 <li><button onClick={() => scrollTo('pricing')} className="hover:text-white transition-colors">Pricing</button></li>
+                <li><button onClick={() => scrollTo('assessment')} className="hover:text-white transition-colors">ISO Assessment</button></li>
+                <li><button onClick={() => scrollTo('templates')} className="hover:text-white transition-colors">Templates</button></li>
+                <li><button onClick={() => scrollTo('consultation')} className="hover:text-white transition-colors">Consultation</button></li>
                 <li><button onClick={() => navigate('/login')} className="hover:text-white transition-colors">Login</button></li>
               </ul>
             </div>
@@ -975,6 +1027,8 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm text-white/50">
                 <li><a href="/docs/ISOGuardian_Company_Profile_2026.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Company Profile</a></li>
                 <li><button onClick={() => scrollTo('contact')} className="hover:text-white transition-colors">Contact Us</button></li>
+                <li><button onClick={() => scrollTo('reseller')} className="hover:text-white transition-colors">Reseller Programme</button></li>
+                <li><button onClick={() => scrollTo('affiliate')} className="hover:text-white transition-colors">Affiliate Programme</button></li>
                 <li><a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-white transition-colors">Email Support</a></li>
                 <li>
                   <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">WhatsApp</a>

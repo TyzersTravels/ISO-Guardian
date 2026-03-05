@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { ToastProvider } from './contexts/ToastContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import LandingPage from './pages/LandingPage'
@@ -20,10 +21,12 @@ import PasswordRecovery from './pages/PasswordRecovery'
 import ResetPassword from './pages/ResetPassword'
 import ResellerDashboard from './pages/ResellerDashboard'
 import ClientOnboarding from './pages/ClientOnboarding'
+import UserManagement from './pages/UserManagement'
 
 function App() {
   return (
     <BrowserRouter>
+      <ToastProvider>
       <AuthProvider>
         <Routes>
           {/* Public routes */}
@@ -48,11 +51,13 @@ function App() {
           <Route path="/settings" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
           <Route path="/reseller" element={<ProtectedRoute><ResellerDashboard /></ProtectedRoute>} />
           <Route path="/client-onboarding" element={<ProtectedRoute><ClientOnboarding /></ProtectedRoute>} />
+          <Route path="/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
 
           {/* Landing */}
           <Route path="/" element={<LandingPage />} />
         </Routes>
       </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   )
 }

@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Layout from '../components/Layout';
 
 const ResellerDashboard = () => {
-  const { user } = useAuth();
+  const { user, userProfile, isReseller } = useAuth();
   const [loading, setLoading] = useState(true);
   const [resellerData, setResellerData] = useState(null);
   const [clients, setClients] = useState([]);
@@ -12,31 +12,26 @@ const ResellerDashboard = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {
-    checkAccessAndFetch();
-  }, [user]);
+    if (userProfile) checkAccessAndFetch();
+  }, [userProfile]);
 
   const checkAccessAndFetch = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Check if user is superadmin
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user?.id);
-
-      if (rolesError) throw rolesError;
-
-      const hasSuperAdmin = roles?.some(r => r.role === 'super_admin') || userProfile?.email === 'krugerreece@gmail.com';
+      // Check if user is superadmin using the users table role (no user_roles table needed)
+      const hasSuperAdmin = userProfile?.role === 'super_admin' || userProfile?.email === 'krugerreece@gmail.com';
       setIsSuperAdmin(hasSuperAdmin);
 
       // SuperAdmin can see everything
       if (hasSuperAdmin) {
         await fetchAllResellerData();
-      } else {
+      } else if (isReseller) {
         // Regular users need to be resellers
         await fetchResellerData();
+      } else {
+        setError('Reseller access required. Contact support.');
       }
 
     } catch (err) {
@@ -73,7 +68,7 @@ const ResellerDashboard = () => {
     const { data: resellerInfo, error: resellerError } = await supabase
       .from('resellers')
       .select('*')
-      .eq('contact_email', user?.email)
+      .eq('contact_email', userProfile?.email)
       .single();
 
     if (resellerError) {

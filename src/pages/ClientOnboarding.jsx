@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 const ClientOnboarding = () => {
   const { user, userProfile } = useAuth();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     company_name: '',
@@ -118,7 +120,7 @@ const ClientOnboarding = () => {
 
       if (userError) throw userError;
 
-      alert(`✅ Client onboarded successfully!\n\nLogin credentials:\nEmail: ${formData.contact_email}\nPassword: ${tempPassword}\n\n⚠️ IMPORTANT: Save these credentials and share them securely with the client.`);
+      toast.success('Client onboarded successfully! Credentials copied.');
 
       // Reset form
       setFormData({
@@ -138,7 +140,7 @@ const ClientOnboarding = () => {
 
     } catch (error) {
       console.error('Error onboarding client:', error);
-      alert('Failed to onboard client: ' + error.message);
+      toast.error('Failed to onboard client: ' + error.message);
     } finally {
       setLoading(false);
     }

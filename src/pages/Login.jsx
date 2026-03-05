@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 const TURNSTILE_SITE_KEY = '0x4AAAAAACfLITd5DD70PYix'
 
@@ -64,9 +65,42 @@ const Login = () => {
     }
 
     if (data.user) {
+      // Handle referral tracking
+      const refCode = sessionStorage.getItem('isoguardian_ref')
+      const refType = sessionStorage.getItem('isoguardian_ref_type')
+
+      if (refCode) {
+        try {
+          // Store referral code on the user record
+          await supabase.from('users').update({ referred_by: refCode }).eq('id', data.user.id)
+
+          // Insert referral record
+          await supabase.from('referrals').insert({
+            referrer_code: refCode,
+            referred_email: data.user.email,
+            referred_user_id: data.user.id,
+            referral_type: refType || 'affiliate',
+            status: 'signed_up',
+          })
+
+          // Clear referral data from sessionStorage
+          sessionStorage.removeItem('isoguardian_ref')
+          sessionStorage.removeItem('isoguardian_ref_type')
+
+          // Partner referrals skip trial and go to client onboarding
+          if (refType === 'partner') {
+            navigate('/client-onboarding')
+            setLoading(false)
+            return
+          }
+        } catch {
+          // Referral tracking failure should not block login
+        }
+      }
+
       navigate('/dashboard')
     }
-    
+
     setLoading(false)
   }
 

@@ -64,7 +64,7 @@ const Dashboard = () => {
 
       const { data } = await supabase
         .from('compliance_requirements')
-        .select('standard, status')
+        .select('standard, compliance_status')
         .eq('company_id', companyId)
 
       if (!data || data.length === 0) {
@@ -72,21 +72,23 @@ const Dashboard = () => {
         return
       }
 
-      // Group by standard and calculate percentage
+      // Group by standard and calculate percentage (same formula as Compliance page)
       const grouped = {}
       data.forEach(row => {
         const std = row.standard || 'Unknown'
-        if (!grouped[std]) grouped[std] = { total: 0, compliant: 0 }
+        if (!grouped[std]) grouped[std] = { total: 0, met: 0, partial: 0 }
         grouped[std].total++
-        if (row.status === 'Compliant' || row.status === 'Implemented') {
-          grouped[std].compliant++
+        if (row.compliance_status === 'Met') {
+          grouped[std].met++
+        } else if (row.compliance_status === 'Partially Met') {
+          grouped[std].partial++
         }
       })
 
-      const scores = Object.entries(grouped).map(([standard, { total, compliant }]) => ({
+      const scores = Object.entries(grouped).map(([standard, { total, met, partial }]) => ({
         standard,
-        score: total > 0 ? Math.round((compliant / total) * 100) : 0,
-        compliant,
+        score: total > 0 ? Math.round(((met + (partial * 0.5)) / total) * 100) : 0,
+        compliant: met,
         total,
       }))
 
@@ -117,37 +119,35 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
+      const companyId = getEffectiveCompanyId()
 
-      // Fetch documents count
-      const { count: docCount } = await supabase
-        .from('documents')
-        .select('*', { count: 'exact', head: true })
+      // Fetch documents count (scoped to company)
+      const docQuery = supabase.from('documents').select('*', { count: 'exact', head: true })
+      if (companyId) docQuery.eq('company_id', companyId)
+      const { count: docCount } = await docQuery
 
-      // Fetch NCRs
-      const { data: ncrs } = await supabase
-        .from('ncrs')
-        .select('*')
+      // Fetch NCRs (scoped to company)
+      const ncrQuery = supabase.from('ncrs').select('*')
+      if (companyId) ncrQuery.eq('company_id', companyId)
+      const { data: ncrs } = await ncrQuery
 
       const openNCRs = ncrs?.filter(n => n.status === 'Open') || []
       const criticalNCRs = openNCRs.filter(n => n.severity === 'Critical')
 
-      // Fetch upcoming audits
-      const { data: audits } = await supabase
-        .from('audits')
-        .select('*')
-        .in('status', ['Scheduled', 'In Progress'])
+      // Fetch upcoming audits (scoped to company)
+      const auditQuery = supabase.from('audits').select('*').in('status', ['Scheduled', 'In Progress', 'Planned'])
+      if (companyId) auditQuery.eq('company_id', companyId)
+      const { data: audits } = await auditQuery
 
-      // Fetch recent documents (last 5)
-      const { data: recentDocs } = await supabase
-        .from('documents')
-        .select('*')
-        .limit(5)
+      // Fetch recent documents (last 5, ordered by created_at)
+      const recentDocQuery = supabase.from('documents').select('*').order('created_at', { ascending: false }).limit(5)
+      if (companyId) recentDocQuery.eq('company_id', companyId)
+      const { data: recentDocs } = await recentDocQuery
 
-      // Fetch recent NCRs (last 5)
-      const { data: recentNCRs } = await supabase
-        .from('ncrs')
-        .select('*')
-        .limit(5)
+      // Fetch recent NCRs (last 5, ordered by created_at)
+      const recentNCRQuery = supabase.from('ncrs').select('*').order('created_at', { ascending: false }).limit(5)
+      if (companyId) recentNCRQuery.eq('company_id', companyId)
+      const { data: recentNCRs } = await recentNCRQuery
 
       setStats({
         totalDocuments: docCount || 0,

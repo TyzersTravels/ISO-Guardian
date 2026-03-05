@@ -3,9 +3,11 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
+import { useToast } from '../contexts/ToastContext'
 
 const CompanySettings = () => {
   const { userProfile } = useAuth()
+  const toast = useToast()
   const [company, setCompany] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -60,11 +62,11 @@ const CompanySettings = () => {
     // Validate file
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
-      alert('Please upload a PNG, JPG, or WebP image.')
+      toast.warning('Please upload a PNG, JPG, or WebP image.')
       return
     }
     if (file.size > 2 * 1024 * 1024) {
-      alert('Logo must be under 2MB.')
+      toast.warning('Logo must be under 2MB.')
       return
     }
 
@@ -111,10 +113,10 @@ const CompanySettings = () => {
         changes: { field: 'logo', status: 'uploaded' }
       })
 
-      alert('Logo uploaded successfully! It will appear on all your branded PDF exports.')
+      toast.success('Logo uploaded! It will appear on all branded PDF exports.')
     } catch (err) {
       console.error('Logo upload error:', err)
-      alert('Failed to upload logo: ' + err.message)
+      toast.error('Failed to upload logo: ' + err.message)
     } finally {
       setUploading(false)
     }
@@ -146,7 +148,7 @@ const CompanySettings = () => {
         changes: { field: 'logo', status: 'removed' }
       })
     } catch (err) {
-      alert('Failed to remove logo: ' + err.message)
+      toast.error('Failed to remove logo: ' + err.message)
     } finally {
       setSaving(false)
     }
@@ -154,7 +156,7 @@ const CompanySettings = () => {
 
   const handleSave = async () => {
     if (!formData.name?.trim()) {
-      alert('Company name is required.')
+      toast.warning('Company name is required.')
       return
     }
     setSaving(true)
@@ -183,9 +185,9 @@ const CompanySettings = () => {
         changes: { fields: Object.keys(formData) }
       })
 
-      alert('Company settings saved.')
+      toast.success('Company settings saved.')
     } catch (err) {
-      alert('Failed to save: ' + err.message)
+      toast.error('Failed to save: ' + err.message)
     } finally {
       setSaving(false)
     }

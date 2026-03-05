@@ -4,9 +4,11 @@ import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import { exportAuditPDF } from '../lib/brandedPDFExport'
 import Layout from '../components/Layout'
+import { useToast } from '../contexts/ToastContext'
 
 const Audits = () => {
   const { userProfile } = useAuth()
+  const toast = useToast()
   const [audits, setAudits] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -46,7 +48,7 @@ const Audits = () => {
       fetchAudits()
     } catch (err) {
       console.error('Error updating audit:', err)
-      alert('Failed to update audit')
+      toast.error('Failed to update audit')
     }
   }
 
@@ -60,7 +62,7 @@ const Audits = () => {
     try {
       if (permanent) {
         const reason = window.prompt('Deletion reason (required for audit trail):')
-        if (!reason?.trim()) { alert('Deletion reason is required'); return; }
+        if (!reason?.trim()) { toast.warning('Deletion reason is required'); return; }
         
         await supabase.from('deletion_audit_trail').insert([{
           company_id: userProfile.company_id,
@@ -73,18 +75,18 @@ const Audits = () => {
         
         const { error } = await supabase.from('audits').delete().eq('id', auditId)
         if (error) throw error
-        alert('Audit permanently deleted.')
+        toast.success('Audit permanently deleted.')
       } else {
         const { error } = await supabase.from('audits').update({ archived: true }).eq('id', auditId)
         if (error) throw error
-        alert('Audit archived successfully.')
+        toast.success('Audit archived.')
       }
 
       fetchAudits()
       setSelectedAudit(null)
     } catch (err) {
       console.error('Error deleting audit:', err)
-      alert('Failed to delete audit: ' + err.message)
+      toast.error('Failed to delete audit: ' + err.message)
     }
   }
 
@@ -92,11 +94,11 @@ const Audits = () => {
     try {
       const { error } = await supabase.from('audits').update({ archived: false }).eq('id', auditId)
       if (error) throw error
-      alert('Audit restored.')
+      toast.success('Audit restored.')
       fetchAudits()
     } catch (err) {
       console.error('Error restoring audit:', err)
-      alert('Failed to restore audit: ' + err.message)
+      toast.error('Failed to restore: ' + err.message)
     }
   }
 
@@ -117,7 +119,7 @@ const Audits = () => {
       )
     } catch (err) {
       console.error('Export failed:', err)
-      alert('PDF export failed: ' + err.message)
+      toast.error('PDF export failed: ' + err.message)
     }
   }
 
@@ -362,6 +364,7 @@ const AuditCard = ({ audit, onClick, isArchived }) => {
 }
 
 const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore, exportAudit, userProfile }) => {
+  const toast = useToast()
   const [showCompleteForm, setShowCompleteForm] = useState(false)
   const [completing, setCompleting] = useState(false)
   const [closeOut, setCloseOut] = useState({
@@ -376,9 +379,9 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
 
   const handleCompleteAudit = async () => {
     // Validate required fields
-    if (!closeOut.findings?.trim()) { alert('Findings are required to close an audit (ISO 19011:2018 Clause 6.5)'); return; }
-    if (!closeOut.conclusion?.trim()) { alert('Audit conclusion is required'); return; }
-    if (!closeOut.evidence_reviewed?.trim()) { alert('Evidence reviewed must be documented'); return; }
+    if (!closeOut.findings?.trim()) { toast.warning('Findings are required to close an audit (ISO 19011:2018 Clause 6.5)'); return; }
+    if (!closeOut.conclusion?.trim()) { toast.warning('Audit conclusion is required'); return; }
+    if (!closeOut.evidence_reviewed?.trim()) { toast.warning('Evidence reviewed must be documented'); return; }
 
     setCompleting(true)
     try {
@@ -389,18 +392,22 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
           findings: closeOut.findings.trim(),
           observations: closeOut.observations?.trim() || null,
           ncrs_raised: parseInt(closeOut.ncrs_raised) || 0,
+          conclusion: closeOut.conclusion?.trim() || null,
+          evidence_reviewed: closeOut.evidence_reviewed?.trim() || null,
+          corrective_actions: closeOut.corrective_actions?.trim() || null,
+          auditor_recommendation: closeOut.auditor_recommendation || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', audit.id)
 
       if (error) throw error
-      alert('Audit completed with findings recorded.')
+      toast.success(audit.status === 'Complete' ? 'Close-out report updated.' : 'Audit completed with findings recorded.')
       onClose()
       // Trigger parent refresh
       if (onUpdateStatus) onUpdateStatus(audit.id, 'Complete')
     } catch (err) {
       console.error('Error completing audit:', err)
-      alert('Failed to complete: ' + err.message)
+      toast.error('Failed to complete: ' + err.message)
     } finally {
       setCompleting(false)
     }
@@ -440,7 +447,13 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
               </div>
               <div><label className="text-sm text-white/60">Findings (ISO 19011:6.5)</label><div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap">{audit.findings}</div></div>
               {audit.observations && <div><label className="text-sm text-white/60">Observations</label><div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap">{audit.observations}</div></div>}
-              <div><label className="text-sm text-white/60">NCRs Raised</label><div className="text-white">{audit.ncrs_raised || 0}</div></div>
+              {audit.evidence_reviewed && <div><label className="text-sm text-white/60">Evidence Reviewed</label><div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap">{audit.evidence_reviewed}</div></div>}
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="text-sm text-white/60">NCRs Raised</label><div className="text-white">{audit.ncrs_raised || 0}</div></div>
+                {audit.auditor_recommendation && <div><label className="text-sm text-white/60">Recommendation</label><div className={`font-semibold ${audit.auditor_recommendation === 'Conforming' ? 'text-green-400' : audit.auditor_recommendation === 'Critical' ? 'text-red-400' : 'text-orange-400'}`}>{audit.auditor_recommendation}</div></div>}
+              </div>
+              {audit.conclusion && <div><label className="text-sm text-white/60">Conclusion</label><div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap">{audit.conclusion}</div></div>}
+              {audit.corrective_actions && <div><label className="text-sm text-white/60">Corrective Actions</label><div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap">{audit.corrective_actions}</div></div>}
             </>
           )}
 
@@ -543,6 +556,7 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
 }
 
 const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
+  const toast = useToast()
   const [formData, setFormData] = useState({
     audit_type: 'Internal',
     standard: (userProfile?.standards_access || ['ISO_9001'])[0] || 'ISO_9001',
@@ -586,11 +600,11 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
 
       if (error) throw error
 
-      alert('Audit scheduled successfully!')
+      toast.success('Audit scheduled successfully!')
       onCreated()
     } catch (err) {
       console.error('Error creating audit:', err)
-      alert('Failed to schedule audit: ' + err.message)
+      toast.error('Failed to schedule audit: ' + err.message)
     } finally {
       setSubmitting(false)
     }

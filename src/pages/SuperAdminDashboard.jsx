@@ -41,23 +41,27 @@ const SuperAdminDashboard = () => {
         .from('subscriptions')
         .select('*')
 
-      // Fetch invoices
-      const { data: invoicesData } = await supabase
-        .from('invoices')
-        .select('*')
-        .order('invoice_date', { ascending: false })
-        .limit(20)
+      // Fetch invoices (table may not have RLS policies yet — handle gracefully)
+      let invoicesData = []
+      try {
+        const { data, error } = await supabase
+          .from('invoices')
+          .select('*')
+          .order('invoice_date', { ascending: false })
+          .limit(20)
+        if (!error) invoicesData = data || []
+      } catch (e) { /* invoices table not accessible yet */ }
 
-      // Fetch recent activity
-      const { data: activityData } = await supabase
-        .from('usage_analytics')
-        .select(`
-          *,
-          users(email, full_name),
-          companies(name)
-        `)
-        .order('timestamp', { ascending: false })
-        .limit(50)
+      // Fetch recent activity from audit_log (usage_analytics may be locked)
+      let activityData = []
+      try {
+        const { data, error } = await supabase
+          .from('audit_log')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50)
+        if (!error) activityData = data || []
+      } catch (e) { /* audit_log not accessible */ }
 
       // Calculate per-client stats
       const clientStats = await Promise.all(
@@ -135,7 +139,7 @@ const SuperAdminDashboard = () => {
         pending_invoices_total: pendingInvoices.reduce((sum, i) => sum + parseFloat(i.total || 0), 0),
         overdue_invoices_count: overdueInvoices.length,
         overdue_invoices_total: overdueInvoices.reduce((sum, i) => sum + parseFloat(i.total || 0), 0),
-        avg_health_score: Math.round(clientStats.reduce((sum, c) => sum + c.health_score, 0) / clientStats.length)
+        avg_health_score: clientStats.length > 0 ? Math.round(clientStats.reduce((sum, c) => sum + c.health_score, 0) / clientStats.length) : 0
       })
 
     } catch (err) {
@@ -237,7 +241,7 @@ const SuperAdminDashboard = () => {
                 <div className="text-sm text-white/70 mb-1">Total Users</div>
                 <div className="text-3xl font-bold text-blue-400">{analytics?.total_users}</div>
                 <div className="text-xs text-blue-300 mt-2">
-                  Avg {Math.round(analytics?.total_users / analytics?.total_clients)} per client
+                  Avg {analytics?.total_clients > 0 ? Math.round(analytics?.total_users / analytics?.total_clients) : 0} per client
                 </div>
               </div>
 
@@ -445,23 +449,23 @@ const SuperAdminDashboard = () => {
             <h3 className="text-xl font-bold text-white mb-4">Recent Activity</h3>
             <div className="space-y-2">
               {recentActivity.slice(0, 30).map((activity, index) => (
-                <div key={index} className="glass glass-border rounded-lg p-3 text-sm">
+                <div key={activity.id || index} className="glass glass-border rounded-lg p-3 text-sm">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <span className="text-cyan-400 font-semibold">
-                        {activity.users?.full_name || activity.users?.email || 'System'}
+                        {activity.user_email || 'System'}
                       </span>
-                      <span className="text-white/70 mx-2">•</span>
-                      <span className="text-white">{activity.event_type.replace(/_/g, ' ')}</span>
-                      {activity.companies && (
+                      <span className="text-white/70 mx-2">{'\u2022'}</span>
+                      <span className="text-white capitalize">{(activity.action || '').replace(/_/g, ' ')}</span>
+                      {activity.entity_type && (
                         <>
-                          <span className="text-white/70 mx-2">@</span>
-                          <span className="text-purple-400">{activity.companies.name}</span>
+                          <span className="text-white/70 mx-1">{'\u2014'}</span>
+                          <span className="text-purple-400 capitalize">{activity.entity_type.replace(/_/g, ' ')}</span>
                         </>
                       )}
                     </div>
                     <span className="text-white/50 text-xs whitespace-nowrap ml-4">
-                      {new Date(activity.timestamp).toLocaleString()}
+                      {new Date(activity.created_at).toLocaleString()}
                     </span>
                   </div>
                 </div>

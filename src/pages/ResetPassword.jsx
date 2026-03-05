@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useToast } from '../contexts/ToastContext'
 import { useNavigate } from 'react-router-dom'
 
 const ResetPassword = () => {
   const navigate = useNavigate()
+  const toast = useToast()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -31,7 +33,7 @@ const ResetPassword = () => {
 
       if (error) throw error
 
-      alert('Password updated successfully!')
+      toast.success('Password updated successfully!')
       navigate('/login')
     } catch (err) {
       setError(err.message || 'Failed to update password')

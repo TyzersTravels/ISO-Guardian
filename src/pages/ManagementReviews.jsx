@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import Layout from '../components/Layout';
 
 const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'create' }) => {
+  const toast = useToast();
   const [reviewNumber, setReviewNumber] = useState(review?.review_number || '');
   const [reviewDate, setReviewDate] = useState(review?.review_date || new Date().toISOString().split('T')[0]);
   const [reviewTime, setReviewTime] = useState(review?.review_time || '09:00');
@@ -19,7 +21,7 @@ const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'cre
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!reviewNumber || !reviewDate || !chairperson) { alert('Please fill in Review Number, Date, and Chairperson'); return; }
+    if (!reviewNumber || !reviewDate || !chairperson) { toast.warning('Please fill in Review Number, Date, and Chairperson'); return; }
     setSubmitting(true);
     try {
       const payload = { review_number: reviewNumber, review_date: reviewDate, review_time: reviewTime, chairperson, attendees: attendees || null, agenda_items: agendaItems || null, minutes: minutes || null, decisions_made: decisionsMade || null, action_items: actionItems || null, resource_decisions: resourceDecisions || null, improvement_opportunities: improvementOpportunities || null, next_review_date: nextReviewDate || null };
@@ -27,16 +29,16 @@ const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'cre
         const { error } = await supabase.from('management_reviews').update(payload).eq('id', review.id);
         if (error) throw error;
         await supabase.from('audit_log').insert({ company_id: userProfile?.company_id, user_id: userId, action: 'updated', entity_type: 'management_review', entity_id: review.id, changes: { review_number: reviewNumber } });
-        alert('Review updated!');
+        toast.success('Review updated!');
       } else {
         payload.company_id = userProfile?.company_id; payload.status = 'Scheduled'; payload.created_by = userId;
         const { error } = await supabase.from('management_reviews').insert(payload);
         if (error) throw error;
         await supabase.from('audit_log').insert({ company_id: userProfile?.company_id, user_id: userId, action: 'created', entity_type: 'management_review', entity_id: null, changes: { review_number: reviewNumber, chairperson } });
-        alert('Review scheduled!');
+        toast.success('Review scheduled!');
       }
       onSaved();
-    } catch (err) { alert('Failed: ' + err.message); } finally { setSubmitting(false); }
+    } catch (err) { toast.error('Failed: ' + err.message); } finally { setSubmitting(false); }
   };
 
   const c = "w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500";
@@ -77,6 +79,7 @@ const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'cre
 
 const ManagementReviews = () => {
   const { user, userProfile } = useAuth();
+  const toast = useToast();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('active');
@@ -102,7 +105,7 @@ const ManagementReviews = () => {
       const { data, error } = await query;
       if (error) throw error;
       setReviews(data || []);
-    } catch (e) { alert('Failed: ' + e.message); } finally { setLoading(false); }
+    } catch (e) { toast.error('Failed: ' + e.message); } finally { setLoading(false); }
   };
 
   const log = async (action, id, details) => { try { await supabase.from('audit_log').insert({ company_id: userProfile?.company_id, user_id: user?.id, action, entity_type: 'management_review', entity_id: id, changes: details }); } catch(e) {} };
@@ -110,16 +113,16 @@ const ManagementReviews = () => {
   const handleArchive = async (id) => {
     const reason = window.prompt('Archive reason (required):');
     if (!reason?.trim()) return;
-    try { await supabase.from('management_reviews').update({ archived: true, archive_reason: reason.trim(), archived_at: new Date().toISOString() }).eq('id', id); await log('archived', id, { reason: reason.trim() }); fetchReviews(); setSelectedReview(null); } catch (e) { alert('Failed: ' + e.message); }
+    try { await supabase.from('management_reviews').update({ archived: true, archive_reason: reason.trim(), archived_at: new Date().toISOString() }).eq('id', id); await log('archived', id, { reason: reason.trim() }); fetchReviews(); setSelectedReview(null); } catch (e) { toast.error('Failed: ' + e.message); }
   };
-  const handleRestore = async (id) => { try { await supabase.from('management_reviews').update({ archived: false, archive_reason: null, archived_at: null }).eq('id', id); await log('restored', id, {}); fetchReviews(); } catch (e) { alert('Failed: ' + e.message); } };
+  const handleRestore = async (id) => { try { await supabase.from('management_reviews').update({ archived: false, archive_reason: null, archived_at: null }).eq('id', id); await log('restored', id, {}); fetchReviews(); } catch (e) { toast.error('Failed: ' + e.message); } };
   const handleDelete = async (id) => {
     if (!confirm('PERMANENTLY DELETE? Cannot be undone.')) return;
     const reason = window.prompt('Deletion reason (required):');
     if (!reason?.trim()) return;
-    try { await supabase.from('deletion_audit_trail').insert({ table_name: 'management_reviews', record_id: id, deleted_by: user?.id, reason: reason.trim(), deleted_at: new Date().toISOString() }); await log('permanently_deleted', id, { reason: reason.trim() }); await supabase.from('management_reviews').delete().eq('id', id); fetchReviews(); } catch (e) { alert('Failed: ' + e.message); }
+    try { await supabase.from('deletion_audit_trail').insert({ table_name: 'management_reviews', record_id: id, deleted_by: user?.id, reason: reason.trim(), deleted_at: new Date().toISOString() }); await log('permanently_deleted', id, { reason: reason.trim() }); await supabase.from('management_reviews').delete().eq('id', id); fetchReviews(); } catch (e) { toast.error('Failed: ' + e.message); }
   };
-  const handleStatus = async (id, s) => { try { await supabase.from('management_reviews').update({ status: s }).eq('id', id); await log('status_changed', id, { new_status: s }); fetchReviews(); setSelectedReview(null); } catch (e) { alert('Failed: ' + e.message); } };
+  const handleStatus = async (id, s) => { try { await supabase.from('management_reviews').update({ status: s }).eq('id', id); await log('status_changed', id, { new_status: s }); fetchReviews(); setSelectedReview(null); } catch (e) { toast.error('Failed: ' + e.message); } };
 
   const exportReview = async (r) => {
     try {
@@ -206,7 +209,7 @@ const ManagementReviews = () => {
       doc.text('Signature', m + sw + 10, y + 14); doc.text('Name: ________', m + sw + 10, y + 19); doc.text('Date: ________', m + sw + 10, y + 24);
 
       doc.save(`${r.review_number || 'MR'}_Management_Review.pdf`);
-    } catch (err) { alert('Export failed: ' + err.message); }
+    } catch (err) { toast.error('Export failed: ' + err.message); }
   };
 
   const fmt = (d) => d ? new Date(d).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set';

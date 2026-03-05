@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../contexts/AuthContext'
 
 const ProtectedRoute = ({ children }) => {
@@ -19,7 +20,14 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />
   }
 
-  return children
+  return (
+    <>
+      <Helmet>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
+      {children}
+    </>
+  )
 }
 
 export default ProtectedRoute

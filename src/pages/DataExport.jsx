@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 
 const DataExport = () => {
   const { userProfile } = useAuth()
+  const toast = useToast()
   const [exporting, setExporting] = useState(false)
 
   const exportAllData = async () => {
@@ -55,10 +57,10 @@ const DataExport = () => {
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
-      alert('Data exported successfully!')
+      toast.success('Data exported successfully!')
     } catch (err) {
       console.error('Export error:', err)
-      alert('Failed to export data: ' + err.message)
+      toast.error('Failed to export data: ' + err.message)
     } finally {
       setExporting(false)
     }

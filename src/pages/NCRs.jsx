@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 
 const NCRs = () => {
   const { userProfile } = useAuth()
+  const toast = useToast()
   const [ncrs, setNcrs] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -65,10 +67,10 @@ const NCRs = () => {
         ncr.id === ncrId ? { ...ncr, status: 'Closed' } : ncr
       ))
       setSelectedNCR(null)
-      alert('NCR closed successfully!')
+      toast.success('NCR closed successfully!')
     } catch (err) {
       console.error('Error closing NCR:', err)
-      alert('Failed to close NCR')
+      toast.error('Failed to close NCR')
     }
   }
 
@@ -82,7 +84,7 @@ const NCRs = () => {
     try {
       if (permanent) {
         const reason = window.prompt('Deletion reason (required for audit trail):')
-        if (!reason?.trim()) { alert('Deletion reason is required'); return; }
+        if (!reason?.trim()) { toast.warning('Deletion reason is required'); return; }
         
         await supabase.from('deletion_audit_trail').insert([{
           company_id: userProfile.company_id,
@@ -96,19 +98,19 @@ const NCRs = () => {
         const { error } = await supabase.from('ncrs').delete().eq('id', ncrId)
         if (error) throw error
         await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'permanently_deleted', entityType: 'ncr', entityId: ncrId, changes: {} })
-        alert('NCR permanently deleted.')
+        toast.success('NCR permanently deleted.')
       } else {
         const { error } = await supabase.from('ncrs').update({ archived: true }).eq('id', ncrId)
         if (error) throw error
         await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'archived', entityType: 'ncr', entityId: ncrId, changes: {} })
-        alert('NCR archived successfully.')
+        toast.success('NCR archived successfully.')
       }
 
       fetchNCRs()
       setSelectedNCR(null)
     } catch (err) {
       console.error('Error deleting NCR:', err)
-      alert('Failed to delete NCR: ' + err.message)
+      toast.error('Failed to delete NCR: ' + err.message)
     }
   }
 
@@ -117,11 +119,11 @@ const NCRs = () => {
       const { error } = await supabase.from('ncrs').update({ archived: false }).eq('id', ncrId)
       if (error) throw error
       await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'restored', entityType: 'ncr', entityId: ncrId, changes: {} })
-      alert('NCR restored successfully.')
+      toast.success('NCR restored successfully.')
       fetchNCRs()
     } catch (err) {
       console.error('Error restoring NCR:', err)
-      alert('Failed to restore NCR: ' + err.message)
+      toast.error('Failed to restore NCR: ' + err.message)
     }
   }
 
@@ -263,7 +265,7 @@ const NCRs = () => {
       doc.save(`${ncr.ncr_number}_Report.pdf`)
     } catch (err) {
       console.error('Export error:', err)
-      alert('Export failed: ' + err.message)
+      toast.error('Export failed: ' + err.message)
     }
   }
 
@@ -539,6 +541,7 @@ const NCRs = () => {
 
 // Create NCR Form Component
 const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
+  const toast = useToast()
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -614,11 +617,11 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
 
       if (error) throw error
 
-      alert('NCR created successfully!')
+      toast.success('NCR created successfully!')
       onCreated()
     } catch (err) {
       console.error('Error creating NCR:', err)
-      alert('Failed to create NCR: ' + err.message)
+      toast.error('Failed to create NCR: ' + err.message)
     } finally {
       setSubmitting(false)
     }
