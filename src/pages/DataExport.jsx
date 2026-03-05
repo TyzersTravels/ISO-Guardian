@@ -125,7 +125,7 @@ const DataExport = () => {
           <h2 className="text-xl font-bold text-white mb-4">Need Help?</h2>
           <div className="text-white/80 text-sm space-y-2">
             <p><strong>Question about your data?</strong></p>
-            <p>Email: privacy@isoguardian.co.za</p>
+            <p>Email: Support@isoguardian.co.za</p>
             <p>Response time: Within 30 days as required by POPIA</p>
           </div>
         </div>
