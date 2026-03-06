@@ -23,6 +23,7 @@ const Layout = ({ children }) => {
     { path: '/data-export', label: 'Export Data', icon: 'download' },
     { path: '/activity-trail', label: 'Activity Trail', icon: 'trail' },
     { path: '/analytics', label: 'Analytics', icon: 'chart' },
+    { path: '/notifications', label: 'Notifications', icon: 'bell' },
     { path: '/settings', label: 'Settings', icon: 'settings' },
   ].concat(isAdmin ? [{ path: '/users', label: 'Users', icon: 'users' }] : [])
 

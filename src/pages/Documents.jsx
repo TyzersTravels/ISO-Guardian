@@ -17,12 +17,16 @@ const Documents = () => {
   const [previewDoc, setPreviewDoc] = useState(null)
   const [showArchived, setShowArchived] = useState(false)
   const [confirmAction, setConfirmAction] = useState(null)
+  const [versionUploadDoc, setVersionUploadDoc] = useState(null)
+  const [versionHistoryDoc, setVersionHistoryDoc] = useState(null)
   
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
   const [standardFilter, setStandardFilter] = useState('all')
   const [clauseFilter, setClauseFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 20
 
   useEffect(() => {
     fetchDocuments()
@@ -288,6 +292,63 @@ ${htmlContent}
     }
   }
 
+  const handleVersionUpload = async (doc, file) => {
+    try {
+      // Save current version to history
+      const history = doc.version_history || []
+      history.push({
+        version: doc.version,
+        file_path: doc.file_path,
+        uploaded_by: doc.uploaded_by,
+        uploaded_at: doc.updated_at || doc.created_at,
+      })
+
+      // Upload new file
+      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+      const filePath = `${userProfile.company_id}/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      // Increment version
+      const currentVer = parseFloat(doc.version) || 1.0
+      const newVersion = (currentVer + 1.0).toFixed(1)
+
+      const { error: dbError } = await supabase
+        .from('documents')
+        .update({
+          version: newVersion,
+          file_path: filePath,
+          file_size: file.size,
+          uploaded_by: userProfile.id,
+          date_updated: new Date().toISOString().split('T')[0],
+          version_history: history,
+        })
+        .eq('id', doc.id)
+
+      if (dbError) throw dbError
+
+      await logActivity({
+        companyId: userProfile.company_id,
+        userId: userProfile.id,
+        action: 'updated',
+        entityType: 'document',
+        entityId: doc.id,
+        changes: { name: doc.name, old_version: doc.version, new_version: newVersion },
+      })
+
+      toast.success(`${doc.name} updated to version ${newVersion}`)
+      setVersionUploadDoc(null)
+      fetchDocuments()
+    } catch (err) {
+      console.error('Error uploading new version:', err)
+      toast.error('Failed to upload new version: ' + err.message)
+    }
+  }
+
   // Apply filters - now with archived support
   const filteredDocuments = documents.filter(doc => {
     // Archive filter
@@ -302,8 +363,12 @@ ${htmlContent}
     return matchesSearch && matchesStandard && matchesClause && matchesType
   })
 
-  // Group documents by standard and clause
-  const groupedDocs = filteredDocuments.reduce((acc, doc) => {
+  // Pagination
+  const totalPages = Math.ceil(filteredDocuments.length / pageSize)
+  const paginatedDocuments = filteredDocuments.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  // Group paginated documents by standard and clause
+  const groupedDocs = paginatedDocuments.reduce((acc, doc) => {
     if (!acc[doc.standard]) acc[doc.standard] = {}
     if (!acc[doc.standard][doc.clause]) acc[doc.standard][doc.clause] = []
     acc[doc.standard][doc.clause].push(doc)
@@ -317,6 +382,7 @@ ${htmlContent}
     setStandardFilter('all')
     setClauseFilter('all')
     setTypeFilter('all')
+    setCurrentPage(1)
   }
 
   if (loading) {
@@ -396,13 +462,13 @@ ${htmlContent}
               type="text"
               placeholder="Search documents..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
               className="px-4 py-2 glass glass-border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-400"
             />
 
             <select
               value={standardFilter}
-              onChange={(e) => setStandardFilter(e.target.value)}
+              onChange={(e) => { setStandardFilter(e.target.value); setCurrentPage(1); }}
               className="px-4 py-2 glass glass-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-transparent"
             >
               <option value="all" className="bg-slate-800">All Standards</option>
@@ -415,7 +481,7 @@ ${htmlContent}
 
             <select
               value={clauseFilter}
-              onChange={(e) => setClauseFilter(e.target.value)}
+              onChange={(e) => { setClauseFilter(e.target.value); setCurrentPage(1); }}
               className="px-4 py-2 glass glass-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-transparent"
             >
               <option value="all" className="bg-slate-800">All Clauses</option>
@@ -426,7 +492,7 @@ ${htmlContent}
 
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
+              onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
               className="px-4 py-2 glass glass-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-transparent"
             >
               <option value="all" className="bg-slate-800">All Types</option>
@@ -533,7 +599,21 @@ ${htmlContent}
                                   </svg>
                                   Download
                                 </button>
-                                <button 
+                                <button
+                                  onClick={() => setVersionUploadDoc(doc)}
+                                  className="px-3 py-2 glass glass-border text-white rounded-lg hover:bg-purple-500/20 transition-colors text-sm"
+                                >
+                                  New Version
+                                </button>
+                                {doc.version_history?.length > 0 && (
+                                  <button
+                                    onClick={() => setVersionHistoryDoc(doc)}
+                                    className="px-3 py-2 glass glass-border text-white/70 rounded-lg hover:bg-white/10 transition-colors text-sm"
+                                  >
+                                    History ({doc.version_history.length})
+                                  </button>
+                                )}
+                                <button
                                   onClick={() => requestDeleteDocument(doc.id)}
                                   className="px-3 py-2 bg-orange-500/20 text-orange-300 rounded-lg hover:bg-orange-500/30 transition-colors text-sm"
                                 >
@@ -566,6 +646,70 @@ ${htmlContent}
               ))}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-white/40">
+            Page {currentPage} of {totalPages} ({filteredDocuments.length} documents)
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm disabled:opacity-30 hover:bg-white/20"
+            >
+              First
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm disabled:opacity-30 hover:bg-white/20"
+            >
+              Prev
+            </button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let page
+              if (totalPages <= 5) {
+                page = i + 1
+              } else if (currentPage <= 3) {
+                page = i + 1
+              } else if (currentPage >= totalPages - 2) {
+                page = totalPages - 4 + i
+              } else {
+                page = currentPage - 2 + i
+              }
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 rounded-lg text-sm font-semibold ${
+                    currentPage === page
+                      ? 'bg-cyan-500 text-white'
+                      : 'bg-white/10 border border-white/20 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            })}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm disabled:opacity-30 hover:bg-white/20"
+            >
+              Next
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm disabled:opacity-30 hover:bg-white/20"
+            >
+              Last
+            </button>
+          </div>
         </div>
       )}
 
@@ -692,6 +836,25 @@ ${htmlContent}
         <ConfirmModal
           {...confirmAction}
           onCancel={() => setConfirmAction(null)}
+        />
+      )}
+
+      {/* Version Upload Modal */}
+      {versionUploadDoc && (
+        <VersionUploadModal
+          doc={versionUploadDoc}
+          onClose={() => setVersionUploadDoc(null)}
+          onUpload={(file) => handleVersionUpload(versionUploadDoc, file)}
+        />
+      )}
+
+      {/* Version History Modal */}
+      {versionHistoryDoc && (
+        <VersionHistoryModal
+          doc={versionHistoryDoc}
+          onClose={() => setVersionHistoryDoc(null)}
+          onDownload={handleDownload}
+          userProfile={userProfile}
         />
       )}
 
@@ -1103,6 +1266,103 @@ const BulkUploadForm = ({ userProfile, onClose, onUploaded }) => {
               {uploading ? `Uploading ${progress.current}/${progress.total}...` : `Upload ${files.length} File${files.length !== 1 ? 's' : ''}`}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const VersionUploadModal = ({ doc, onClose, onUpload }) => {
+  const [file, setFile] = useState(null)
+  const [uploading, setUploading] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!file) return
+    setUploading(true)
+    await onUpload(file)
+    setUploading(false)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+      <div className="bg-slate-800 border border-white/20 rounded-2xl w-full max-w-md p-6">
+        <h3 className="text-lg font-bold text-white mb-1">Upload New Version</h3>
+        <p className="text-white/50 text-sm mb-4">
+          {doc.name} — Current version: {doc.version}
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-white/70 text-sm mb-1">Select file</label>
+            <input
+              type="file"
+              onChange={(e) => setFile(e.target.files[0])}
+              className="w-full text-white text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-cyan-500/20 file:text-cyan-300 hover:file:bg-cyan-500/30"
+            />
+          </div>
+          <div className="flex gap-3 justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-xl text-sm hover:bg-white/20"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!file || uploading}
+              className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+            >
+              {uploading ? 'Uploading...' : `Upload as v${(parseFloat(doc.version || '1.0') + 1.0).toFixed(1)}`}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+const VersionHistoryModal = ({ doc, onClose }) => {
+  const history = [...(doc.version_history || [])].reverse()
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+      <div className="bg-slate-800 border border-white/20 rounded-2xl w-full max-w-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-bold text-white">Version History</h3>
+            <p className="text-white/50 text-sm">{doc.name}</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="space-y-2 max-h-80 overflow-y-auto">
+          {/* Current version */}
+          <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-cyan-300 font-semibold text-sm">v{doc.version}</span>
+                <span className="text-cyan-400 text-xs ml-2">(current)</span>
+              </div>
+              <span className="text-white/40 text-xs">
+                {doc.updated_at ? new Date(doc.updated_at).toLocaleDateString('en-ZA') : ''}
+              </span>
+            </div>
+          </div>
+          {/* Previous versions */}
+          {history.map((entry, i) => (
+            <div key={i} className="p-3 bg-white/5 border border-white/10 rounded-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-white/70 font-semibold text-sm">v{entry.version}</span>
+                <span className="text-white/40 text-xs">
+                  {entry.uploaded_at ? new Date(entry.uploaded_at).toLocaleDateString('en-ZA') : ''}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

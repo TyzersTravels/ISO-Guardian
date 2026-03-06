@@ -24,6 +24,7 @@ import ResetPassword from './pages/ResetPassword'
 import ResellerDashboard from './pages/ResellerDashboard'
 import ClientOnboarding from './pages/ClientOnboarding'
 import UserManagement from './pages/UserManagement'
+import NotificationPreferences from './pages/NotificationPreferences'
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
           <Route path="/audits" element={<ProtectedRoute><Audits /></ProtectedRoute>} />
           <Route path="/management-reviews" element={<ProtectedRoute><ManagementReviews /></ProtectedRoute>} />
           <Route path="/data-export" element={<ProtectedRoute><DataExport /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><NotificationPreferences /></ProtectedRoute>} />
           <Route path="/admin" element={<RoleProtectedRoute allowedRoles={['super_admin']}><SuperAdminDashboard /></RoleProtectedRoute>} />
           <Route path="/analytics" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin']}><Analytics /></RoleProtectedRoute>} />
           <Route path="/activity-trail" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin']}><ActivityTrail /></RoleProtectedRoute>} />

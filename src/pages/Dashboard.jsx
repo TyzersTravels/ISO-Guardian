@@ -18,6 +18,7 @@ const Dashboard = () => {
   })
   const [complianceScores, setComplianceScores] = useState([])
   const [recentActivity, setRecentActivity] = useState([])
+  const [deadlines, setDeadlines] = useState([])
   const [adminStats, setAdminStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -29,6 +30,7 @@ const Dashboard = () => {
       fetchDashboardData()
       fetchComplianceScores()
       fetchRecentActivity()
+      fetchDeadlines()
       if (isSuperAdmin) {
         fetchAdminStats()
       }
@@ -116,22 +118,93 @@ const Dashboard = () => {
     }
   }
 
+  const fetchDeadlines = async () => {
+    try {
+      const companyId = getEffectiveCompanyId()
+      if (!companyId) return
+
+      const today = new Date().toISOString().split('T')[0]
+      const in30Days = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
+
+      const [auditsRes, docsRes, ncrsRes] = await Promise.all([
+        supabase
+          .from('audits')
+          .select('id, title, audit_date, status')
+          .eq('company_id', companyId)
+          .in('status', ['Planned', 'Scheduled'])
+          .gte('audit_date', today)
+          .lte('audit_date', in30Days)
+          .order('audit_date', { ascending: true })
+          .limit(5),
+        supabase
+          .from('documents')
+          .select('id, name, next_review_date')
+          .eq('company_id', companyId)
+          .not('next_review_date', 'is', null)
+          .lte('next_review_date', in30Days)
+          .order('next_review_date', { ascending: true })
+          .limit(5),
+        supabase
+          .from('ncrs')
+          .select('id, ncr_number, title, target_close_date, status')
+          .eq('company_id', companyId)
+          .eq('status', 'Open')
+          .not('target_close_date', 'is', null)
+          .lte('target_close_date', in30Days)
+          .order('target_close_date', { ascending: true })
+          .limit(5),
+      ])
+
+      const items = []
+      ;(auditsRes.data || []).forEach(a => items.push({
+        type: 'audit', label: a.title || 'Audit', date: a.audit_date,
+        status: a.status, path: '/audits'
+      }))
+      ;(docsRes.data || []).forEach(d => {
+        const overdue = d.next_review_date < today
+        items.push({
+          type: 'document', label: d.name, date: d.next_review_date,
+          status: overdue ? 'Overdue' : 'Due', path: '/documents'
+        })
+      })
+      ;(ncrsRes.data || []).forEach(n => {
+        const overdue = n.target_close_date < today
+        items.push({
+          type: 'ncr', label: n.ncr_number || n.title, date: n.target_close_date,
+          status: overdue ? 'Overdue' : 'Due', path: '/ncrs'
+        })
+      })
+
+      items.sort((a, b) => new Date(a.date) - new Date(b.date))
+      setDeadlines(items.slice(0, 8))
+    } catch (err) {
+      console.error('Error fetching deadlines:', err)
+    }
+  }
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
       const companyId = getEffectiveCompanyId()
+      const userStandards = userProfile?.standards_access || []
 
-      // Fetch documents count (scoped to company)
-      const docQuery = supabase.from('documents').select('*', { count: 'exact', head: true })
+      // Fetch documents (need full data to filter by standards_access + archived, matching Documents page)
+      const docQuery = supabase.from('documents').select('*')
       if (companyId) docQuery.eq('company_id', companyId)
-      const { count: docCount } = await docQuery
+      const { data: allDocs } = await docQuery
 
-      // Fetch NCRs (scoped to company)
+      // Filter to match Documents page: exclude archived, filter by user's standards access
+      const visibleDocs = (allDocs || []).filter(doc =>
+        !doc.archived && userStandards.includes(doc.standard)
+      )
+
+      // Fetch NCRs (scoped to company, exclude archived to match NCRs page)
       const ncrQuery = supabase.from('ncrs').select('*')
       if (companyId) ncrQuery.eq('company_id', companyId)
       const { data: ncrs } = await ncrQuery
 
-      const openNCRs = ncrs?.filter(n => n.status === 'Open') || []
+      const activeNcrs = (ncrs || []).filter(n => !n.archived)
+      const openNCRs = activeNcrs.filter(n => n.status === 'Open')
       const criticalNCRs = openNCRs.filter(n => n.severity === 'Critical')
 
       // Fetch upcoming audits (scoped to company)
@@ -139,23 +212,23 @@ const Dashboard = () => {
       if (companyId) auditQuery.eq('company_id', companyId)
       const { data: audits } = await auditQuery
 
-      // Fetch recent documents (last 5, ordered by created_at)
-      const recentDocQuery = supabase.from('documents').select('*').order('created_at', { ascending: false }).limit(5)
-      if (companyId) recentDocQuery.eq('company_id', companyId)
-      const { data: recentDocs } = await recentDocQuery
+      // Recent documents: from visible (non-archived, standards-filtered), sorted by created_at
+      const recentDocs = [...visibleDocs]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 5)
 
-      // Fetch recent NCRs (last 5, ordered by created_at)
-      const recentNCRQuery = supabase.from('ncrs').select('*').order('created_at', { ascending: false }).limit(5)
-      if (companyId) recentNCRQuery.eq('company_id', companyId)
-      const { data: recentNCRs } = await recentNCRQuery
+      // Recent NCRs: from active (non-archived), sorted by created_at
+      const recentNCRs = [...activeNcrs]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 5)
 
       setStats({
-        totalDocuments: docCount || 0,
+        totalDocuments: visibleDocs.length,
         openNCRs: openNCRs.length,
         criticalNCRs: criticalNCRs.length,
-        upcomingAudits: audits?.length || 0,
-        recentDocuments: recentDocs || [],
-        recentNCRs: recentNCRs || []
+        upcomingAudits: (audits || []).filter(a => !a.archived).length,
+        recentDocuments: recentDocs,
+        recentNCRs: recentNCRs
       })
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
@@ -273,7 +346,7 @@ const Dashboard = () => {
 
         {/* Compliance Scores + Stats Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Compliance Score Bars */}
+          {/* Compliance Score Bars + Gauge */}
           <div className="lg:col-span-2 glass glass-border rounded-2xl p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-bold text-white">Compliance Scores</h3>
@@ -298,27 +371,57 @@ const Dashboard = () => {
                 </button>
               </div>
             ) : (
-              <div className="space-y-5">
-                {complianceScores.map(({ standard, score, compliant, total }) => {
-                  const style = getBarStyle(standard)
+              <div className="flex gap-6 items-start">
+                {/* Overall Gauge */}
+                {(() => {
+                  const overall = complianceScores.length > 0
+                    ? Math.round(complianceScores.reduce((s, c) => s + c.score, 0) / complianceScores.length)
+                    : 0
+                  const circumference = 2 * Math.PI * 54
+                  const offset = circumference - (overall / 100) * circumference
+                  const gaugeColor = overall >= 80 ? '#22c55e' : overall >= 50 ? '#f59e0b' : '#ef4444'
                   return (
-                    <div key={standard}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-white/80 font-medium">{standard}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-white/40">{compliant}/{total} clauses</span>
-                          <span className={`text-sm font-bold ${style.text}`}>{score}%</span>
-                        </div>
-                      </div>
-                      <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full bg-gradient-to-r ${style.gradient} rounded-full transition-all duration-1000 ease-out`}
-                          style={{ width: `${score}%` }}
+                    <div className="flex-shrink-0 text-center">
+                      <svg width="140" height="140" viewBox="0 0 140 140">
+                        <circle cx="70" cy="70" r="54" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="12" />
+                        <circle
+                          cx="70" cy="70" r="54" fill="none"
+                          stroke={gaugeColor} strokeWidth="12"
+                          strokeLinecap="round"
+                          strokeDasharray={circumference}
+                          strokeDashoffset={offset}
+                          transform="rotate(-90 70 70)"
+                          style={{ transition: 'stroke-dashoffset 1s ease-out' }}
                         />
-                      </div>
+                        <text x="70" y="65" textAnchor="middle" fill="white" fontSize="28" fontWeight="bold">{overall}%</text>
+                        <text x="70" y="85" textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="11">Overall</text>
+                      </svg>
                     </div>
                   )
-                })}
+                })()}
+                {/* Per-Standard Bars */}
+                <div className="flex-1 space-y-5">
+                  {complianceScores.map(({ standard, score, compliant, total }) => {
+                    const style = getBarStyle(standard)
+                    return (
+                      <div key={standard}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm text-white/80 font-medium">{standard}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-white/40">{compliant}/{total} clauses</span>
+                            <span className={`text-sm font-bold ${style.text}`}>{score}%</span>
+                          </div>
+                        </div>
+                        <div className="h-3 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full bg-gradient-to-r ${style.gradient} rounded-full transition-all duration-1000 ease-out`}
+                            style={{ width: `${score}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -412,6 +515,53 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+
+        {/* Upcoming Deadlines */}
+        {deadlines.length > 0 && (
+          <div className="glass glass-border rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">Upcoming Deadlines</h3>
+              <span className="text-xs text-white/40">Next 30 days</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {deadlines.map((item, i) => {
+                const isOverdue = item.status === 'Overdue'
+                const daysLeft = Math.ceil((new Date(item.date) - new Date()) / 86400000)
+                const typeIcons = {
+                  audit: { bg: 'bg-purple-500/20', color: 'text-purple-400', label: 'Audit' },
+                  document: { bg: 'bg-blue-500/20', color: 'text-blue-400', label: 'Doc Review' },
+                  ncr: { bg: 'bg-orange-500/20', color: 'text-orange-400', label: 'NCR Target' },
+                }
+                const typeStyle = typeIcons[item.type] || typeIcons.audit
+                return (
+                  <div
+                    key={i}
+                    onClick={() => navigate(item.path)}
+                    className={`p-3 rounded-xl border cursor-pointer hover:bg-white/5 transition-colors ${
+                      isOverdue ? 'border-red-500/30 bg-red-500/5' : 'border-white/10 bg-white/5'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${typeStyle.bg} ${typeStyle.color}`}>
+                        {typeStyle.label}
+                      </span>
+                      {isOverdue && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">Overdue</span>
+                      )}
+                    </div>
+                    <p className="text-white text-sm font-medium truncate">{item.label}</p>
+                    <p className={`text-xs mt-1 ${isOverdue ? 'text-red-400' : 'text-white/40'}`}>
+                      {isOverdue
+                        ? `${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? 's' : ''} overdue`
+                        : daysLeft === 0 ? 'Today' : `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`
+                      }
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Recent Activity + Recent Documents/NCRs */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -9,6 +9,8 @@ const ActivityTrail = () => {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all');
   const [filterAction, setFilterAction] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 25;
 
   useEffect(() => { fetchActivities(); }, []);
 
@@ -71,6 +73,9 @@ const ActivityTrail = () => {
     if (filterAction !== 'all' && a.action !== filterAction) return false;
     return true;
   });
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginatedActivities = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const uniqueTypes = [...new Set(allActivities.map(a => a.entity_type))].filter(Boolean).sort();
   const uniqueActions = [...new Set(allActivities.map(a => a.action))].filter(Boolean).sort();
@@ -143,14 +148,14 @@ const ActivityTrail = () => {
 
         {/* Filters */}
         <div className="flex items-center gap-3 flex-wrap">
-          <select value={filterType} onChange={e => setFilterType(e.target.value)}
+          <select value={filterType} onChange={e => { setFilterType(e.target.value); setCurrentPage(1); }}
             className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
             <option value="all" className="bg-slate-800">All Types</option>
             {uniqueTypes.map(t => (
               <option key={t} value={t} className="bg-slate-800">{entityLabels[t] || t}</option>
             ))}
           </select>
-          <select value={filterAction} onChange={e => setFilterAction(e.target.value)}
+          <select value={filterAction} onChange={e => { setFilterAction(e.target.value); setCurrentPage(1); }}
             className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
             <option value="all" className="bg-slate-800">All Actions</option>
             {uniqueActions.map(a => (
@@ -158,7 +163,7 @@ const ActivityTrail = () => {
             ))}
           </select>
           {(filterType !== 'all' || filterAction !== 'all') && (
-            <button onClick={() => { setFilterType('all'); setFilterAction('all'); }}
+            <button onClick={() => { setFilterType('all'); setFilterAction('all'); setCurrentPage(1); }}
               className="text-xs text-cyan-300 hover:text-cyan-200 underline">Clear filters</button>
           )}
           <span className="text-xs text-white/40">Showing {filtered.length} of {allActivities.length} entries</span>
@@ -171,7 +176,7 @@ const ActivityTrail = () => {
               <p className="text-white/70">{allActivities.length === 0 ? 'No activity recorded yet. Actions will appear here as users interact with the system.' : 'No entries match your filter.'}</p>
             </div>
           ) : (
-            filtered.map((activity) => {
+            paginatedActivities.map((activity) => {
               const style = getActionStyle(activity.action);
               return (
                 <div key={activity.id} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors">
@@ -206,6 +211,70 @@ const ActivityTrail = () => {
             })
           )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-white/40">
+              Page {currentPage} of {totalPages} ({filtered.length} entries)
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm disabled:opacity-30 hover:bg-white/20"
+              >
+                First
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm disabled:opacity-30 hover:bg-white/20"
+              >
+                Prev
+              </button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let page;
+                if (totalPages <= 5) {
+                  page = i + 1;
+                } else if (currentPage <= 3) {
+                  page = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  page = totalPages - 4 + i;
+                } else {
+                  page = currentPage - 2 + i;
+                }
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-lg text-sm font-semibold ${
+                      currentPage === page
+                        ? 'bg-cyan-500 text-white'
+                        : 'bg-white/10 border border-white/20 text-white/70 hover:bg-white/20'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm disabled:opacity-30 hover:bg-white/20"
+              >
+                Next
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm disabled:opacity-30 hover:bg-white/20"
+              >
+                Last
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
