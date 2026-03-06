@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { getLoginAttempts, recordFailedLogin, clearLoginAttempts, getLockoutRemainingMs } from '../lib/rateLimiter'
 
 const TURNSTILE_SITE_KEY = '0x4AAAAAACfLITd5DD70PYix'
 
@@ -12,7 +13,22 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [captchaToken, setCaptchaToken] = useState(null)
+  const [lockoutRemaining, setLockoutRemaining] = useState(0)
   const turnstileRef = useRef(null)
+
+  // Check for existing lockout on mount and tick down
+  useEffect(() => {
+    const remaining = getLockoutRemainingMs()
+    if (remaining > 0) {
+      setLockoutRemaining(remaining)
+      const interval = setInterval(() => {
+        const ms = getLockoutRemainingMs()
+        setLockoutRemaining(ms)
+        if (ms <= 0) clearInterval(interval)
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [])
   
   const { signIn } = useAuth()
   const navigate = useNavigate()
@@ -44,6 +60,15 @@ const Login = () => {
     e.preventDefault()
     setError('')
 
+    // Check lockout
+    const remaining = getLockoutRemainingMs()
+    if (remaining > 0) {
+      const mins = Math.ceil(remaining / 60000)
+      setError(`Too many failed attempts. Please try again in ${mins} minute${mins > 1 ? 's' : ''}.`)
+      setLockoutRemaining(remaining)
+      return
+    }
+
     if (!captchaToken) {
       setError('Please complete the security check')
       return
@@ -52,17 +77,31 @@ const Login = () => {
     setLoading(true)
 
     const { data, error: signInError } = await signIn(email, password, captchaToken)
-    
+
     if (signInError) {
-      setError(signInError.message)
+      const result = recordFailedLogin()
+      if (result.lockedUntil) {
+        setError('Account temporarily locked due to too many failed attempts. Please try again in 15 minutes.')
+        setLockoutRemaining(getLockoutRemainingMs())
+        const interval = setInterval(() => {
+          const ms = getLockoutRemainingMs()
+          setLockoutRemaining(ms)
+          if (ms <= 0) clearInterval(interval)
+        }, 1000)
+      } else {
+        const attemptsLeft = 5 - result.count
+        setError(`${signInError.message}${attemptsLeft <= 2 ? ` (${attemptsLeft} attempt${attemptsLeft > 1 ? 's' : ''} remaining)` : ''}`)
+      }
       setLoading(false)
-      // Reset captcha
       setCaptchaToken(null)
       if (window.turnstile && turnstileRef.current) {
         window.turnstile.reset(turnstileRef.current)
       }
       return
     }
+
+    // Successful login — clear attempt tracking
+    clearLoginAttempts()
 
     if (data.user) {
       // Handle referral tracking
@@ -260,7 +299,7 @@ const Login = () => {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || lockoutRemaining > 0}
                 className="w-full py-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white font-bold rounded-xl shadow-lg hover:shadow-cyan-500/50 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
@@ -345,94 +384,6 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Enhanced Styles */}
-      <style>{`
-        .glass-card {
-          background: rgba(15, 23, 42, 0.6);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-        }
-        
-        .glass-input {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(10px);
-        }
-        
-        .glass-input:focus {
-          background: rgba(255, 255, 255, 0.08);
-          border-color: rgba(6, 182, 212, 0.5);
-        }
-
-        @keyframes beam {
-          0%, 100% { transform: translateX(-100%); opacity: 0; }
-          50% { opacity: 1; }
-        }
-        
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); opacity: 0.3; }
-          50% { transform: translateY(-20px); opacity: 0.8; }
-        }
-        
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-10px); }
-          75% { transform: translateX(10px); }
-        }
-        
-        @keyframes pulse-slow {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.6; }
-        }
-
-        .animate-beam {
-          animation: beam 3s ease-in-out infinite;
-        }
-        
-        .animate-beam-delayed {
-          animation: beam 3s ease-in-out infinite;
-          animation-delay: 1s;
-        }
-        
-        .animate-beam-slow {
-          animation: beam 4s ease-in-out infinite;
-          animation-delay: 2s;
-        }
-        
-        .animate-float {
-          animation: float linear infinite;
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 0.8s ease-out;
-        }
-        
-        .animate-fade-in-delayed {
-          animation: fade-in 0.8s ease-out 0.3s both;
-        }
-        
-        .animate-slide-up {
-          animation: slide-up 0.6s ease-out 0.4s both;
-        }
-        
-        .animate-shake {
-          animation: shake 0.5s ease-in-out;
-        }
-        
-        .animate-pulse-slow {
-          animation: pulse-slow 3s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   )
 }

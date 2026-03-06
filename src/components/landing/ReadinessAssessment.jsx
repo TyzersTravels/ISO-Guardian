@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { throttle } from '../../lib/rateLimiter'
 
 const SUPPORT_EMAIL = 'support@isoguardian.co.za'
 
@@ -56,6 +57,7 @@ export default function ReadinessAssessment() {
   const [submitting, setSubmitting] = useState(false)
   const [score, setScore] = useState(null)
   const [error, setError] = useState('')
+  const [honeypot, setHoneypot] = useState('')
 
   const questions = QUESTIONS[contactInfo.standard] || QUESTIONS['ISO 9001']
   const totalSteps = questions.length + 1 // contact + questions
@@ -88,6 +90,19 @@ export default function ReadinessAssessment() {
   }
 
   const handleSubmit = async () => {
+    // Bot detection: honeypot field
+    if (honeypot) {
+      setScore(50)
+      setStep(totalSteps + 1)
+      return
+    }
+
+    // Rate limiting
+    if (!throttle('assessment-submit', 3, 60000)) {
+      setError('Too many submissions. Please wait a moment before trying again.')
+      return
+    }
+
     setSubmitting(true)
     setError('')
 
@@ -204,6 +219,11 @@ export default function ReadinessAssessment() {
                     <option value="ISO 45001" className="bg-slate-900">ISO 45001:2018 — OH&S</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Honeypot — hidden from humans */}
+              <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }} aria-hidden="true">
+                <input type="text" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={e => setHoneypot(e.target.value)} />
               </div>
 
               {error && <p className="text-red-400 text-sm">{error}</p>}

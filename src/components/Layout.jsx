@@ -94,7 +94,7 @@ const Layout = ({ children }) => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
-        <div className="animate-in">
+        <div className="animate-slide-in">
           {children}
         </div>
       </main>
@@ -187,23 +187,6 @@ const Layout = ({ children }) => {
         </div>
       </footer>
 
-      <style>{`
-        .glass {
-          background: rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-        }
-        .glass-border {
-          border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-in {
-          animation: slideIn 0.3s ease-out;
-        }
-      `}</style>
     </div>
   )
 }

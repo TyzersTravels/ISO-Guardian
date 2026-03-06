@@ -25,6 +25,7 @@ import ResellerDashboard from './pages/ResellerDashboard'
 import ClientOnboarding from './pages/ClientOnboarding'
 import UserManagement from './pages/UserManagement'
 import NotificationPreferences from './pages/NotificationPreferences'
+import CookieConsent from './components/CookieConsent'
 
 function App() {
   return (
@@ -64,6 +65,7 @@ function App() {
       </AuthProvider>
       </ToastProvider>
     </BrowserRouter>
+    <CookieConsent />
     </ErrorBoundary>
   )
 }

@@ -69,10 +69,6 @@ const ClientSelector = () => {
         </div>
       )}
 
-      <style>{`
-        .glass { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); }
-        .glass-border { border: 1px solid rgba(255, 255, 255, 0.2); }
-      `}</style>
     </div>
   )
 }

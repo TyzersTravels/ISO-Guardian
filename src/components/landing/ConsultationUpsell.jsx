@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { throttle } from '../../lib/rateLimiter'
 
 const SUPPORT_EMAIL = 'support@isoguardian.co.za'
 const WHATSAPP_URL = 'https://wa.me/27716060250'
@@ -9,13 +10,28 @@ export default function ConsultationUpsell() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  const [honeypot, setHoneypot] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // Bot detection
+    if (honeypot) {
+      setSubmitted(true)
+      return
+    }
+
     if (!form.name || !form.email || !form.company) {
       setError('Please fill in name, email, and company.')
       return
     }
+
+    // Rate limiting
+    if (!throttle('consultation-submit', 3, 60000)) {
+      setError('Too many submissions. Please wait a moment before trying again.')
+      return
+    }
+
     setSubmitting(true)
     setError('')
 
@@ -185,6 +201,11 @@ export default function ConsultationUpsell() {
                     className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-purple-500/50 focus:outline-none transition-colors resize-none"
                     placeholder="Tell us about your current situation..."
                   />
+                </div>
+
+                {/* Honeypot — hidden from humans */}
+                <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }} aria-hidden="true">
+                  <input type="text" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={e => setHoneypot(e.target.value)} />
                 </div>
 
                 {error && <p className="text-red-400 text-sm">{error}</p>}

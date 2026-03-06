@@ -1058,16 +1058,6 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* Inline styles for landing-page-specific animations */}
-      <style>{`
-        @keyframes connector {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(400%); }
-        }
-        .animate-connector {
-          animation: connector 2s linear infinite;
-        }
-      `}</style>
     </div>
   )
 }
