@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
+import ConfirmModal from '../components/ConfirmModal'
 import { useToast } from '../contexts/ToastContext'
 
 const CompanySettings = () => {
@@ -13,6 +14,7 @@ const CompanySettings = () => {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [logoPreview, setLogoPreview] = useState(null)
+  const [confirmAction, setConfirmAction] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     registration_number: '',
@@ -122,36 +124,38 @@ const CompanySettings = () => {
     }
   }
 
-  const handleRemoveLogo = async () => {
-    if (!confirm('Remove your company logo? It will no longer appear on PDF exports.')) return
-
-    try {
-      setSaving(true)
-      // Remove from storage
-      const ext = logoPreview?.split('.').pop()?.split('?')[0] || 'png'
-      await supabase.storage.from('documents').remove([`logos/${userProfile.company_id}/logo.${ext}`])
-
-      // Clear URL in company record
-      await supabase.from('companies')
-        .update({ logo_url: null, updated_at: new Date().toISOString() })
-        .eq('id', userProfile.company_id)
-
-      setLogoPreview(null)
-      setCompany(prev => ({ ...prev, logo_url: null }))
-
-      await logActivity({
-        companyId: userProfile.company_id,
-        userId: userProfile.id,
-        action: 'updated',
-        entityType: 'company_settings',
-        entityId: userProfile.company_id,
-        changes: { field: 'logo', status: 'removed' }
-      })
-    } catch (err) {
-      toast.error('Failed to remove logo: ' + err.message)
-    } finally {
-      setSaving(false)
-    }
+  const handleRemoveLogo = () => {
+    setConfirmAction({
+      title: 'Remove Company Logo',
+      message: 'Remove your company logo? It will no longer appear on PDF exports.',
+      variant: 'warning',
+      confirmLabel: 'Remove Logo',
+      onConfirm: async () => {
+        setConfirmAction(null)
+        try {
+          setSaving(true)
+          const ext = logoPreview?.split('.').pop()?.split('?')[0] || 'png'
+          await supabase.storage.from('documents').remove([`logos/${userProfile.company_id}/logo.${ext}`])
+          await supabase.from('companies')
+            .update({ logo_url: null, updated_at: new Date().toISOString() })
+            .eq('id', userProfile.company_id)
+          setLogoPreview(null)
+          setCompany(prev => ({ ...prev, logo_url: null }))
+          await logActivity({
+            companyId: userProfile.company_id,
+            userId: userProfile.id,
+            action: 'updated',
+            entityType: 'company_settings',
+            entityId: userProfile.company_id,
+            changes: { field: 'logo', status: 'removed' }
+          })
+        } catch (err) {
+          toast.error('Failed to remove logo: ' + err.message)
+        } finally {
+          setSaving(false)
+        }
+      }
+    })
   }
 
   const handleSave = async () => {
@@ -425,6 +429,7 @@ const CompanySettings = () => {
           </div>
         </div>
       </div>
+      {confirmAction && <ConfirmModal {...confirmAction} onCancel={() => setConfirmAction(null)} />}
     </Layout>
   )
 }

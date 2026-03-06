@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import RoleProtectedRoute from './components/RoleProtectedRoute'
+import ErrorBoundary from './components/ErrorBoundary'
 import Login from './pages/Login'
 import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
@@ -26,6 +27,7 @@ import UserManagement from './pages/UserManagement'
 
 function App() {
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <ToastProvider>
       <AuthProvider>
@@ -60,6 +62,7 @@ function App() {
       </AuthProvider>
       </ToastProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 

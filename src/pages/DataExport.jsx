@@ -3,27 +3,31 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
+import ConfirmModal from '../components/ConfirmModal'
 
 const DataExport = () => {
-  const { userProfile } = useAuth()
+  const { userProfile, getEffectiveCompanyId } = useAuth()
   const toast = useToast()
   const [exporting, setExporting] = useState(false)
+  const [showExportConfirm, setShowExportConfirm] = useState(false)
+
+  const handleExportClick = () => {
+    setShowExportConfirm(true)
+  }
 
   const exportAllData = async () => {
-    if (!confirm('Export all your company data? This will download a complete copy of your compliance data.')) {
-      return
-    }
-
+    setShowExportConfirm(false)
     setExporting(true)
 
     try {
       // Fetch all company data
+      const companyId = getEffectiveCompanyId()
       const [docsResult, ncrsResult, auditsResult, reviewsResult, complianceResult] = await Promise.all([
-        supabase.from('documents').select('*').eq('company_id', userProfile.company_id),
-        supabase.from('ncrs').select('*').eq('company_id', userProfile.company_id),
-        supabase.from('audits').select('*').eq('company_id', userProfile.company_id),
-        supabase.from('management_reviews').select('*').eq('company_id', userProfile.company_id),
-        supabase.from('compliance_requirements').select('*').eq('company_id', userProfile.company_id)
+        supabase.from('documents').select('*').eq('company_id', companyId),
+        supabase.from('ncrs').select('*').eq('company_id', companyId),
+        supabase.from('audits').select('*').eq('company_id', companyId),
+        supabase.from('management_reviews').select('*').eq('company_id', companyId),
+        supabase.from('compliance_requirements').select('*').eq('company_id', companyId)
       ])
 
       const exportData = {
@@ -98,7 +102,7 @@ const DataExport = () => {
           </div>
 
           <button
-            onClick={exportAllData}
+            onClick={handleExportClick}
             disabled={exporting}
             className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
@@ -135,7 +139,7 @@ const DataExport = () => {
           <div className="text-white/80 text-sm mb-4">
             <p className="mb-2">To permanently delete your data:</p>
             <p>1. Export your data first (above button)</p>
-            <p>2. Email privacy@compliancehub.co.za with subject "Data Deletion Request"</p>
+            <p>2. Email support@isoguardian.co.za with subject "Data Deletion Request"</p>
             <p>3. We'll process within 30 days and confirm deletion</p>
           </div>
           <p className="text-red-300 text-xs">
@@ -143,6 +147,17 @@ const DataExport = () => {
           </p>
         </div>
       </div>
+
+      {showExportConfirm && (
+        <ConfirmModal
+          title="Export Company Data"
+          message="Export all your company data? This will download a complete copy of your compliance data as a JSON file."
+          variant="info"
+          confirmLabel="Export Data"
+          onConfirm={exportAllData}
+          onCancel={() => setShowExportConfirm(false)}
+        />
+      )}
 
       <style>{`
         .glass {

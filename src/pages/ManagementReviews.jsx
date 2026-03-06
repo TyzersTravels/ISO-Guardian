@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import Layout from '../components/Layout';
+import ConfirmModal from '../components/ConfirmModal';
 
 const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'create' }) => {
   const toast = useToast();
@@ -87,6 +88,7 @@ const ManagementReviews = () => {
   const [editingReview, setEditingReview] = useState(null);
   const [selectedReview, setSelectedReview] = useState(null);
   const [isLeadAuditor, setIsLeadAuditor] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   useEffect(() => { checkUserRole(); fetchReviews(); }, [viewMode]);
 
@@ -112,17 +114,36 @@ const ManagementReviews = () => {
 
   const log = async (action, id, details) => { try { await supabase.from('audit_log').insert({ company_id: userProfile?.company_id, user_id: user?.id, action, entity_type: 'management_review', entity_id: id, changes: details }); } catch(e) {} };
 
-  const handleArchive = async (id) => {
-    const reason = window.prompt('Archive reason (required):');
-    if (!reason?.trim()) return;
-    try { await supabase.from('management_reviews').update({ archived: true, archive_reason: reason.trim(), archived_at: new Date().toISOString() }).eq('id', id); await log('archived', id, { reason: reason.trim() }); fetchReviews(); setSelectedReview(null); } catch (e) { toast.error('Failed: ' + e.message); }
+  const handleArchive = (id) => {
+    setConfirmAction({
+      title: 'Archive Review',
+      message: 'Archive this management review? It can be restored later.',
+      variant: 'warning',
+      confirmLabel: 'Archive',
+      requireReason: true,
+      reasonLabel: 'Archive reason (required):',
+      reasonPlaceholder: 'Why is this review being archived?',
+      onConfirm: async (reason) => {
+        setConfirmAction(null);
+        try { await supabase.from('management_reviews').update({ archived: true, archive_reason: reason, archived_at: new Date().toISOString() }).eq('id', id); await log('archived', id, { reason }); fetchReviews(); setSelectedReview(null); } catch (e) { toast.error('Failed: ' + e.message); }
+      }
+    });
   };
   const handleRestore = async (id) => { try { await supabase.from('management_reviews').update({ archived: false, archive_reason: null, archived_at: null }).eq('id', id); await log('restored', id, {}); fetchReviews(); } catch (e) { toast.error('Failed: ' + e.message); } };
-  const handleDelete = async (id) => {
-    if (!confirm('PERMANENTLY DELETE? Cannot be undone.')) return;
-    const reason = window.prompt('Deletion reason (required):');
-    if (!reason?.trim()) return;
-    try { await supabase.from('deletion_audit_trail').insert({ table_name: 'management_reviews', record_id: id, deleted_by: user?.id, reason: reason.trim(), deleted_at: new Date().toISOString() }); await log('permanently_deleted', id, { reason: reason.trim() }); await supabase.from('management_reviews').delete().eq('id', id); fetchReviews(); } catch (e) { toast.error('Failed: ' + e.message); }
+  const handleDelete = (id) => {
+    setConfirmAction({
+      title: 'Permanently Delete Review',
+      message: 'This management review will be permanently deleted. This cannot be undone.',
+      variant: 'danger',
+      confirmLabel: 'Delete Forever',
+      requireReason: true,
+      reasonLabel: 'Deletion reason (required):',
+      reasonPlaceholder: 'Why is this review being permanently deleted?',
+      onConfirm: async (reason) => {
+        setConfirmAction(null);
+        try { await supabase.from('deletion_audit_trail').insert({ company_id: userProfile?.company_id, table_name: 'management_reviews', record_id: id, deleted_by: user?.id, reason, deleted_at: new Date().toISOString() }); await log('permanently_deleted', id, { reason }); await supabase.from('management_reviews').delete().eq('id', id); fetchReviews(); } catch (e) { toast.error('Failed: ' + e.message); }
+      }
+    });
   };
   const handleStatus = async (id, s) => { try { await supabase.from('management_reviews').update({ status: s }).eq('id', id); await log('status_changed', id, { new_status: s }); fetchReviews(); setSelectedReview(null); } catch (e) { toast.error('Failed: ' + e.message); } };
 
@@ -297,6 +318,7 @@ const ManagementReviews = () => {
       {showCreateForm && <ReviewForm userProfile={userProfile} userId={user?.id} onClose={() => setShowCreateForm(false)} onSaved={() => { setShowCreateForm(false); fetchReviews(); }} mode="create" />}
       {editingReview && <ReviewForm review={editingReview} userProfile={userProfile} userId={user?.id} onClose={() => setEditingReview(null)} onSaved={() => { setEditingReview(null); fetchReviews(); }} mode="edit" />}
       {selectedReview && <Detail r={selectedReview} />}
+      {confirmAction && <ConfirmModal {...confirmAction} onCancel={() => setConfirmAction(null)} />}
     </Layout>
   );
 };

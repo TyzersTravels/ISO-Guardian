@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 
 const ClientAnalytics = () => {
-  const { userProfile } = useAuth()
+  const { userProfile, getEffectiveCompanyId } = useAuth()
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -18,10 +18,11 @@ const ClientAnalytics = () => {
       // This would need a reseller_id field on companies table
       // For now, just show their own company stats
       
+      const companyId = getEffectiveCompanyId()
       const { data: users, error } = await supabase
         .from('users')
         .select('*')
-        .eq('company_id', userProfile.company_id)
+        .eq('company_id', companyId)
 
       if (error) throw error
 
@@ -29,19 +30,19 @@ const ClientAnalytics = () => {
       const { count: docCount } = await supabase
         .from('documents')
         .select('*', { count: 'exact', head: true })
-        .eq('company_id', userProfile.company_id)
+        .eq('company_id', companyId)
 
       // Get NCR count
       const { count: ncrCount } = await supabase
         .from('ncrs')
         .select('*', { count: 'exact', head: true })
-        .eq('company_id', userProfile.company_id)
+        .eq('company_id', companyId)
 
       // Get compliance data
       const { data: compliance } = await supabase
         .from('compliance_requirements')
         .select('standard, compliance_status')
-        .eq('company_id', userProfile.company_id)
+        .eq('company_id', companyId)
 
       setClients([{
         name: userProfile.company?.name || 'Your Company',

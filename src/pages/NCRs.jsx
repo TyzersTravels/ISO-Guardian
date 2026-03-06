@@ -4,6 +4,7 @@ import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
+import ConfirmModal from '../components/ConfirmModal'
 
 const NCRs = () => {
   const { userProfile, getEffectiveCompanyId } = useAuth()
@@ -12,6 +13,7 @@ const NCRs = () => {
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [selectedNCR, setSelectedNCR] = useState(null)
+  const [confirmAction, setConfirmAction] = useState(null)
   
   // Filters
   const [statusFilter, setStatusFilter] = useState('Open')
@@ -77,43 +79,60 @@ const NCRs = () => {
     }
   }
 
-  const deleteNCR = async (ncrId, permanent = false) => {
-    const confirmMsg = permanent 
-      ? '⚠️ PERMANENTLY DELETE this NCR? This cannot be undone and will be logged for POPIA compliance.'
-      : 'Archive this NCR? It can be restored later.'
-    
-    if (!confirm(confirmMsg)) return
-
-    try {
-      if (permanent) {
-        const reason = window.prompt('Deletion reason (required for audit trail):')
-        if (!reason?.trim()) { toast.warning('Deletion reason is required'); return; }
-        
-        await supabase.from('deletion_audit_trail').insert([{
-          company_id: userProfile.company_id,
-          table_name: 'ncrs',
-          record_id: ncrId,
-          deleted_by: userProfile.id,
-          deleted_at: new Date().toISOString(),
-          reason: reason.trim()
-        }])
-        
-        const { error } = await supabase.from('ncrs').delete().eq('id', ncrId)
-        if (error) throw error
-        await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'permanently_deleted', entityType: 'ncr', entityId: ncrId, changes: {} })
-        toast.success('NCR permanently deleted.')
-      } else {
-        const { error } = await supabase.from('ncrs').update({ archived: true }).eq('id', ncrId)
-        if (error) throw error
-        await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'archived', entityType: 'ncr', entityId: ncrId, changes: {} })
-        toast.success('NCR archived successfully.')
-      }
-
-      fetchNCRs()
-      setSelectedNCR(null)
-    } catch (err) {
-      console.error('Error deleting NCR:', err)
-      toast.error('Failed to delete NCR: ' + err.message)
+  const requestDeleteNCR = (ncrId, permanent = false) => {
+    if (permanent) {
+      setConfirmAction({
+        title: 'Permanently Delete NCR',
+        message: 'This NCR will be permanently deleted. This cannot be undone and will be logged for POPIA compliance.',
+        variant: 'danger',
+        confirmLabel: 'Delete Forever',
+        requireReason: true,
+        reasonLabel: 'Deletion reason (required for audit trail):',
+        reasonPlaceholder: 'Why is this NCR being permanently deleted?',
+        onConfirm: async (reason) => {
+          setConfirmAction(null)
+          try {
+            await supabase.from('deletion_audit_trail').insert([{
+              company_id: userProfile.company_id,
+              table_name: 'ncrs',
+              record_id: ncrId,
+              deleted_by: userProfile.id,
+              deleted_at: new Date().toISOString(),
+              reason
+            }])
+            const { error } = await supabase.from('ncrs').delete().eq('id', ncrId)
+            if (error) throw error
+            await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'permanently_deleted', entityType: 'ncr', entityId: ncrId, changes: {} })
+            toast.success('NCR permanently deleted.')
+            fetchNCRs()
+            setSelectedNCR(null)
+          } catch (err) {
+            console.error('Error deleting NCR:', err)
+            toast.error('Failed to delete NCR: ' + err.message)
+          }
+        }
+      })
+    } else {
+      setConfirmAction({
+        title: 'Archive NCR',
+        message: 'Archive this NCR? It can be restored later.',
+        variant: 'warning',
+        confirmLabel: 'Archive',
+        onConfirm: async () => {
+          setConfirmAction(null)
+          try {
+            const { error } = await supabase.from('ncrs').update({ archived: true }).eq('id', ncrId)
+            if (error) throw error
+            await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'archived', entityType: 'ncr', entityId: ncrId, changes: {} })
+            toast.success('NCR archived successfully.')
+            fetchNCRs()
+            setSelectedNCR(null)
+          } catch (err) {
+            console.error('Error archiving NCR:', err)
+            toast.error('Failed to archive NCR: ' + err.message)
+          }
+        }
+      })
     }
   }
 
@@ -496,7 +515,7 @@ const NCRs = () => {
                     </button>
                   ) : (
                     <button
-                      onClick={() => deleteNCR(selectedNCR.id)}
+                      onClick={() => requestDeleteNCR(selectedNCR.id)}
                       className="py-3 px-6 bg-orange-500/80 hover:bg-orange-600 text-white font-semibold rounded-lg"
                     >
                       Archive
@@ -504,7 +523,7 @@ const NCRs = () => {
                   )}
                   {['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role) && (
                     <button
-                      onClick={() => deleteNCR(selectedNCR.id, true)}
+                      onClick={() => requestDeleteNCR(selectedNCR.id, true)}
                       className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg"
                     >
                       Delete Forever
@@ -538,6 +557,13 @@ const NCRs = () => {
           border: 1px solid rgba(255, 255, 255, 0.2);
         }
       `}</style>
+
+      {confirmAction && (
+        <ConfirmModal
+          {...confirmAction}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
     </Layout>
   )
 }

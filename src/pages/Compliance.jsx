@@ -11,9 +11,9 @@ const Compliance = () => {
   const [selectedClause, setSelectedClause] = useState(null)
 
   const standards = [
-    { code: 'ISO_9001', name: 'ISO 9001:2015', color: 'blue' },
-    { code: 'ISO_14001', name: 'ISO 14001:2015', color: 'green' },
-    { code: 'ISO_45001', name: 'ISO 45001:2018', color: 'orange' }
+    { code: 'ISO_9001', name: 'ISO 9001:2015', activeClass: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' },
+    { code: 'ISO_14001', name: 'ISO 14001:2015', activeClass: 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg' },
+    { code: 'ISO_45001', name: 'ISO 45001:2018', activeClass: 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' }
   ]
 
   useEffect(() => {
@@ -121,7 +121,7 @@ const Compliance = () => {
               }}
               className={`px-4 py-2 rounded-xl font-semibold whitespace-nowrap transition-all ${
                 selectedStandard === std.code
-                  ? `bg-gradient-to-r from-${std.color}-500 to-${std.color}-600 text-white shadow-lg`
+                  ? std.activeClass
                   : 'glass glass-border text-white/70 hover:bg-white/10'
               }`}
             >

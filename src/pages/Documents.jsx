@@ -4,9 +4,10 @@ import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
+import ConfirmModal from '../components/ConfirmModal'
 
 const Documents = () => {
-  const { userProfile } = useAuth()
+  const { userProfile, getEffectiveCompanyId } = useAuth()
   const toast = useToast()
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -15,6 +16,7 @@ const Documents = () => {
   const [showBulkUpload, setShowBulkUpload] = useState(false)
   const [previewDoc, setPreviewDoc] = useState(null)
   const [showArchived, setShowArchived] = useState(false)
+  const [confirmAction, setConfirmAction] = useState(null)
   
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
@@ -30,10 +32,11 @@ const Documents = () => {
     try {
       setLoading(true)
       
+      const companyId = getEffectiveCompanyId()
       let query = supabase
         .from('documents')
         .select('*')
-        .eq('company_id', userProfile.company_id)
+        .eq('company_id', companyId)
 
       const { data, error: fetchError } = await query
 
@@ -54,52 +57,67 @@ const Documents = () => {
     }
   }
 
-  const deleteDocument = async (docId, permanent = false) => {
+  const requestDeleteDocument = (docId, permanent = false) => {
     const doc = documents.find(d => d.id === docId)
-    const confirmMsg = permanent 
-      ? '⚠️ PERMANENTLY DELETE this document and its file? This cannot be undone.'
-      : 'Archive this document? It can be restored later.'
-    
-    if (!confirm(confirmMsg)) return
-
-    try {
-      if (permanent) {
-        const reason = window.prompt('Deletion reason (required for audit trail):')
-        if (!reason?.trim()) { toast.warning('Deletion reason is required'); return; }
-        
-        // Log to audit trail
-        await supabase.from('deletion_audit_trail').insert([{
-          company_id: userProfile.company_id,
-          table_name: 'documents',
-          record_id: docId,
-          deleted_by: userProfile.id,
-          deleted_at: new Date().toISOString(),
-          reason: reason.trim()
-        }])
-        
-        // Delete file from storage
-        if (doc?.file_path) {
-          await supabase.storage.from('documents').remove([doc.file_path])
+    if (permanent) {
+      setConfirmAction({
+        title: 'Permanently Delete Document',
+        message: `Delete "${doc?.name || 'this document'}" and its file? This cannot be undone and will be logged for POPIA compliance.`,
+        variant: 'danger',
+        confirmLabel: 'Delete Forever',
+        requireReason: true,
+        reasonLabel: 'Deletion reason (required for audit trail):',
+        reasonPlaceholder: 'Why is this document being permanently deleted?',
+        onConfirm: async (reason) => {
+          setConfirmAction(null)
+          try {
+            await supabase.from('deletion_audit_trail').insert([{
+              company_id: userProfile.company_id,
+              table_name: 'documents',
+              record_id: docId,
+              deleted_by: userProfile.id,
+              deleted_at: new Date().toISOString(),
+              reason
+            }])
+            if (doc?.file_path) {
+              await supabase.storage.from('documents').remove([doc.file_path])
+            }
+            const { error } = await supabase.from('documents').delete().eq('id', docId)
+            if (error) throw error
+            await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'permanently_deleted', entityType: 'document', entityId: docId, changes: { name: doc?.name } })
+            toast.success('Document permanently deleted.')
+            fetchDocuments()
+            setPreviewDoc(null)
+          } catch (err) {
+            console.error('Error deleting document:', err)
+            toast.error('Failed to delete document: ' + err.message)
+          }
         }
-        
-        const { error } = await supabase.from('documents').delete().eq('id', docId)
-        if (error) throw error
-        await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'permanently_deleted', entityType: 'document', entityId: docId, changes: { name: doc?.name } })
-        toast.success('Document permanently deleted.')
-      } else {
-        const archiveReason = window.prompt('Reason for archiving (required):')
-        if (!archiveReason?.trim()) { toast.warning('Archive reason is required'); return; }
-        const { error } = await supabase.from('documents').update({ archived: true }).eq('id', docId)
-        if (error) throw error
-        await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'archived', entityType: 'document', entityId: docId, changes: { name: doc?.name, reason: archiveReason.trim() } })
-        toast.success('Document archived successfully.')
-      }
-
-      fetchDocuments()
-      setPreviewDoc(null)
-    } catch (err) {
-      console.error('Error deleting document:', err)
-      toast.error('Failed to delete document: ' + err.message)
+      })
+    } else {
+      setConfirmAction({
+        title: 'Archive Document',
+        message: `Archive "${doc?.name || 'this document'}"? It can be restored later.`,
+        variant: 'warning',
+        confirmLabel: 'Archive',
+        requireReason: true,
+        reasonLabel: 'Reason for archiving (required):',
+        reasonPlaceholder: 'Why is this document being archived?',
+        onConfirm: async (reason) => {
+          setConfirmAction(null)
+          try {
+            const { error } = await supabase.from('documents').update({ archived: true }).eq('id', docId)
+            if (error) throw error
+            await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'archived', entityType: 'document', entityId: docId, changes: { name: doc?.name, reason } })
+            toast.success('Document archived successfully.')
+            fetchDocuments()
+            setPreviewDoc(null)
+          } catch (err) {
+            console.error('Error deleting document:', err)
+            toast.error('Failed to archive document: ' + err.message)
+          }
+        }
+      })
     }
   }
 
@@ -516,7 +534,7 @@ ${htmlContent}
                                   Download
                                 </button>
                                 <button 
-                                  onClick={() => deleteDocument(doc.id)}
+                                  onClick={() => requestDeleteDocument(doc.id)}
                                   className="px-3 py-2 bg-orange-500/20 text-orange-300 rounded-lg hover:bg-orange-500/30 transition-colors text-sm"
                                 >
                                   Archive
@@ -533,7 +551,7 @@ ${htmlContent}
                             )}
                             {(['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role)) && (
                               <button 
-                                onClick={() => deleteDocument(doc.id, true)}
+                                onClick={() => requestDeleteDocument(doc.id, true)}
                                 className="px-3 py-2 bg-red-600/20 text-red-300 rounded-lg hover:bg-red-600/30 transition-colors text-sm"
                               >
                                 Delete
@@ -605,7 +623,7 @@ ${htmlContent}
                   </button>
                 ) : (
                   <button
-                    onClick={() => deleteDocument(previewDoc.id)}
+                    onClick={() => requestDeleteDocument(previewDoc.id)}
                     className="px-4 py-2 bg-orange-500/80 hover:bg-orange-600 text-white rounded-lg text-sm"
                   >
                     Archive
@@ -613,7 +631,7 @@ ${htmlContent}
                 )}
                 {(['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role)) && (
                   <button
-                    onClick={() => deleteDocument(previewDoc.id, true)}
+                    onClick={() => requestDeleteDocument(previewDoc.id, true)}
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
                   >
                     Delete Forever
@@ -669,6 +687,13 @@ ${htmlContent}
         </div>
       )}
       </div>
+
+      {confirmAction && (
+        <ConfirmModal
+          {...confirmAction}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
 
       <style>{`
         .glass {

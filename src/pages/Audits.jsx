@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import { exportAuditPDF } from '../lib/brandedPDFExport'
 import Layout from '../components/Layout'
+import ConfirmModal from '../components/ConfirmModal'
 import { useToast } from '../contexts/ToastContext'
 
 const Audits = () => {
@@ -14,6 +15,7 @@ const Audits = () => {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [selectedAudit, setSelectedAudit] = useState(null)
   const [filterStatus, setFilterStatus] = useState('all')
+  const [confirmAction, setConfirmAction] = useState(null)
 
   useEffect(() => {
     fetchAudits()
@@ -54,41 +56,58 @@ const Audits = () => {
     }
   }
 
-  const deleteAudit = async (auditId, permanent = false) => {
-    const confirmMsg = permanent 
-      ? '⚠️ PERMANENTLY DELETE this audit? This cannot be undone.'
-      : 'Archive this audit? It can be restored later.'
-    
-    if (!confirm(confirmMsg)) return
-
-    try {
-      if (permanent) {
-        const reason = window.prompt('Deletion reason (required for audit trail):')
-        if (!reason?.trim()) { toast.warning('Deletion reason is required'); return; }
-        
-        await supabase.from('deletion_audit_trail').insert([{
-          company_id: userProfile.company_id,
-          table_name: 'audits',
-          record_id: auditId,
-          deleted_by: userProfile.id,
-          deleted_at: new Date().toISOString(),
-          reason: reason.trim()
-        }])
-        
-        const { error } = await supabase.from('audits').delete().eq('id', auditId)
-        if (error) throw error
-        toast.success('Audit permanently deleted.')
-      } else {
-        const { error } = await supabase.from('audits').update({ archived: true }).eq('id', auditId)
-        if (error) throw error
-        toast.success('Audit archived.')
-      }
-
-      fetchAudits()
-      setSelectedAudit(null)
-    } catch (err) {
-      console.error('Error deleting audit:', err)
-      toast.error('Failed to delete audit: ' + err.message)
+  const requestDeleteAudit = (auditId, permanent = false) => {
+    if (permanent) {
+      setConfirmAction({
+        title: 'Permanently Delete Audit',
+        message: 'This audit will be permanently deleted. This cannot be undone.',
+        variant: 'danger',
+        confirmLabel: 'Delete Forever',
+        requireReason: true,
+        reasonLabel: 'Deletion reason (required for audit trail):',
+        reasonPlaceholder: 'Why is this audit being permanently deleted?',
+        onConfirm: async (reason) => {
+          setConfirmAction(null)
+          try {
+            await supabase.from('deletion_audit_trail').insert([{
+              company_id: userProfile.company_id,
+              table_name: 'audits',
+              record_id: auditId,
+              deleted_by: userProfile.id,
+              deleted_at: new Date().toISOString(),
+              reason
+            }])
+            const { error } = await supabase.from('audits').delete().eq('id', auditId)
+            if (error) throw error
+            toast.success('Audit permanently deleted.')
+            fetchAudits()
+            setSelectedAudit(null)
+          } catch (err) {
+            console.error('Error deleting audit:', err)
+            toast.error('Failed to delete audit: ' + err.message)
+          }
+        }
+      })
+    } else {
+      setConfirmAction({
+        title: 'Archive Audit',
+        message: 'Archive this audit? It can be restored later.',
+        variant: 'warning',
+        confirmLabel: 'Archive',
+        onConfirm: async () => {
+          setConfirmAction(null)
+          try {
+            const { error } = await supabase.from('audits').update({ archived: true }).eq('id', auditId)
+            if (error) throw error
+            toast.success('Audit archived.')
+            fetchAudits()
+            setSelectedAudit(null)
+          } catch (err) {
+            console.error('Error archiving audit:', err)
+            toast.error('Failed to archive audit: ' + err.message)
+          }
+        }
+      })
     }
   }
 
@@ -276,7 +295,7 @@ const Audits = () => {
             audit={selectedAudit}
             onClose={() => setSelectedAudit(null)}
             onUpdateStatus={updateAuditStatus}
-            onDelete={deleteAudit}
+            onDelete={requestDeleteAudit}
             onRestore={restoreAudit}
             exportAudit={exportAudit}
             userProfile={userProfile}
@@ -295,6 +314,13 @@ const Audits = () => {
           />
         )}
       </div>
+
+      {confirmAction && (
+        <ConfirmModal
+          {...confirmAction}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
 
       <style>{`
         .glass {
