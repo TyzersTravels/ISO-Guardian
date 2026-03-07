@@ -4,7 +4,8 @@ import ClientSelector from './ClientSelector'
 
 const Layout = ({ children }) => {
   const { userProfile, signOut, viewingClient } = useAuth()
-  const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin'
+  const isSuperAdmin = userProfile?.role === 'super_admin'
+  const isAdmin = isSuperAdmin || userProfile?.role === 'admin'
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -13,19 +14,28 @@ const Layout = ({ children }) => {
     navigate('/login')
   }
 
+  // Nav items visible to all authenticated users
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: 'home' },
-    { path: '/documents', label: 'Documents', icon: 'file' },
-    { path: '/ncrs', label: 'NCRs', icon: 'alert' },
-    { path: '/compliance', label: 'Compliance', icon: 'check' },
-    { path: '/audits', label: 'Audits', icon: 'calendar' },
-    { path: '/management-reviews', label: 'Reviews', icon: 'users' },
-    { path: '/data-export', label: 'Export Data', icon: 'download' },
-    { path: '/activity-trail', label: 'Activity Trail', icon: 'trail' },
-    { path: '/analytics', label: 'Analytics', icon: 'chart' },
-    { path: '/notifications', label: 'Notifications', icon: 'bell' },
-    { path: '/settings', label: 'Settings', icon: 'settings' },
-  ].concat(isAdmin ? [{ path: '/users', label: 'Users', icon: 'users' }] : [])
+    { path: '/dashboard', label: 'Dashboard' },
+    { path: '/documents', label: 'Documents' },
+    { path: '/ncrs', label: 'NCRs' },
+    { path: '/compliance', label: 'Compliance' },
+    { path: '/audits', label: 'Audits' },
+    { path: '/management-reviews', label: 'Reviews' },
+    { path: '/data-export', label: 'Export Data' },
+    { path: '/activity-trail', label: 'Activity' },
+    { path: '/notifications', label: 'Notifications' },
+    // Admin-only items
+    ...(isAdmin ? [
+      { path: '/analytics', label: 'Analytics' },
+      { path: '/settings', label: 'Settings' },
+      { path: '/users', label: 'Users' },
+    ] : []),
+    // SuperAdmin-only
+    ...(isSuperAdmin ? [
+      { path: '/create-company', label: 'New Company' },
+    ] : []),
+  ]
 
   const isActive = (path) => location.pathname === path
 

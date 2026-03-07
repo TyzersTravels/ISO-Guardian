@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 
 const Compliance = () => {
   const { userProfile, getEffectiveCompanyId } = useAuth()
+  const toast = useToast()
   const [selectedStandard, setSelectedStandard] = useState('ISO_9001')
   const [requirements, setRequirements] = useState([])
   const [loading, setLoading] = useState(true)
@@ -35,6 +37,7 @@ const Compliance = () => {
       setRequirements(data || [])
     } catch (err) {
       console.error('Error fetching requirements:', err)
+      toast.error('Failed to load compliance requirements')
     } finally {
       setLoading(false)
     }
@@ -54,6 +57,7 @@ const Compliance = () => {
       fetchRequirements()
     } catch (err) {
       console.error('Error updating status:', err)
+      toast.error('Failed to update compliance status')
     }
   }
 

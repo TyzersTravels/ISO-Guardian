@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import Layout from '../components/Layout';
 
 const ClientOnboarding = () => {
   const { user, userProfile } = useAuth();
@@ -153,6 +154,7 @@ const ClientOnboarding = () => {
     .map(([standard, _]) => standard);
 
   return (
+    <Layout>
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Client Onboarding</h1>
@@ -370,6 +372,7 @@ const ClientOnboarding = () => {
         </button>
       </form>
     </div>
+    </Layout>
   );
 };
 

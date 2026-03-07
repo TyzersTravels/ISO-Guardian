@@ -36,5 +36,5 @@ requestAnimationFrame(() => {
       preloader.style.visibility = 'hidden'
       setTimeout(() => preloader.remove(), 600)
     }
-  }, 400)
+  }, 1400)
 })

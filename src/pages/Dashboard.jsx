@@ -41,21 +41,22 @@ const Dashboard = () => {
     try {
       const { data: companies } = await supabase.from('companies').select('id')
       const { data: users } = await supabase.from('users').select('id')
-      const { data: subscriptions } = await supabase.from('subscriptions').select('price_per_user, current_users, status')
+      const { data: subscriptions } = await supabase.from('subscriptions').select('final_price, status')
 
-      const activeSubscriptions = subscriptions?.filter(s => s.status === 'Active') || []
+      const activeSubscriptions = (subscriptions || []).filter(s => s.status === 'active')
       const monthlyRevenue = activeSubscriptions.reduce((sum, sub) =>
-        sum + (sub.price_per_user * sub.current_users), 0
+        sum + (Number(sub.final_price) || 0), 0
       )
 
       setAdminStats({
         totalClients: companies?.length || 0,
         totalUsers: users?.length || 0,
         monthlyRevenue,
-        activeClients: activeSubscriptions.length
+        activeClients: activeSubscriptions.length,
       })
     } catch (err) {
       console.error('Error fetching admin stats:', err)
+      setAdminStats({ totalClients: 0, totalUsers: 0, monthlyRevenue: 0, activeClients: 0 })
     }
   }
 
