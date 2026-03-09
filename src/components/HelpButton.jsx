@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const WHATSAPP_URL = 'https://wa.me/27834550659?text=Hi%2C%20I%20need%20help%20with%20ISOGuardian'
+const WHATSAPP_URL = 'https://wa.me/27716060250?text=Hi%2C%20I%20need%20help%20with%20ISOGuardian'
 
 const HelpButton = () => {
   const [open, setOpen] = useState(false)
