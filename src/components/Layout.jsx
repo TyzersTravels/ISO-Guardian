@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import ClientSelector from './ClientSelector'
+import HelpButton from './HelpButton'
 
 const Layout = ({ children }) => {
   const { userProfile, signOut, viewingClient } = useAuth()
@@ -66,6 +67,17 @@ const Layout = ({ children }) => {
               </div>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/profile')}
+            className="flex items-center gap-2 px-3 py-2 glass glass-border rounded-xl text-white hover:bg-white/20 transition-colors"
+            title="My Profile"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span className="hidden sm:inline text-sm">{userProfile?.full_name?.split(' ')[0] || 'Profile'}</span>
+          </button>
           <button
             onClick={handleSignOut}
             className="flex items-center gap-2 px-4 py-2 glass glass-border rounded-xl text-white hover:bg-white/20 transition-colors"
@@ -75,6 +87,7 @@ const Layout = ({ children }) => {
             </svg>
             <span className="hidden sm:inline">Sign Out</span>
           </button>
+          </div>
         </div>
       </header>
 
@@ -116,7 +129,7 @@ const Layout = ({ children }) => {
           {/* Legal Document Links */}
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-white/50 mb-4">
             <a 
-              href="/Privacy_policy_.pdf" 
+              href="/docs/ISOGuardian_POPIA_Privacy_Policy_v1.0.pdf"
               target="_blank" 
               rel="noopener noreferrer"
               className="hover:text-cyan-400 transition-colors"
@@ -125,7 +138,7 @@ const Layout = ({ children }) => {
             </a>
             <span className="text-white/20">{'\u2022'}</span>
             <a
-              href="/Terms_of_Service_.pdf"
+              href="/docs/ISOGuardian_Terms_of_Service_v1.1.pdf"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-cyan-400 transition-colors"
@@ -134,7 +147,7 @@ const Layout = ({ children }) => {
             </a>
             <span className="text-white/20">{'\u2022'}</span>
             <a
-              href="/_PAIA_AND_POPIA_MANUAL_.pdf"
+              href="/docs/ISOGuardian_PAIA_Manual_v1.0.pdf"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-cyan-400 transition-colors"
@@ -143,7 +156,7 @@ const Layout = ({ children }) => {
             </a>
             <span className="text-white/20">{'\u2022'}</span>
             <a
-              href="/Upload_confirmation_and_disclaimer_.pdf"
+              href="/docs/ISOGuardian_Upload_Disclaimer_v1.0.pdf"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-cyan-400 transition-colors"
@@ -197,6 +210,7 @@ const Layout = ({ children }) => {
         </div>
       </footer>
 
+      <HelpButton />
     </div>
   )
 }

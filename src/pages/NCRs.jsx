@@ -377,8 +377,16 @@ const NCRs = () => {
         {/* NCRs List */}
         <div className="space-y-3">
           {filteredNCRs.length === 0 ? (
-            <div className="glass glass-border rounded-lg p-8 text-center text-white/60">
-              No NCRs found
+            <div className="glass glass-border rounded-2xl p-12 text-center">
+              <svg className="w-16 h-16 text-white/20 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              <p className="text-white/50 font-medium mb-1">
+                {ncrs.length === 0 ? 'No non-conformances raised yet' : 'No NCRs match your filters'}
+              </p>
+              <p className="text-white/30 text-sm">
+                {ncrs.length === 0 ? 'NCRs will appear here once they are raised.' : 'Try adjusting your status or severity filters.'}
+              </p>
             </div>
           ) : (
             filteredNCRs.map(ncr => (

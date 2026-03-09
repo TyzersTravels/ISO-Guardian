@@ -26,6 +26,8 @@ import ClientOnboarding from './pages/ClientOnboarding'
 import UserManagement from './pages/UserManagement'
 import NotificationPreferences from './pages/NotificationPreferences'
 import CreateCompany from './pages/CreateCompany'
+import UserProfile from './pages/UserProfile'
+import NotFound from './pages/NotFound'
 import CookieConsent from './components/CookieConsent'
 
 function App() {
@@ -60,9 +62,13 @@ function App() {
           <Route path="/client-onboarding" element={<RoleProtectedRoute requireReseller><ClientOnboarding /></RoleProtectedRoute>} />
           <Route path="/users" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin']}><UserManagement /></RoleProtectedRoute>} />
           <Route path="/create-company" element={<RoleProtectedRoute allowedRoles={['super_admin']}><CreateCompany /></RoleProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
 
           {/* Landing */}
           <Route path="/" element={<LandingPage />} />
+
+          {/* 404 */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
       </ToastProvider>

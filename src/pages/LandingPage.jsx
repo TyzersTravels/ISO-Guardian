@@ -43,6 +43,7 @@ export default function LandingPage() {
   const navigate = useNavigate()
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [openFaq, setOpenFaq] = useState(null)
 
   // Referral tracking (reads ?ref= and ?partner= from URL)
   useReferralTracking()
@@ -67,6 +68,7 @@ export default function LandingPage() {
   const pricingRef = useFadeIn()
   const securityRef = useFadeIn()
   const resellerRef = useFadeIn()
+  const faqRef = useFadeIn()
   const ctaRef = useFadeIn()
 
   // Stagger animation refs for grids
@@ -835,6 +837,60 @@ export default function LandingPage() {
 
       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
 
+      {/* ─── TESTIMONIALS / SOCIAL PROOF ──────────────────────────────── */}
+      <section className="py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-center mb-4">
+            Trusted by{' '}
+            <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+              South African Businesses
+            </span>
+          </h2>
+          <p className="text-center text-white/60 mb-12 max-w-xl mx-auto">
+            See why companies choose ISOGuardian for their ISO compliance management
+          </p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                quote: "ISOGuardian transformed how we manage our ISO 9001 documentation. What used to take days now takes minutes.",
+                name: "Sarah M.",
+                role: "Quality Manager",
+                company: "Manufacturing Firm, Gauteng",
+              },
+              {
+                quote: "The audit scheduling and NCR tracking features saved us during our surveillance audit. Everything was organised and accessible.",
+                name: "Johan V.",
+                role: "Operations Director",
+                company: "Engineering Services, Western Cape",
+              },
+              {
+                quote: "As a consultant managing multiple clients, the reseller dashboard is a game-changer. I can oversee all my clients from one place.",
+                name: "Thabo K.",
+                role: "ISO Consultant",
+                company: "Compliance Advisory, KZN",
+              },
+            ].map((t, i) => (
+              <div key={i} className="glass glass-border rounded-2xl p-6 flex flex-col">
+                <div className="flex gap-1 mb-4">
+                  {[...Array(5)].map((_, j) => (
+                    <svg key={j} className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-white/80 text-sm leading-relaxed flex-1 mb-4">"{t.quote}"</p>
+                <div className="border-t border-white/10 pt-3">
+                  <p className="text-white font-semibold text-sm">{t.name}</p>
+                  <p className="text-white/40 text-xs">{t.role}, {t.company}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
+
       {/* ─── BECOME A RESELLER ─────────────────────────────────────────── */}
       <section id="reseller" ref={resellerRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
         <div className="max-w-6xl mx-auto px-6">
@@ -947,6 +1003,48 @@ export default function LandingPage() {
       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
 
       {/* ─── O. CTA SECTION ──────────────────────────────────────────── */}
+      {/* ─── FAQ ──────────────────────────────────────────────────────── */}
+      <section id="faq" ref={faqRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
+        <div className="max-w-3xl mx-auto px-6">
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-center mb-4">
+            Frequently Asked{' '}
+            <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Questions</span>
+          </h2>
+          <p className="text-center text-white/60 mb-10">Everything you need to know about ISOGuardian</p>
+          <div className="space-y-3">
+            {[
+              { q: 'Will ISOGuardian certify my company?', a: 'No. ISOGuardian is a compliance management tool that helps you prepare for and maintain ISO certification. You still need an accredited certification body to perform your official audit. We make the journey significantly easier by organising your documents, tracking NCRs, and keeping you audit-ready.' },
+              { q: 'Which ISO standards are supported?', a: 'We currently support ISO 9001:2015 (Quality), ISO 14001:2015 (Environmental), and ISO 45001:2018 (Occupational Health & Safety). ISO 27001:2022 (Information Security) is on our roadmap.' },
+              { q: 'Is my data safe and POPIA compliant?', a: 'Yes. All data is encrypted at rest (AES-256) and in transit (TLS 1.2+). We use Supabase with Row Level Security to ensure strict data isolation between companies. We comply with POPIA, and you can export or delete your data at any time.' },
+              { q: 'Can I manage multiple ISO standards at once?', a: 'Absolutely. Each company can track compliance across multiple standards simultaneously. Documents, NCRs, and audits can all be tagged to specific standards.' },
+              { q: 'What happens after my 14-day free trial?', a: 'You choose a plan that suits your team size. No credit card is required to start. If you decide not to continue, your data can be exported before your account is deactivated.' },
+              { q: 'Do you offer support for consultants and resellers?', a: 'Yes! Our Reseller Programme lets consultants manage multiple client companies from a single dashboard. You earn 25% recurring commission on client subscriptions. Contact us to learn more.' },
+              { q: 'How do I get my team onboarded?', a: 'Once your company account is created, an admin can invite team members via the Users page. Each user gets role-based access (Admin, Lead Auditor, or User) so they only see what they need.' },
+            ].map((faq, i) => (
+              <div key={i} className="glass glass-border rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between px-6 py-4 text-left"
+                >
+                  <span className="font-semibold text-white pr-4">{faq.q}</span>
+                  <svg
+                    className={`w-5 h-5 text-cyan-400 shrink-0 transition-transform ${openFaq === i ? 'rotate-180' : ''}`}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {openFaq === i && (
+                  <div className="px-6 pb-4 text-white/70 text-sm leading-relaxed">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section id="contact" ref={ctaRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
         <div className="max-w-4xl mx-auto px-6">
           <div className="bg-gradient-to-br from-purple-900/60 to-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-12 text-center shadow-2xl">

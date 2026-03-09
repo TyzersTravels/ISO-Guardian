@@ -35,10 +35,12 @@ Two route guard components:
 Route access matrix:
 | Route | Guard |
 |-------|-------|
-| `/dashboard`, `/documents`, `/ncrs`, `/compliance`, `/audits`, `/management-reviews`, `/data-export` | `ProtectedRoute` (any authenticated user) |
-| `/admin` | `RoleProtectedRoute allowedRoles={['super_admin']}` |
-| `/analytics`, `/activity-trail`, `/settings`, `/users` | `RoleProtectedRoute allowedRoles={['super_admin', 'admin']}` |
+| `/dashboard`, `/documents`, `/ncrs`, `/compliance`, `/audits`, `/management-reviews`, `/data-export`, `/activity-trail`, `/notifications` | `ProtectedRoute` (any authenticated user) |
+| `/admin`, `/create-company` | `RoleProtectedRoute allowedRoles={['super_admin']}` |
+| `/analytics`, `/settings`, `/users` | `RoleProtectedRoute allowedRoles={['super_admin', 'admin']}` |
 | `/reseller`, `/client-onboarding` | `RoleProtectedRoute requireReseller` |
+
+Layout nav items are conditional: core items visible to all users, admin-only items (Analytics, Settings, Users) shown only to `admin`/`super_admin`, super_admin-only items (New Company) shown only to `super_admin`.
 
 ### Security Rules
 
@@ -48,6 +50,19 @@ Route access matrix:
 - **Production builds strip all console.log/error** via terser (configured in `vite.config.js`)
 - **Password policy**: minimum 12 characters, must include uppercase, lowercase, number, and special character
 - **Temp passwords** use `crypto.getRandomValues()` (not `Math.random()`)
+
+### Security Hardening (implemented)
+
+- **Login lockout**: 5 failed attempts → 15-minute cooldown (`src/lib/rateLimiter.js` + `Login.jsx`)
+- **Rate limiting**: Client-side token bucket throttle on public forms (3 submissions/60s)
+- **Honeypot fields**: Hidden input on ReadinessAssessment + ConsultationUpsell — bot submissions silently discarded
+- **Cloudflare Turnstile CAPTCHA**: On Login page
+- **Security headers** (`vercel.json`): HSTS, X-Frame-Options: DENY, CSP, Permissions-Policy, X-XSS-Protection, nosniff
+- **Meta security tags** (`index.html`): X-Content-Type-Options, strict-origin-when-cross-origin referrer
+
+### SuperAdmin: Client Onboarding
+
+`src/pages/CreateCompany.jsx` — SuperAdmin-only page at `/create-company` for onboarding new clients after SLA + payment. Creates: company → subscription → auth user → user record. Shows temp password with copy button. **Note**: `supabase.auth.admin.createUser()` requires service role key — needs Edge Function for production.
 
 ### RLS Pattern
 
@@ -61,9 +76,20 @@ Helper functions available in Supabase: `get_my_company_id()`, `get_my_company_i
 
 ### UI Patterns
 
-Glass morphism design: `className="glass glass-border"` (defined as inline `<style>` blocks in each page — no shared CSS class beyond `index.css`). Gradient bg: `bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900`.
+Glass morphism design system — **all styles are global** (no inline `<style>` blocks):
+- CSS classes in `src/index.css` (`@layer components`): `.glass`, `.glass-border`, `.glass-card`, `.glass-input`, `.bg-app-gradient`, `.btn-primary`, `.btn-gradient`
+- All animations defined in `tailwind.config.js`: `fade-in`, `slide-up`, `slide-in`, `float`, `pulse-slow`, `beam`, `shake`, `toast-in`, `glow`, `connector` + variants
+- Brand colors in Tailwind config: `brand-cyan` (#06b6d4), `brand-purple` (#8b5cf6), `brand-slate` (#0f172a)
 
-Toasts via `useToast()` from `ToastContext.jsx`. Activity logging via `logActivity()` from `src/lib/auditLogger.js` — call after every data mutation.
+Toasts via `useToast()` from `ToastContext.jsx`. Activity logging via `logActivity({ companyId, userId, action, entityType, entityId, changes })` from `src/lib/auditLogger.js` — call after every data mutation.
+
+### Preloader
+
+Pure HTML/CSS preloader in `index.html` — shows ISOGuardian logo with pulse animation and progress bar while React/Vite bundles load. Progress bar animated in `src/main.jsx` (random increments to 90%), then completed to 100% and faded out 1.4s after React mounts.
+
+### Cookie Consent (POPIA)
+
+`src/components/CookieConsent.jsx` — POPIA-compliant consent banner mounted in `App.jsx`. Three categories: Essential (always on), Functional, Analytics. Stores consent in localStorage with timestamp + version. Shows after 1.5s delay on first visit. Use `getCookieConsent()` export to check consent status elsewhere.
 
 ### Document/Entity Numbering
 
@@ -91,8 +117,8 @@ Counters are stored on the `companies` row (`doc_counter`, `ncr_counter`, `audit
 ### Landing Page
 
 14+ sections with scroll animations (stagger fade-in, hero parallax). Key components in `src/components/landing/`:
-- `ReadinessAssessment.jsx` — ISO readiness quiz, saves to `iso_readiness_assessments` table
-- `ConsultationUpsell.jsx` — consultation request form, saves to `consultation_requests` table
+- `ReadinessAssessment.jsx` — ISO readiness quiz, saves to `iso_readiness_assessments` table (honeypot + rate limited)
+- `ConsultationUpsell.jsx` — consultation request form, saves to `consultation_requests` table (honeypot + rate limited)
 - `TemplateMarketplace.jsx` — template cards (coming soon, enquiry-based)
 - `AffiliateProgram.jsx` — referral programme section
 
@@ -128,9 +154,10 @@ Supabase Edge Function: `supabase/functions/send-notifications/index.ts`
 1. **~21 tables locked out** — RLS enabled with no policies. Features depending on them are broken.
 2. **`documents.company_id` is TEXT**, not UUID — mismatch with most other tables.
 3. **Document numbering race condition** — read-then-write pattern can generate duplicates under concurrent use. Needs atomic PostgreSQL function.
-4. **ClientOnboarding.jsx** — `supabase.auth.admin.createUser()` called from frontend anon key (will fail). Needs Edge Function.
+4. **CreateCompany + ClientOnboarding** — `supabase.auth.admin.createUser()` called from frontend anon key (will fail). Needs Edge Function with service role key.
 5. **No idle session timeout** — sessions persist indefinitely while browser is open.
 6. **Resend domain verification pending** — email notifications won't work until DNS records are verified.
+7. **Document version_history** — JSONB column needs to be created in Supabase `documents` table for versioning to work.
 
 ## Resolved Issues
 
@@ -145,6 +172,18 @@ Supabase Edge Function: `supabase/functions/send-notifications/index.ts`
 - Dashboard compliance score — matches Compliance page formula (weighted partial credit)
 - Toast notifications — replaced 60+ alert() calls across 9 files
 - SEO foundation — meta tags, JSON-LD, robots.txt, sitemap.xml
+- Global CSS consolidation — removed inline `<style>` blocks from 19 files, centralized in index.css + tailwind.config.js
+- Logo preloader — professional loading screen with progress bar (index.html + main.jsx)
+- Cookie consent banner — POPIA-compliant 3-category consent (CookieConsent.jsx)
+- Security hardening — login lockout, rate limiting, honeypot fields, CSP headers, vercel.json headers
+- Nav routing fix — Activity Trail/Notifications accessible to all users (were incorrectly admin-only)
+- Dashboard admin stats — fixed NaN crash (wrong column names: price_per_user → final_price)
+- ClientOnboarding Layout — added missing Layout wrapper
+- Compliance toast errors — wired useToast() into catch blocks
+- Pagination — Documents + NCRs pages with page size controls
+- Document versioning — version history tracking on document updates
+- Notification preferences page — per-user email notification toggles
+- SuperAdmin company creation — CreateCompany.jsx at /create-company
 
 ## Legal Constraints
 
@@ -168,3 +207,13 @@ RESEND_API_KEY          # Resend API key for email notifications
 CRON_SECRET             # Auth secret for Edge Function invocation
 ADMIN_NOTIFICATION_EMAIL  # Email for lead notifications (default: krugerreece@gmail.com)
 ```
+
+## Related Projects (SEPARATE CODEBASES)
+
+### Simathemba Holdings Website
+- **Location:** `C:\Users\Tyreece\Downloads\Simathemba\`
+- **Type:** Static React marketing site (NO Supabase, NO shared code)
+- **Client:** Simathemba Holdings — SHEQ consultancy, ISOGuardian reseller partner
+- **Domain:** simathemba.co.za
+- **Status:** Complete, audited for cross-contamination
+- **IMPORTANT:** Keep these projects completely separate. No ISOGuardian platform code in Simathemba. ISOGuardian appears only as technology partner in marketing content.

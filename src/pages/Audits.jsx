@@ -284,8 +284,16 @@ const Audits = () => {
         )}
 
         {filteredAudits.length === 0 && (
-          <div className="glass glass-border rounded-lg p-8 text-center text-white/60">
-            No audits found
+          <div className="glass glass-border rounded-2xl p-12 text-center">
+            <svg className="w-16 h-16 text-white/20 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="text-white/50 font-medium mb-1">
+              {audits.length === 0 ? 'No audits scheduled yet' : 'No audits match your filter'}
+            </p>
+            <p className="text-white/30 text-sm">
+              {audits.length === 0 ? 'Schedule your first audit to get started.' : 'Try selecting a different status filter.'}
+            </p>
           </div>
         )}
 
