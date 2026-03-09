@@ -336,7 +336,7 @@ export default function LandingPage() {
               { label: 'ISO 14001:2015', color: 'border-cyan-500/40 text-cyan-300' },
               { label: 'ISO 45001:2018', color: 'border-cyan-500/40 text-cyan-300' },
               { label: 'AES-256 Encrypted', color: 'border-green-500/40 text-green-300' },
-              { label: 'Supabase Powered', color: 'border-white/20 text-white/60' },
+              { label: 'POPIA Compliant', color: 'border-white/20 text-white/60' },
             ].map(({ label, color }) => (
               <div key={label} className={`px-5 py-2 rounded-full border text-sm font-semibold ${color} bg-white/5`}>
                 {label}
@@ -1015,10 +1015,10 @@ export default function LandingPage() {
             {[
               { q: 'Will ISOGuardian certify my company?', a: 'No. ISOGuardian is a compliance management tool that helps you prepare for and maintain ISO certification. You still need an accredited certification body to perform your official audit. We make the journey significantly easier by organising your documents, tracking NCRs, and keeping you audit-ready.' },
               { q: 'Which ISO standards are supported?', a: 'We currently support ISO 9001:2015 (Quality), ISO 14001:2015 (Environmental), and ISO 45001:2018 (Occupational Health & Safety). ISO 27001:2022 (Information Security) is on our roadmap.' },
-              { q: 'Is my data safe and POPIA compliant?', a: 'Yes. All data is encrypted at rest (AES-256) and in transit (TLS 1.2+). We use Supabase with Row Level Security to ensure strict data isolation between companies. We comply with POPIA, and you can export or delete your data at any time.' },
+              { q: 'Is my data safe and POPIA compliant?', a: 'Yes. All data is encrypted at rest (AES-256) and in transit (TLS 1.2+). We enforce strict data isolation between companies at the database level — no company can ever access another\'s data. We comply with POPIA, and you can export or delete your data at any time.' },
               { q: 'Can I manage multiple ISO standards at once?', a: 'Absolutely. Each company can track compliance across multiple standards simultaneously. Documents, NCRs, and audits can all be tagged to specific standards.' },
               { q: 'What happens after my 14-day free trial?', a: 'You choose a plan that suits your team size. No credit card is required to start. If you decide not to continue, your data can be exported before your account is deactivated.' },
-              { q: 'Do you offer support for consultants and resellers?', a: 'Yes! Our Reseller Programme lets consultants manage multiple client companies from a single dashboard. You earn 25% recurring commission on client subscriptions. Contact us to learn more.' },
+              { q: 'Do you offer support for consultants and resellers?', a: 'Yes! Our Reseller Programme lets consultants manage multiple client companies from a single dashboard with competitive recurring commissions. Contact us to learn more about partnership opportunities.' },
               { q: 'How do I get my team onboarded?', a: 'Once your company account is created, an admin can invite team members via the Users page. Each user gets role-based access (Admin, Lead Auditor, or User) so they only see what they need.' },
             ].map((faq, i) => (
               <div key={i} className="glass glass-border rounded-xl overflow-hidden">

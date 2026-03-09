@@ -26,6 +26,11 @@ const Layout = ({ children }) => {
     { path: '/data-export', label: 'Export Data' },
     { path: '/activity-trail', label: 'Activity' },
     { path: '/notifications', label: 'Notifications' },
+    { path: '/ai-copilot', label: 'AI Copilot', highlight: true },
+    // Admin + Lead Auditor items
+    ...(isAdmin || userProfile?.role === 'lead_auditor' ? [
+      { path: '/audit-connect', label: 'Audit Connect' },
+    ] : []),
     // Admin-only items
     ...(isAdmin ? [
       { path: '/analytics', label: 'Analytics' },
@@ -105,10 +110,12 @@ const Layout = ({ children }) => {
                 className={`px-6 py-2 rounded-xl font-semibold whitespace-nowrap transition-all ${
                   isActive(item.path)
                     ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
+                    : item.highlight
+                    ? 'text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20'
                     : 'text-white/70 hover:bg-white/10'
                 }`}
               >
-                {item.label}
+                {item.highlight && <span className="mr-1">✦</span>}{item.label}
               </button>
             ))}
           </div>
