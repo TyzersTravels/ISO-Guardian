@@ -306,7 +306,7 @@ const InviteUserModal = ({ userProfile, onClose, onInvited }) => {
   })
   const [submitting, setSubmitting] = useState(false)
 
-  const availableStandards = ['ISO_9001', 'ISO_14001', 'ISO_45001', 'ISO_27001']
+  const availableStandards = ['ISO_9001', 'ISO_14001', 'ISO_45001']
 
   const toggleStandard = (std) => {
     setFormData(prev => ({
@@ -459,7 +459,7 @@ const EditUserModal = ({ user, isSuperAdmin, onClose, onSave }) => {
   })
   const [saving, setSaving] = useState(false)
 
-  const availableStandards = ['ISO_9001', 'ISO_14001', 'ISO_45001', 'ISO_27001']
+  const availableStandards = ['ISO_9001', 'ISO_14001', 'ISO_45001']
 
   const toggleStandard = (std) => {
     setFormData(prev => ({
