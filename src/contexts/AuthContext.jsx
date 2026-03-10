@@ -23,6 +23,8 @@ export const AuthProvider = ({ children }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) {
+        // Re-stamp session token on page load/refresh so existing session survives
+        stampSession(session.user.id)
         fetchUserProfile(session.user.id)
       } else {
         setLoading(false)
