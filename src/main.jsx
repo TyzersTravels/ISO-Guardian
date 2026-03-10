@@ -34,7 +34,7 @@ requestAnimationFrame(() => {
     if (preloader) {
       preloader.style.opacity = '0'
       preloader.style.visibility = 'hidden'
-      setTimeout(() => preloader.remove(), 600)
+      setTimeout(() => preloader.remove(), 400)
     }
-  }, 1400)
+  }, 800)
 })

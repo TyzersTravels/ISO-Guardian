@@ -35,10 +35,10 @@ const AuditorInvite = () => {
       const [auditsRes, sessionsRes] = await Promise.all([
         supabase
           .from('audits')
-          .select('id, title, audit_type, standard, scheduled_date, status')
+          .select('id, title, audit_type, standard, audit_date, status')
           .eq('company_id', companyId)
           .in('status', ['Planned', 'In Progress'])
-          .order('scheduled_date', { ascending: true }),
+          .order('audit_date', { ascending: true }),
         supabase
           .from('audit_sessions')
           .select('id, audit_id, auditor_name, auditor_email, auditor_organisation, access_token, status, expires_at, created_at')
@@ -194,7 +194,7 @@ const AuditorInvite = () => {
                 <option value="">Select an audit...</option>
                 {audits.map(a => (
                   <option key={a.id} value={a.id}>
-                    {a.title} — {a.standard} ({new Date(a.scheduled_date).toLocaleDateString('en-ZA')})
+                    {a.title} — {a.standard} ({new Date(a.audit_date).toLocaleDateString('en-ZA')})
                   </option>
                 ))}
               </select>
