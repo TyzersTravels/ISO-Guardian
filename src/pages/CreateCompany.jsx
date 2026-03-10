@@ -109,33 +109,20 @@ const CreateCompany = () => {
       crypto.getRandomValues(array)
       const tempPassword = `C!${Array.from(array, b => b.toString(36)).join('').substring(0, 14)}`
 
-      // 4. Create auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.contact_email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: {
+      // 4. Create auth user + user record via Edge Function (uses service role key)
+      const { data: { session } } = await supabase.auth.getSession()
+      const createUserRes = await supabase.functions.invoke('create-user', {
+        body: {
+          email: formData.contact_email,
+          password: tempPassword,
           full_name: formData.contact_name,
           company_id: companyData.id,
+          standards_access: selectedStandards,
         },
       })
 
-      if (authError) throw authError
-
-      // 5. Create user record
-      const { error: userError } = await supabase
-        .from('users')
-        .insert([{
-          id: authData.user.id,
-          email: formData.contact_email,
-          full_name: formData.contact_name,
-          role: 'admin',
-          company_id: companyData.id,
-          is_active: true,
-          standards_access: selectedStandards,
-        }])
-
-      if (userError) throw userError
+      if (createUserRes.error) throw new Error(createUserRes.error.message || 'Failed to create user')
+      if (createUserRes.data?.error) throw new Error(createUserRes.data.error)
 
       // 6. Log activity
       try {
@@ -168,7 +155,7 @@ const CreateCompany = () => {
       })
     } catch (err) {
       console.error('Error creating company:', err)
-      toast.error('Failed to create company: ' + err.message)
+      toast.error('Failed to create company. Please check the details and try again.')
     } finally {
       setLoading(false)
     }
