@@ -20,7 +20,7 @@ const Login = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('reason') === 'session_replaced') {
-      setError('Your session was ended because this account signed in from another device. Each user account is for individual use only.')
+      setError('Your session was ended because this account signed in on another device. Only one active session is allowed per account.')
       window.history.replaceState({}, '', '/login')
     }
   }, [])

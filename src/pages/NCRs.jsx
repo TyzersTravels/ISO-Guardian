@@ -694,7 +694,7 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
                 onChange={(e) => setFormData({ ...formData, standard: e.target.value })}
                 className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
               >
-                {userProfile.standards_access.map(std => (
+                {(userProfile?.standards_access || ['ISO_9001']).map(std => (
                   <option key={std} value={std} className="bg-slate-800">
                     {std.replace('_', ' ')}
                   </option>

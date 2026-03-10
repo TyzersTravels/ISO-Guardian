@@ -508,7 +508,7 @@ const Dashboard = () => {
             {(userProfile?.standards_access || []).length === 0 ? (
               <p className="text-white/40 text-sm">No standards assigned yet</p>
             ) : (
-              userProfile.standards_access.map(standard => (
+              (userProfile?.standards_access || []).map(standard => (
                 <div key={standard} className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-cyan-300 font-semibold text-sm">
                   {standard.replace('_', ' ')}
                 </div>

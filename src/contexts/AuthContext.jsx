@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }) => {
         window.location.href = '/login'
         return
       }
-      // Concurrent session check: verify our token is still the active one
+      // Concurrent session check: only one device per account
       const { data: currentUser } = await supabase
         .from('users')
         .select('active_session_token')
@@ -124,7 +124,7 @@ export const AuthProvider = ({ children }) => {
 
   const [sessionToken] = useState(() => generateSessionToken())
 
-  // Stamp session token on user record after login
+  // Stamp single session token — only one device at a time per account
   const stampSession = async (userId) => {
     await supabase
       .from('users')
@@ -143,6 +143,13 @@ export const AuthProvider = ({ children }) => {
   }
 
   const signOut = async () => {
+    // Clear session token on sign out
+    if (user?.id) {
+      await supabase
+        .from('users')
+        .update({ active_session_token: null })
+        .eq('id', user.id)
+    }
     const { error } = await supabase.auth.signOut()
     setUser(null)
     setUserProfile(null)
