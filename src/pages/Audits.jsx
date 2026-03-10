@@ -27,7 +27,7 @@ const Audits = () => {
       const companyId = getEffectiveCompanyId()
       const { data, error } = await supabase
         .from('audits')
-        .select('id, title, audit_type, standard, scope, scheduled_date, status, findings, observations, ncrs_raised, conclusion, evidence_reviewed, recommendation, reminder_days, reminder_method, archived, created_at, updated_at')
+        .select('id, audit_number, audit_type, standard, scope, audit_date, audit_time, assigned_auditor_name, status, findings, observations, ncrs_raised, conclusion, evidence_reviewed, recommendation, reminder_method, archived, created_by, created_at, updated_at')
         .eq('company_id', companyId)
         .order('audit_date', { ascending: true })
 
