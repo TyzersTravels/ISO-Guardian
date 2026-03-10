@@ -73,9 +73,31 @@ export const AuthProvider = ({ children }) => {
       }
     }, 30000)
 
+    // Idle session timeout — 30 minutes of no activity
+    const IDLE_TIMEOUT = 30 * 60 * 1000
+    let idleTimer = null
+    const resetIdleTimer = () => {
+      if (idleTimer) clearTimeout(idleTimer)
+      idleTimer = setTimeout(async () => {
+        if (publicPaths.includes(window.location.pathname)) return
+        const { data: { session: s } } = await supabase.auth.getSession()
+        if (s) {
+          await supabase.auth.signOut()
+          setUser(null)
+          setUserProfile(null)
+          window.location.href = '/login?reason=idle_timeout'
+        }
+      }, IDLE_TIMEOUT)
+    }
+    const idleEvents = ['mousedown', 'keydown', 'scroll', 'touchstart']
+    idleEvents.forEach(e => window.addEventListener(e, resetIdleTimer))
+    resetIdleTimer()
+
     return () => {
       subscription.unsubscribe()
       clearInterval(sessionCheck)
+      if (idleTimer) clearTimeout(idleTimer)
+      idleEvents.forEach(e => window.removeEventListener(e, resetIdleTimer))
     }
   }, [])
 

@@ -19,8 +19,12 @@ const Login = () => {
   // Show message if kicked out due to concurrent session
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    if (params.get('reason') === 'session_replaced') {
+    const reason = params.get('reason')
+    if (reason === 'session_replaced') {
       setError('Your session was ended because this account signed in on another device. Only one active session is allowed per account.')
+      window.history.replaceState({}, '', '/login')
+    } else if (reason === 'idle_timeout') {
+      setError('You were signed out due to 30 minutes of inactivity.')
       window.history.replaceState({}, '', '/login')
     }
   }, [])

@@ -48,7 +48,7 @@ const Audits = () => {
         .eq('id', id)
 
       if (error) throw error
-      await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'status_changed', entityType: 'audit', entityId: id, changes: { new_status: newStatus } })
+      await logActivity({ companyId: getEffectiveCompanyId(), userId: userProfile.id, action: 'status_changed', entityType: 'audit', entityId: id, changes: { new_status: newStatus } })
       fetchAudits()
     } catch (err) {
       console.error('Error updating audit:', err)
@@ -70,7 +70,7 @@ const Audits = () => {
           setConfirmAction(null)
           try {
             await supabase.from('deletion_audit_trail').insert([{
-              company_id: userProfile.company_id,
+              company_id: getEffectiveCompanyId(),
               table_name: 'audits',
               record_id: auditId,
               deleted_by: userProfile.id,
@@ -612,7 +612,7 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
       const { error } = await supabase
         .from('audits')
         .insert([{
-          company_id: userProfile.company_id,
+          company_id: getEffectiveCompanyId(),
           audit_number: auditNumber,
           audit_type: formData.audit_type,
           standard: formData.standard,

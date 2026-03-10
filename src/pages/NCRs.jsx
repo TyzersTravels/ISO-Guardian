@@ -67,7 +67,7 @@ const NCRs = () => {
 
       if (error) throw error
       
-      await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'status_changed', entityType: 'ncr', entityId: ncrId, changes: { status: 'Closed' } })
+      await logActivity({ companyId: getEffectiveCompanyId(), userId: userProfile.id, action: 'status_changed', entityType: 'ncr', entityId: ncrId, changes: { status: 'Closed' } })
       setNcrs(ncrs.map(ncr => 
         ncr.id === ncrId ? { ...ncr, status: 'Closed' } : ncr
       ))
@@ -93,7 +93,7 @@ const NCRs = () => {
           setConfirmAction(null)
           try {
             await supabase.from('deletion_audit_trail').insert([{
-              company_id: userProfile.company_id,
+              company_id: getEffectiveCompanyId(),
               table_name: 'ncrs',
               record_id: ncrId,
               deleted_by: userProfile.id,
@@ -102,7 +102,7 @@ const NCRs = () => {
             }])
             const { error } = await supabase.from('ncrs').delete().eq('id', ncrId)
             if (error) throw error
-            await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'permanently_deleted', entityType: 'ncr', entityId: ncrId, changes: {} })
+            await logActivity({ companyId: getEffectiveCompanyId(), userId: userProfile.id, action: 'permanently_deleted', entityType: 'ncr', entityId: ncrId, changes: {} })
             toast.success('NCR permanently deleted.')
             fetchNCRs()
             setSelectedNCR(null)
@@ -123,7 +123,7 @@ const NCRs = () => {
           try {
             const { error } = await supabase.from('ncrs').update({ archived: true }).eq('id', ncrId)
             if (error) throw error
-            await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'archived', entityType: 'ncr', entityId: ncrId, changes: {} })
+            await logActivity({ companyId: getEffectiveCompanyId(), userId: userProfile.id, action: 'archived', entityType: 'ncr', entityId: ncrId, changes: {} })
             toast.success('NCR archived successfully.')
             fetchNCRs()
             setSelectedNCR(null)
@@ -140,7 +140,7 @@ const NCRs = () => {
     try {
       const { error } = await supabase.from('ncrs').update({ archived: false }).eq('id', ncrId)
       if (error) throw error
-      await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'restored', entityType: 'ncr', entityId: ncrId, changes: {} })
+      await logActivity({ companyId: getEffectiveCompanyId(), userId: userProfile.id, action: 'restored', entityType: 'ncr', entityId: ncrId, changes: {} })
       toast.success('NCR restored successfully.')
       fetchNCRs()
     } catch (err) {
@@ -627,7 +627,7 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
       const { error } = await supabase
         .from('ncrs')
         .insert([{
-          company_id: userProfile.company_id,
+          company_id: getEffectiveCompanyId(),
           ncr_number: ncrNumber,
           title: formData.title,
           description: formData.description,

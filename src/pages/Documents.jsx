@@ -76,7 +76,7 @@ const Documents = () => {
           setConfirmAction(null)
           try {
             await supabase.from('deletion_audit_trail').insert([{
-              company_id: userProfile.company_id,
+              company_id: getEffectiveCompanyId(),
               table_name: 'documents',
               record_id: docId,
               deleted_by: userProfile.id,
@@ -88,7 +88,7 @@ const Documents = () => {
             }
             const { error } = await supabase.from('documents').delete().eq('id', docId)
             if (error) throw error
-            await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'permanently_deleted', entityType: 'document', entityId: docId, changes: { name: doc?.name } })
+            await logActivity({ companyId: getEffectiveCompanyId(), userId: userProfile.id, action: 'permanently_deleted', entityType: 'document', entityId: docId, changes: { name: doc?.name } })
             toast.success('Document permanently deleted.')
             fetchDocuments()
             setPreviewDoc(null)
@@ -112,7 +112,7 @@ const Documents = () => {
           try {
             const { error } = await supabase.from('documents').update({ archived: true }).eq('id', docId)
             if (error) throw error
-            await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'archived', entityType: 'document', entityId: docId, changes: { name: doc?.name, reason } })
+            await logActivity({ companyId: getEffectiveCompanyId(), userId: userProfile.id, action: 'archived', entityType: 'document', entityId: docId, changes: { name: doc?.name, reason } })
             toast.success('Document archived successfully.')
             fetchDocuments()
             setPreviewDoc(null)
@@ -129,7 +129,7 @@ const Documents = () => {
     try {
       const { error } = await supabase.from('documents').update({ archived: false }).eq('id', docId)
       if (error) throw error
-      await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'restored', entityType: 'document', entityId: docId, changes: {} })
+      await logActivity({ companyId: getEffectiveCompanyId(), userId: userProfile.id, action: 'restored', entityType: 'document', entityId: docId, changes: {} })
       toast.success('Document restored.')
       fetchDocuments()
     } catch (err) {
@@ -305,7 +305,7 @@ ${htmlContent}
 
       // Upload new file
       const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-      const filePath = `${userProfile.company_id}/${fileName}`
+      const filePath = `${getEffectiveCompanyId()}/${fileName}`
 
       const { error: uploadError } = await supabase.storage
         .from('documents')
@@ -332,7 +332,7 @@ ${htmlContent}
       if (dbError) throw dbError
 
       await logActivity({
-        companyId: userProfile.company_id,
+        companyId: getEffectiveCompanyId(),
         userId: userProfile.id,
         action: 'updated',
         entityType: 'document',
@@ -902,7 +902,7 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
 
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-      const filePath = `${userProfile.company_id}/${fileName}`
+      const filePath = `${getEffectiveCompanyId()}/${fileName}`
 
       const { error: uploadError } = await supabase.storage
         .from('documents')
@@ -913,7 +913,7 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
       const { error: dbError } = await supabase
         .from('documents')
         .insert([{
-          company_id: userProfile.company_id,
+          company_id: getEffectiveCompanyId(),
           name: formData.name,
           standard: formData.standard,
           clause: formData.clause,
@@ -929,7 +929,7 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
 
       if (dbError) throw dbError
 
-      await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'uploaded', entityType: 'document', entityId: null, changes: { name: formData.name, standard: formData.standard, clause: formData.clause } })
+      await logActivity({ companyId: getEffectiveCompanyId(), userId: userProfile.id, action: 'uploaded', entityType: 'document', entityId: null, changes: { name: formData.name, standard: formData.standard, clause: formData.clause } })
       toast.success('Document uploaded successfully!')
       onUploaded()
     } catch (err) {
@@ -1113,7 +1113,7 @@ const BulkUploadForm = ({ userProfile, onClose, onUploaded }) => {
 
       try {
         const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-        const filePath = `${userProfile.company_id}/${fileName}`
+        const filePath = `${getEffectiveCompanyId()}/${fileName}`
 
         const { error: uploadError } = await supabase.storage
           .from('documents')
@@ -1126,7 +1126,7 @@ const BulkUploadForm = ({ userProfile, onClose, onUploaded }) => {
         const { error: dbError } = await supabase
           .from('documents')
           .insert([{
-            company_id: userProfile.company_id,
+            company_id: getEffectiveCompanyId(),
             name: docName,
             standard: standard,
             clause: clause,
@@ -1142,7 +1142,7 @@ const BulkUploadForm = ({ userProfile, onClose, onUploaded }) => {
 
         if (dbError) throw dbError
 
-        await logActivity({ companyId: userProfile.company_id, userId: userProfile.id, action: 'uploaded', entityType: 'document', entityId: null, changes: { name: docName, bulk: true } })
+        await logActivity({ companyId: getEffectiveCompanyId(), userId: userProfile.id, action: 'uploaded', entityType: 'document', entityId: null, changes: { name: docName, bulk: true } })
         successCount++
       } catch (err) {
         console.error(`Failed to upload ${file.name}:`, err)
