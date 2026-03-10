@@ -55,7 +55,7 @@ const Layout = ({ children }) => {
     {
       label: 'Intelligence',
       items: [
-        { path: '/ai-copilot', label: 'AI Copilot', icon: 'ai', highlight: true },
+        // AI Copilot hidden until launch — code preserved in src/pages/AICopilot.jsx
         ...(isAdmin || isLeadAuditor ? [{ path: '/audit-connect', label: 'Audit Connect', icon: 'auditConnect' }] : []),
       ],
     },
@@ -103,7 +103,7 @@ const Layout = ({ children }) => {
 
       {/* Nav Groups */}
       <div className="flex-1 overflow-y-auto py-3 px-3 space-y-5">
-        {navGroups.map(group => (
+        {navGroups.filter(group => group.items.length > 0).map(group => (
           <div key={group.label}>
             <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider px-3 mb-1.5">{group.label}</p>
             <div className="space-y-0.5">

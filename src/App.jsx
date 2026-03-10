@@ -28,7 +28,7 @@ import NotificationPreferences from './pages/NotificationPreferences'
 import CreateCompany from './pages/CreateCompany'
 import UserProfile from './pages/UserProfile'
 import NotFound from './pages/NotFound'
-import AICopilot from './pages/AICopilot'
+// import AICopilot from './pages/AICopilot' // Hidden until launch
 import AuditorInvite from './pages/AuditorInvite'
 import AuditorWorkspace from './pages/AuditorWorkspace'
 import CookieConsent from './components/CookieConsent'
@@ -66,7 +66,7 @@ function App() {
           <Route path="/client-onboarding" element={<RoleProtectedRoute requireReseller><ClientOnboarding /></RoleProtectedRoute>} />
           <Route path="/users" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin']}><UserManagement /></RoleProtectedRoute>} />
           <Route path="/create-company" element={<RoleProtectedRoute allowedRoles={['super_admin']}><CreateCompany /></RoleProtectedRoute>} />
-          <Route path="/ai-copilot" element={<ProtectedRoute><AICopilot /></ProtectedRoute>} />
+          {/* <Route path="/ai-copilot" element={<ProtectedRoute><AICopilot /></ProtectedRoute>} /> */}{/* Hidden until launch */}
           <Route path="/audit-connect" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin', 'lead_auditor']}><AuditorInvite /></RoleProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
 
