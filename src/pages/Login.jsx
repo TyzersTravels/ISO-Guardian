@@ -16,6 +16,15 @@ const Login = () => {
   const [lockoutRemaining, setLockoutRemaining] = useState(0)
   const turnstileRef = useRef(null)
 
+  // Show message if kicked out due to concurrent session
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('reason') === 'session_replaced') {
+      setError('Your session was ended because this account signed in from another device. Each user account is for individual use only.')
+      window.history.replaceState({}, '', '/login')
+    }
+  }, [])
+
   // Check for existing lockout on mount and tick down
   useEffect(() => {
     const remaining = getLockoutRemainingMs()

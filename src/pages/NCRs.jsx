@@ -573,7 +573,7 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    standard: userProfile.standards_access[0] || 'ISO_9001',
+    standard: userProfile?.standards_access?.[0] || 'ISO_9001',
     clause: 7,
     severity: 'Major',
     root_cause: '',
@@ -638,9 +638,9 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
           status: 'Open',
           assigned_to: userProfile.id,
           date_opened: new Date().toISOString().split('T')[0],
-          due_date: formData.due_date,
-          root_cause: formData.root_cause,
-          corrective_action: formData.corrective_action
+          due_date: formData.due_date || null,
+          root_cause: formData.root_cause || null,
+          corrective_action: formData.corrective_action || null
         }])
 
       if (error) throw error
@@ -649,7 +649,7 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
       onCreated()
     } catch (err) {
       console.error('Error creating NCR:', err)
-      toast.error('Failed to create NCR: ' + err.message)
+      toast.error('Failed to create NCR. Please check all fields and try again.')
     } finally {
       setSubmitting(false)
     }

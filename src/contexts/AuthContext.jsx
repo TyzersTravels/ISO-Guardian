@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
       }
     })
 
-    const publicPaths = ['/', '/login', '/popia', '/terms', '/privacy', '/password-recovery', '/reset-password']
+    const publicPaths = ['/', '/login', '/popia', '/terms', '/privacy', '/password-recovery', '/reset-password', '/auditor']
     const sessionCheck = setInterval(async () => {
       if (publicPaths.includes(window.location.pathname)) return
       const { data: { session }, error } = await supabase.auth.getSession()
@@ -55,8 +55,21 @@ export const AuthProvider = ({ children }) => {
         setUser(null)
         setUserProfile(null)
         window.location.href = '/login'
+        return
       }
-    }, 60000)
+      // Concurrent session check: verify our token is still the active one
+      const { data: currentUser } = await supabase
+        .from('users')
+        .select('active_session_token')
+        .eq('id', session.user.id)
+        .single()
+      if (currentUser?.active_session_token && currentUser.active_session_token !== sessionToken) {
+        await supabase.auth.signOut()
+        setUser(null)
+        setUserProfile(null)
+        window.location.href = '/login?reason=session_replaced'
+      }
+    }, 30000)
 
     return () => {
       subscription.unsubscribe()
@@ -102,10 +115,30 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  // Generate a unique session token for concurrent session detection
+  const generateSessionToken = () => {
+    const array = new Uint8Array(16)
+    crypto.getRandomValues(array)
+    return Array.from(array, b => b.toString(16).padStart(2, '0')).join('')
+  }
+
+  const [sessionToken] = useState(() => generateSessionToken())
+
+  // Stamp session token on user record after login
+  const stampSession = async (userId) => {
+    await supabase
+      .from('users')
+      .update({ active_session_token: sessionToken })
+      .eq('id', userId)
+  }
+
   const signIn = async (email, password, captchaToken) => {
     const options = { email, password }
     if (captchaToken) options.options = { captchaToken }
     const { data, error } = await supabase.auth.signInWithPassword(options)
+    if (data?.user) {
+      await stampSession(data.user.id)
+    }
     return { data, error }
   }
 

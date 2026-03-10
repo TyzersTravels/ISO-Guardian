@@ -12,7 +12,6 @@ const UserProfile = () => {
   const [changingPassword, setChangingPassword] = useState(false)
   const [profileData, setProfileData] = useState({
     full_name: userProfile?.full_name || '',
-    email: user?.email || '',
   })
   const [passwordData, setPasswordData] = useState({
     newPassword: '',
@@ -35,18 +34,10 @@ const UserProfile = () => {
 
       if (error) throw error
 
-      if (profileData.email !== user.email) {
-        const { error: emailError } = await supabase.auth.updateUser({
-          email: profileData.email,
-        })
-        if (emailError) throw emailError
-        toast.info('A confirmation email has been sent to your new address')
-      }
-
       await logActivity(supabase, user.id, userProfile?.company_id, 'profile_updated', 'user', user.id, 'Updated profile information')
       toast.success('Profile updated successfully')
     } catch (err) {
-      toast.error(err.message || 'Failed to update profile')
+      toast.error('Failed to update profile')
     } finally {
       setSaving(false)
     }
@@ -54,8 +45,9 @@ const UserProfile = () => {
 
   const handleChangePassword = async (e) => {
     e.preventDefault()
-    if (passwordData.newPassword.length < 8) {
-      toast.warning('Password must be at least 8 characters')
+    const pw = passwordData.newPassword
+    if (pw.length < 12 || !/[A-Z]/.test(pw) || !/[a-z]/.test(pw) || !/[0-9]/.test(pw) || !/[^A-Za-z0-9]/.test(pw)) {
+      toast.warning('Password must be at least 12 characters with uppercase, lowercase, number, and special character')
       return
     }
     if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -73,7 +65,7 @@ const UserProfile = () => {
       toast.success('Password changed successfully')
       setPasswordData({ newPassword: '', confirmPassword: '' })
     } catch (err) {
-      toast.error(err.message || 'Failed to change password')
+      toast.error('Failed to change password')
     } finally {
       setChangingPassword(false)
     }
@@ -136,12 +128,12 @@ const UserProfile = () => {
               <label className="block text-sm text-white/70 mb-1">Email Address</label>
               <input
                 type="email"
-                value={profileData.email}
-                onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                className="glass-input w-full px-4 py-2.5 rounded-xl text-white"
-                placeholder="your@email.com"
+                value={user?.email || ''}
+                readOnly
+                disabled
+                className="glass-input w-full px-4 py-2.5 rounded-xl text-white/50 cursor-not-allowed"
               />
-              <p className="text-xs text-white/40 mt-1">Changing email requires confirmation via the new address</p>
+              <p className="text-xs text-white/40 mt-1">Email changes must be requested through your company administrator</p>
             </div>
             <button
               type="submit"
