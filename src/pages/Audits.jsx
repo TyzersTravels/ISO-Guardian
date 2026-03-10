@@ -553,7 +553,7 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
           {!showCompleteForm && (
             <div className="flex gap-3 flex-wrap pt-4">
               {!audit.archived && audit.status === 'Planned' && (
-                <button onClick={() => onUpdateStatus(audit.id, 'In Progress')}
+                <button onClick={() => { onUpdateStatus(audit.id, 'In Progress'); onClose(); }}
                   className="py-3 px-6 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg">Start Audit</button>
               )}
               {!audit.archived && audit.status === 'In Progress' && (

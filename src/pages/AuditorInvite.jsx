@@ -35,7 +35,7 @@ const AuditorInvite = () => {
       const [auditsRes, sessionsRes] = await Promise.all([
         supabase
           .from('audits')
-          .select('id, title, audit_type, standard, audit_date, status')
+          .select('id, audit_number, audit_type, standard, audit_date, status')
           .eq('company_id', companyId)
           .in('status', ['Planned', 'In Progress'])
           .order('audit_date', { ascending: true }),
@@ -194,7 +194,7 @@ const AuditorInvite = () => {
                 <option value="">Select an audit...</option>
                 {audits.map(a => (
                   <option key={a.id} value={a.id}>
-                    {a.title} — {a.standard} ({new Date(a.audit_date).toLocaleDateString('en-ZA')})
+                    {a.audit_number || a.audit_type} — {a.standard} ({new Date(a.audit_date).toLocaleDateString('en-ZA')})
                   </option>
                 ))}
               </select>
@@ -297,7 +297,7 @@ const AuditorInvite = () => {
                         <p className="text-white/40 text-xs">{session.auditor_organisation}</p>
                       )}
                       <p className="text-white/30 text-xs mt-1">
-                        {audit ? `${audit.title} — ${audit.standard}` : 'Audit'} | Expires: {new Date(session.expires_at).toLocaleDateString('en-ZA')}
+                        {audit ? `${audit.audit_number || audit.audit_type} — ${audit.standard}` : 'Audit'} | Expires: {new Date(session.expires_at).toLocaleDateString('en-ZA')}
                       </p>
                     </div>
                     <div className="flex gap-2 shrink-0">
