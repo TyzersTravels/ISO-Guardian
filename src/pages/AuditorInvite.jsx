@@ -191,9 +191,9 @@ const AuditorInvite = () => {
                 className="glass-input w-full px-4 py-2.5 rounded-xl text-white"
                 required
               >
-                <option value="">Select an audit...</option>
+                <option value="" className="bg-slate-800">Select an audit...</option>
                 {audits.map(a => (
-                  <option key={a.id} value={a.id}>
+                  <option key={a.id} value={a.id} className="bg-slate-800">
                     {a.audit_number || a.audit_type} — {a.standard} ({new Date(a.audit_date).toLocaleDateString('en-ZA')})
                   </option>
                 ))}
@@ -246,10 +246,10 @@ const AuditorInvite = () => {
                   onChange={(e) => setFormData({ ...formData, expires_days: parseInt(e.target.value) })}
                   className="glass-input w-full px-4 py-2.5 rounded-xl text-white"
                 >
-                  <option value={7}>7 days</option>
-                  <option value={14}>14 days</option>
-                  <option value={30}>30 days</option>
-                  <option value={60}>60 days</option>
+                  <option value={7} className="bg-slate-800">7 days</option>
+                  <option value={14} className="bg-slate-800">14 days</option>
+                  <option value={30} className="bg-slate-800">30 days</option>
+                  <option value={60} className="bg-slate-800">60 days</option>
                 </select>
               </div>
             </div>
