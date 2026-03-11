@@ -1,4 +1,6 @@
-const SUPPORT_EMAIL = 'support@isoguardian.co.za'
+import { useState } from 'react'
+import { supabase } from '../../lib/supabase'
+import { throttle } from '../../lib/rateLimiter'
 
 const TEMPLATES = [
   {
@@ -56,6 +58,62 @@ const TEMPLATES = [
 ]
 
 export default function TemplateMarketplace() {
+  const [enquiryTemplate, setEnquiryTemplate] = useState(null)
+  const [form, setForm] = useState({ name: '', email: '', company: '' })
+  const [consent, setConsent] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
+  const [honeypot, setHoneypot] = useState('')
+
+  const handleEnquiry = async (e) => {
+    e.preventDefault()
+    if (honeypot) { setSubmitted(true); return }
+    if (!form.name || !form.email || !form.company) {
+      setError('Please fill in all fields.')
+      return
+    }
+    if (!consent) {
+      setError('Please agree to the privacy notice to continue.')
+      return
+    }
+    if (!throttle('template-enquiry', 3, 60000)) {
+      setError('Too many submissions. Please wait a moment.')
+      return
+    }
+
+    setSubmitting(true)
+    setError('')
+
+    try {
+      // Send instant lead notification
+      await supabase.functions.invoke('notify-lead', {
+        body: {
+          type: 'template_enquiry',
+          data: {
+            name: form.name,
+            email: form.email,
+            company: form.company,
+            template_name: enquiryTemplate,
+          },
+        },
+      })
+    } catch {
+      // Fire-and-forget
+    }
+
+    setSubmitting(false)
+    setSubmitted(true)
+  }
+
+  const closeModal = () => {
+    setEnquiryTemplate(null)
+    setForm({ name: '', email: '', company: '' })
+    setConsent(false)
+    setSubmitted(false)
+    setError('')
+  }
+
   return (
     <section id="templates" className="py-20">
       <div className="max-w-6xl mx-auto px-6">
@@ -99,15 +157,15 @@ export default function TemplateMarketplace() {
                 ))}
               </div>
 
-              <a
-                href={`mailto:${SUPPORT_EMAIL}?subject=Template%20Enquiry%20%E2%80%94%20${encodeURIComponent(title)}`}
+              <button
+                onClick={() => setEnquiryTemplate(title)}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
               >
                 Enquire
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
-              </a>
+              </button>
             </div>
           ))}
         </div>
@@ -116,6 +174,99 @@ export default function TemplateMarketplace() {
           All templates are provided in editable formats. Pricing available on enquiry.
         </p>
       </div>
+
+      {/* Enquiry Modal */}
+      {enquiryTemplate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={closeModal}>
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            {submitted ? (
+              <div className="text-center py-4">
+                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Enquiry Submitted</h3>
+                <p className="text-white/60 text-sm mb-4">We'll be in touch within 1 business day with pricing and availability for the {enquiryTemplate}.</p>
+                <button onClick={closeModal} className="px-6 py-2 border border-white/20 hover:border-white/40 rounded-xl text-white/70 hover:text-white transition-all text-sm">
+                  Close
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleEnquiry} className="space-y-4">
+                <h3 className="text-xl font-bold text-white">Enquire: {enquiryTemplate}</h3>
+                <p className="text-white/50 text-sm">Leave your details and we'll send you pricing and a sample.</p>
+
+                <div>
+                  <label className="block text-sm text-white/70 mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-cyan-500/50 focus:outline-none transition-colors"
+                    placeholder="Your full name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-white/70 mb-1">Email *</label>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-cyan-500/50 focus:outline-none transition-colors"
+                    placeholder="you@company.co.za"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-white/70 mb-1">Company *</label>
+                  <input
+                    type="text"
+                    value={form.company}
+                    onChange={e => setForm(prev => ({ ...prev, company: e.target.value }))}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-cyan-500/50 focus:outline-none transition-colors"
+                    placeholder="Company name"
+                  />
+                </div>
+
+                {/* Honeypot */}
+                <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }} aria-hidden="true">
+                  <input type="text" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={e => setHoneypot(e.target.value)} />
+                </div>
+
+                {/* POPIA Consent */}
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={e => setConsent(e.target.checked)}
+                    className="mt-1 w-4 h-4 rounded border-white/30 bg-white/10 text-cyan-500 focus:ring-cyan-500/50 flex-shrink-0"
+                  />
+                  <span className="text-xs text-white/50 leading-relaxed">
+                    I consent to ISOGuardian collecting my personal information to respond to this enquiry and contact me about ISO template products. Processed under{' '}
+                    <a href="/popia" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline">POPIA</a>.
+                    Withdraw consent anytime: support@isoguardian.co.za.
+                  </span>
+                </label>
+
+                {error && <p className="text-red-400 text-sm">{error}</p>}
+
+                <div className="flex gap-3">
+                  <button type="button" onClick={closeModal} className="px-6 py-3 border border-white/20 hover:border-white/40 rounded-xl text-white/70 hover:text-white transition-all">
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting || !consent}
+                    className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? 'Sending...' : 'Submit Enquiry'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   )
 }

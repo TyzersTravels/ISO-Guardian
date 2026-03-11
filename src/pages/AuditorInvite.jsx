@@ -87,7 +87,25 @@ const AuditorInvite = () => {
 
       if (error) throw error
 
-      toast.success('Auditor session created. Share the access link with your auditor.')
+      // Email the auditor their access link
+      const auditLink = `${window.location.origin}/auditor?token=${token}`
+      const selectedAudit = audits.find(a => a.id === formData.audit_id)
+      supabase.functions.invoke('notify-lead', {
+        body: {
+          type: 'auditor_invite',
+          data: {
+            auditor_name: formData.auditor_name,
+            auditor_email: formData.auditor_email,
+            audit_name: selectedAudit ? `${selectedAudit.audit_number || selectedAudit.audit_type} — ${selectedAudit.standard}` : 'Audit',
+            company_name: userProfile?.company?.name || 'Your client',
+            invited_by: userProfile?.full_name || 'An administrator',
+            audit_link: auditLink,
+            expires_at: expiresAt.toLocaleDateString('en-ZA'),
+          },
+        },
+      }).catch(() => {})
+
+      toast.success('Auditor session created and invitation email sent.')
       setShowForm(false)
       setFormData({ audit_id: '', auditor_name: '', auditor_email: '', auditor_organisation: '', expires_days: 14 })
       fetchData()

@@ -16,7 +16,7 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = Deno.env.get("CRON_SECRET") || "";
-const ADMIN_EMAIL = Deno.env.get("ADMIN_NOTIFICATION_EMAIL") || "krugerreece@gmail.com";
+const ADMIN_EMAIL = Deno.env.get("ADMIN_NOTIFICATION_EMAIL") || "support@isoguardian.co.za";
 const FROM_EMAIL = "ISOGuardian <notifications@isoguardian.co.za>";
 const APP_URL = "https://isoguardian.co.za";
 

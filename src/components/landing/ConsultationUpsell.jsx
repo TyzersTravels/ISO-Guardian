@@ -11,6 +11,7 @@ export default function ConsultationUpsell() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [honeypot, setHoneypot] = useState('')
+  const [consent, setConsent] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -23,6 +24,10 @@ export default function ConsultationUpsell() {
 
     if (!form.name || !form.email || !form.company) {
       setError('Please fill in name, email, and company.')
+      return
+    }
+    if (!consent) {
+      setError('Please agree to the privacy notice to continue.')
       return
     }
 
@@ -45,6 +50,22 @@ export default function ConsultationUpsell() {
         message: form.message || null,
       })
       if (dbError) throw dbError
+
+      // Send instant lead notification email
+      supabase.functions.invoke('notify-lead', {
+        body: {
+          type: 'consultation',
+          data: {
+            name: form.name,
+            email: form.email,
+            company: form.company,
+            standard: form.standard,
+            preferred_date: form.preferred_date,
+            message: form.message,
+          },
+        },
+      }).catch(() => {}) // Fire-and-forget
+
       setSubmitted(true)
     } catch {
       setError('Something went wrong. Please try emailing us directly.')
@@ -208,12 +229,29 @@ export default function ConsultationUpsell() {
                   <input type="text" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={e => setHoneypot(e.target.value)} />
                 </div>
 
+                {/* POPIA Consent */}
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={e => setConsent(e.target.checked)}
+                    className="mt-1 w-4 h-4 rounded border-white/30 bg-white/10 text-purple-500 focus:ring-purple-500/50 flex-shrink-0"
+                  />
+                  <span className="text-xs text-white/50 leading-relaxed">
+                    By clicking agree, I consent to ISOGuardian contacting me about this consultation and sending occasional ISO compliance updates and marketing communications. Processed in accordance with{' '}
+                    <a href="/popia" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline">POPIA</a>{' '}
+                    and our{' '}
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline">Privacy Policy</a>.
+                    Unsubscribe anytime: support@isoguardian.co.za.
+                  </span>
+                </label>
+
                 {error && <p className="text-red-400 text-sm">{error}</p>}
 
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="w-full py-3 bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-400 hover:to-cyan-400 font-bold rounded-xl transition-all disabled:opacity-50"
+                  disabled={submitting || !consent}
+                  className="w-full py-3 bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-400 hover:to-cyan-400 font-bold rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {submitting ? 'Submitting...' : 'Request Consultation'}
                 </button>

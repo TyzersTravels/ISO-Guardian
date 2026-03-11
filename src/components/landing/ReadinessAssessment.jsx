@@ -58,6 +58,7 @@ export default function ReadinessAssessment() {
   const [score, setScore] = useState(null)
   const [error, setError] = useState('')
   const [honeypot, setHoneypot] = useState('')
+  const [consent, setConsent] = useState(false)
 
   const questions = QUESTIONS[contactInfo.standard] || QUESTIONS['ISO 9001']
   const totalSteps = questions.length + 1 // contact + questions
@@ -68,7 +69,28 @@ export default function ReadinessAssessment() {
       setError('Please fill in company name and email.')
       return
     }
+    if (!consent) {
+      setError('Please agree to the privacy notice to continue.')
+      return
+    }
     setError('')
+
+    // Capture lead immediately before they start the assessment
+    if (!honeypot) {
+      supabase.functions.invoke('notify-lead', {
+        body: {
+          type: 'assessment',
+          data: {
+            company_name: contactInfo.company_name,
+            email: contactInfo.email,
+            phone: contactInfo.phone,
+            standard: contactInfo.standard,
+            score: null,
+          },
+        },
+      }).catch(() => {})
+    }
+
     setStep(1)
   }
 
@@ -122,6 +144,20 @@ export default function ReadinessAssessment() {
       if (insertError) {
         console.error('Assessment save failed:', insertError)
         setError('Your score is shown below, but we could not save your submission. Please email us at info@isoguardian.co.za.')
+      } else {
+        // Send instant lead notification email
+        supabase.functions.invoke('notify-lead', {
+          body: {
+            type: 'assessment',
+            data: {
+              company_name: contactInfo.company_name,
+              email: contactInfo.email,
+              phone: contactInfo.phone,
+              standard: contactInfo.standard,
+              score: percentage,
+            },
+          },
+        }).catch(() => {}) // Fire-and-forget — don't block the user
       }
     } catch {
       setError('Your score is shown below, but we could not save your submission. Please email us at info@isoguardian.co.za.')
@@ -226,11 +262,29 @@ export default function ReadinessAssessment() {
                 <input type="text" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={e => setHoneypot(e.target.value)} />
               </div>
 
+              {/* POPIA Consent */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={e => setConsent(e.target.checked)}
+                  className="mt-1 w-4 h-4 rounded border-white/30 bg-white/10 text-cyan-500 focus:ring-cyan-500/50 flex-shrink-0"
+                />
+                <span className="text-xs text-white/50 leading-relaxed">
+                  By clicking agree, I consent to receiving my assessment results, ISO compliance tips, and occasional marketing communications from ISOGuardian. My personal information will be processed in accordance with{' '}
+                  <a href="/popia" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline">POPIA</a>{' '}
+                  and our{' '}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline">Privacy Policy</a>.
+                  You can unsubscribe at any time by emailing support@isoguardian.co.za.
+                </span>
+              </label>
+
               {error && <p className="text-red-400 text-sm">{error}</p>}
 
               <button
                 type="submit"
-                className="w-full py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-xl transition-all"
+                disabled={!consent}
+                className="w-full py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Start Assessment
               </button>
