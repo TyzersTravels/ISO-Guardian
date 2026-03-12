@@ -37,7 +37,7 @@ async function validateToken(token: string) {
     .select(`
       id, audit_id, company_id, auditor_name, auditor_email,
       auditor_organisation, status, expires_at,
-      audits!inner(title, audit_type, standard, scope, scheduled_date, status)
+      audits!inner(audit_number, audit_type, standard, scope, audit_date, status)
     `)
     .eq("access_token", token)
     .single();
@@ -78,7 +78,7 @@ async function getEvidencePackage(session: any) {
   // Fetch documents for this standard
   const docsQuery = supabase
     .from("documents")
-    .select("id, name, standard, clause, type, status, created_at, updated_at")
+    .select("id, title, document_number, standard, clause, type, status, created_at, updated_at")
     .eq("company_id", companyId)
     .eq("archived", false)
     .order("standard")
@@ -112,10 +112,10 @@ async function getEvidencePackage(session: any) {
   // Fetch previous audits
   const { data: previousAudits } = await supabase
     .from("audits")
-    .select("id, title, audit_type, standard, status, scheduled_date, conclusion")
+    .select("id, audit_number, audit_type, standard, status, audit_date, conclusion")
     .eq("company_id", companyId)
     .eq("status", "Complete")
-    .order("scheduled_date", { ascending: false })
+    .order("audit_date", { ascending: false })
     .limit(5);
 
   // Fetch management reviews
@@ -133,11 +133,11 @@ async function getEvidencePackage(session: any) {
       code: company?.company_code,
     },
     audit: {
-      title: audit?.title,
+      title: audit?.audit_number,
       type: audit?.audit_type,
       standard: audit?.standard,
       scope: audit?.scope,
-      scheduledDate: audit?.scheduled_date,
+      scheduledDate: audit?.audit_date,
     },
     documents: documents || [],
     openNcrs: ncrs || [],
