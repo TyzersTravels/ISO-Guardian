@@ -88,7 +88,8 @@ export default function ReadinessAssessment() {
             score: null,
           },
         },
-      }).catch(() => {})
+      }).then(res => { if (res?.error) console.warn('notify-lead error:', res.error) })
+        .catch(err => console.warn('notify-lead failed:', err))
     }
 
     setStep(1)
@@ -157,7 +158,8 @@ export default function ReadinessAssessment() {
               score: percentage,
             },
           },
-        }).catch(() => {}) // Fire-and-forget — don't block the user
+        }).then(res => { if (res?.error) console.warn('notify-lead score error:', res.error) })
+          .catch(err => console.warn('notify-lead score failed:', err))
       }
     } catch {
       setError('Your score is shown below, but we could not save your submission. Please email us at info@isoguardian.co.za.')

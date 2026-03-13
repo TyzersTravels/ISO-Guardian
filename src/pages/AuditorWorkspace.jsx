@@ -24,6 +24,8 @@ const AuditorWorkspace = () => {
     auditor_notes: '',
   })
   const [findings, setFindings] = useState([])
+  const [photoFiles, setPhotoFiles] = useState([])
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   useEffect(() => {
     if (token) {
@@ -75,8 +77,27 @@ const AuditorWorkspace = () => {
         body: JSON.stringify(findingForm),
       })
       if (result.error) throw new Error(result.error)
+      const findingId = result.finding?.id
+
+      // Upload photos if any
+      if (photoFiles.length > 0 && findingId) {
+        setUploadingPhoto(true)
+        for (const photo of photoFiles) {
+          const fd = new FormData()
+          fd.append('photo', photo)
+          fd.append('finding_id', findingId)
+          await fetch(`${FUNCTION_URL}/upload`, {
+            method: 'POST',
+            headers: { 'x-auditor-token': token },
+            body: fd,
+          }).catch(() => {})
+        }
+        setUploadingPhoto(false)
+      }
+
       setFindings(prev => [...prev, result.finding])
       setShowFindingForm(false)
+      setPhotoFiles([])
       setFindingForm(prev => ({ ...prev, clause: '', description: '', evidence: '', auditor_notes: '' }))
     } catch (err) {
       alert(err.message || 'Failed to submit finding')
@@ -177,19 +198,33 @@ const AuditorWorkspace = () => {
           ))}
           <div className="ml-auto flex gap-2">
             <button
-              onClick={() => generateAuditReport({
-                company: evidence?.company,
-                audit: evidence?.audit,
-                auditor: { name: session?.session?.auditorName, email: session?.session?.auditorEmail, organisation: session?.session?.auditorOrganisation },
-                findings,
-                checklist: Object.entries(checklist).map(([key, result]) => {
-                  const [standard, ...clauseParts] = key.split('-')
-                  const clause = clauseParts.join('-')
-                  return { standard, clause, result }
-                }),
-                summary: evidence?.summary,
-                previousAudits: evidence?.previousAudits,
-              })}
+              onClick={async () => {
+                let logoDataUrl = null
+                if (evidence?.company?.logoUrl) {
+                  try {
+                    const resp = await fetch(evidence.company.logoUrl)
+                    const blob = await resp.blob()
+                    logoDataUrl = await new Promise(resolve => {
+                      const reader = new FileReader()
+                      reader.onloadend = () => resolve(reader.result)
+                      reader.readAsDataURL(blob)
+                    })
+                  } catch { /* fallback to IG monogram */ }
+                }
+                generateAuditReport({
+                  company: evidence?.company,
+                  audit: evidence?.audit,
+                  auditor: { name: session?.session?.auditorName, email: session?.session?.auditorEmail, organisation: session?.session?.auditorOrganisation },
+                  findings,
+                  checklist: Object.entries(checklist).map(([key, result]) => {
+                    const [standard, ...clauseParts] = key.split('-')
+                    const clause = clauseParts.join('-')
+                    return { standard, clause, result }
+                  }),
+                  summary: evidence?.summary,
+                  previousAudits: evidence?.previousAudits,
+                }, logoDataUrl)
+              }}
               className="px-4 py-2 rounded-lg text-sm font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30 whitespace-nowrap"
             >
               Generate Report
@@ -390,9 +425,30 @@ const AuditorWorkspace = () => {
                     placeholder="Reference documents, records, or observations..."
                   />
                 </div>
+                <div>
+                  <label className="text-xs text-white/50 mb-1 block">Photo Evidence</label>
+                  <div className="flex items-center gap-3">
+                    <label className="px-4 py-2 glass glass-border rounded-lg text-sm text-cyan-300 hover:bg-cyan-500/20 cursor-pointer transition-colors inline-flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                      Add Photos
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => setPhotoFiles(prev => [...prev, ...Array.from(e.target.files)])} />
+                    </label>
+                    {photoFiles.length > 0 && <span className="text-xs text-white/40">{photoFiles.length} photo(s) selected</span>}
+                  </div>
+                  {photoFiles.length > 0 && (
+                    <div className="flex gap-2 mt-2 flex-wrap">
+                      {photoFiles.map((f, i) => (
+                        <div key={i} className="relative">
+                          <img src={URL.createObjectURL(f)} alt="" className="w-16 h-16 rounded-lg object-cover border border-white/10" />
+                          <button type="button" onClick={() => setPhotoFiles(prev => prev.filter((_, j) => j !== i))} className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div className="flex gap-3">
-                  <button type="submit" disabled={submitting} className="btn-primary px-5 py-2 rounded-lg text-sm font-semibold disabled:opacity-50">
-                    {submitting ? 'Submitting...' : 'Submit Finding'}
+                  <button type="submit" disabled={submitting || uploadingPhoto} className="btn-primary px-5 py-2 rounded-lg text-sm font-semibold disabled:opacity-50">
+                    {uploadingPhoto ? 'Uploading photos...' : submitting ? 'Submitting...' : 'Submit Finding'}
                   </button>
                   <button type="button" onClick={() => setShowFindingForm(false)} className="px-5 py-2 glass glass-border rounded-lg text-sm text-white/60 hover:bg-white/10">
                     Cancel

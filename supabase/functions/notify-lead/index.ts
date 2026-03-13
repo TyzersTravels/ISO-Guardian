@@ -49,6 +49,42 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // GET = test endpoint to verify Resend config
+  if (req.method === 'GET') {
+    try {
+      const testRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: FROM_EMAIL,
+          to: [ADMIN_EMAIL],
+          subject: 'ISOGuardian Email Test',
+          html: emailTemplate('Email Test', '<p>If you received this, your Resend configuration is working correctly.</p><p>Sent at: ' + new Date().toISOString() + '</p>'),
+        }),
+      })
+      const resBody = await testRes.text()
+      return new Response(JSON.stringify({
+        success: testRes.ok,
+        status: testRes.status,
+        from: FROM_EMAIL,
+        to: ADMIN_EMAIL,
+        resend_response: resBody,
+        api_key_set: !!RESEND_API_KEY,
+        api_key_prefix: RESEND_API_KEY ? RESEND_API_KEY.slice(0, 8) + '...' : 'NOT SET',
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    } catch (err) {
+      return new Response(JSON.stringify({ error: String(err), api_key_set: !!RESEND_API_KEY }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+  }
+
   try {
     const { type, data } = await req.json()
 

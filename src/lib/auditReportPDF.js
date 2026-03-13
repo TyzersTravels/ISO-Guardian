@@ -86,7 +86,7 @@ function labelValue(doc, y, label, value) {
  * @param {Object} data.summary - { totalDocuments, openNcrs, criticalNcrs, complianceAvg }
  * @param {Array} data.previousAudits - Previous audit records
  */
-export function generateAuditReport(data) {
+export function generateAuditReport(data, logoDataUrl = null) {
   const { company, audit, auditor, findings = [], checklist = [], summary = {}, previousAudits = [] } = data
 
   const doc = new jsPDF()
@@ -96,13 +96,26 @@ export function generateAuditReport(data) {
   doc.setFillColor(...DARK)
   doc.rect(0, 0, 210, 297, 'F')
 
-  // Logo area
-  doc.setFillColor(...PURPLE)
-  doc.roundedRect(80, 40, 50, 50, 8, 8, 'F')
-  doc.setFontSize(20)
-  doc.setTextColor(...WHITE)
-  doc.setFont('helvetica', 'bold')
-  doc.text('IG', 105, 72, { align: 'center' })
+  // Logo area — use company logo if available, otherwise IG monogram
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, 'PNG', 65, 30, 80, 60, undefined, 'FAST')
+    } catch {
+      doc.setFillColor(...PURPLE)
+      doc.roundedRect(80, 40, 50, 50, 8, 8, 'F')
+      doc.setFontSize(20)
+      doc.setTextColor(...WHITE)
+      doc.setFont('helvetica', 'bold')
+      doc.text('IG', 105, 72, { align: 'center' })
+    }
+  } else {
+    doc.setFillColor(...PURPLE)
+    doc.roundedRect(80, 40, 50, 50, 8, 8, 'F')
+    doc.setFontSize(20)
+    doc.setTextColor(...WHITE)
+    doc.setFont('helvetica', 'bold')
+    doc.text('IG', 105, 72, { align: 'center' })
+  }
 
   // Title
   doc.setFontSize(28)

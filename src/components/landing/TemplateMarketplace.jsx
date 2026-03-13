@@ -87,7 +87,7 @@ export default function TemplateMarketplace() {
 
     try {
       // Send instant lead notification
-      await supabase.functions.invoke('notify-lead', {
+      const res = await supabase.functions.invoke('notify-lead', {
         body: {
           type: 'template_enquiry',
           data: {
@@ -98,8 +98,9 @@ export default function TemplateMarketplace() {
           },
         },
       })
-    } catch {
-      // Fire-and-forget
+      if (res?.error) console.warn('notify-lead error:', res.error)
+    } catch (err) {
+      console.warn('notify-lead failed:', err)
     }
 
     setSubmitting(false)

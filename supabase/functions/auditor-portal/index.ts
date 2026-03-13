@@ -71,7 +71,7 @@ async function getEvidencePackage(session: any) {
   // Fetch company info
   const { data: company } = await supabase
     .from("companies")
-    .select("name, industry, company_code")
+    .select("name, industry, company_code, logo_url")
     .eq("id", companyId)
     .single();
 
@@ -131,6 +131,7 @@ async function getEvidencePackage(session: any) {
       name: company?.name,
       industry: company?.industry,
       code: company?.company_code,
+      logoUrl: company?.logo_url,
     },
     audit: {
       title: audit?.audit_number,
@@ -261,6 +262,73 @@ async function updateChecklist(session: any, body: any) {
   return jsonResponse({ success: true });
 }
 
+// ─── Upload Evidence Photo ───────────────────────────────────────────────────
+
+async function uploadPhoto(session: any, req: Request) {
+  const contentType = req.headers.get("content-type") || "";
+  if (!contentType.includes("multipart/form-data")) {
+    return jsonResponse({ error: "Expected multipart/form-data" }, 400);
+  }
+
+  const formData = await req.formData();
+  const file = formData.get("photo") as File | null;
+  const findingId = formData.get("finding_id") as string | null;
+
+  if (!file) {
+    return jsonResponse({ error: "No photo file provided" }, 400);
+  }
+
+  // Validate file type
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+  if (!allowedTypes.includes(file.type)) {
+    return jsonResponse({ error: "Invalid file type. Allowed: jpg, png, webp, heic" }, 400);
+  }
+
+  // Validate file size (5MB max)
+  if (file.size > 5 * 1024 * 1024) {
+    return jsonResponse({ error: "File too large. Maximum 5MB" }, 400);
+  }
+
+  const ext = file.name.split(".").pop() || "jpg";
+  const timestamp = Date.now();
+  const path = `audit-evidence/${session.audit_id}/${findingId || "general"}/${timestamp}.${ext}`;
+
+  const arrayBuffer = await file.arrayBuffer();
+  const { error: uploadError } = await supabase.storage
+    .from("documents")
+    .upload(path, arrayBuffer, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (uploadError) {
+    console.error("Upload error:", uploadError);
+    return jsonResponse({ error: "Failed to upload photo" }, 500);
+  }
+
+  const { data: urlData } = supabase.storage.from("documents").getPublicUrl(path);
+
+  // If tied to a finding, append to evidence_photos
+  if (findingId) {
+    const { data: finding } = await supabase
+      .from("audit_findings")
+      .select("evidence_photos")
+      .eq("id", findingId)
+      .eq("audit_session_id", session.id)
+      .single();
+
+    const photos = finding?.evidence_photos || [];
+    photos.push(urlData.publicUrl);
+
+    await supabase
+      .from("audit_findings")
+      .update({ evidence_photos: photos })
+      .eq("id", findingId);
+  }
+
+  return jsonResponse({ url: urlData.publicUrl });
+}
+
 // ─── Main Handler ────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -319,6 +387,11 @@ Deno.serve(async (req: Request) => {
         if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
         const body = await req.json();
         return await updateChecklist(session, body);
+      }
+
+      case "upload": {
+        if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+        return await uploadPhoto(session, req);
       }
 
       default:

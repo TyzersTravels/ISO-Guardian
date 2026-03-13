@@ -103,7 +103,8 @@ const AuditorInvite = () => {
             expires_at: expiresAt.toLocaleDateString('en-ZA'),
           },
         },
-      }).catch(() => {})
+      }).then(res => { if (res?.error) console.warn('notify-lead error:', res.error) })
+        .catch(err => console.warn('notify-lead failed:', err))
 
       toast.success('Auditor session created and invitation email sent.')
       setShowForm(false)

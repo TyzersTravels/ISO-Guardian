@@ -64,7 +64,8 @@ export default function ConsultationUpsell() {
             message: form.message,
           },
         },
-      }).catch(() => {}) // Fire-and-forget
+      }).then(res => { if (res?.error) console.warn('notify-lead error:', res.error) })
+        .catch(err => console.warn('notify-lead failed:', err))
 
       setSubmitted(true)
     } catch {
