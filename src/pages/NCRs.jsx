@@ -36,7 +36,7 @@ const NCRs = () => {
         // Fallback if foreign key name is different
         const { data: fallbackData, error: fbErr } = await supabase
           .from('ncrs')
-          .select('*')
+          .select('id, ncr_number, title, description, standard, clause, severity, status, source, raised_by, assigned_to, target_close_date, company_id, created_at, updated_at, archived, clause_name, date_opened, due_date, root_cause, corrective_action, date_closed')
           .eq('company_id', companyId)
         if (fbErr) throw fbErr
         
@@ -108,7 +108,7 @@ const NCRs = () => {
             setSelectedNCR(null)
           } catch (err) {
             console.error('Error deleting NCR:', err)
-            toast.error('Failed to delete NCR: ' + err.message)
+            toast.error('Failed to delete NCR. Please try again.')
           }
         }
       })
@@ -129,7 +129,7 @@ const NCRs = () => {
             setSelectedNCR(null)
           } catch (err) {
             console.error('Error archiving NCR:', err)
-            toast.error('Failed to archive NCR: ' + err.message)
+            toast.error('Failed to archive NCR. Please try again.')
           }
         }
       })
@@ -145,7 +145,7 @@ const NCRs = () => {
       fetchNCRs()
     } catch (err) {
       console.error('Error restoring NCR:', err)
-      toast.error('Failed to restore NCR: ' + err.message)
+      toast.error('Failed to restore NCR. Please try again.')
     }
   }
 
@@ -287,7 +287,7 @@ const NCRs = () => {
       doc.save(`${ncr.ncr_number}_Report.pdf`)
     } catch (err) {
       console.error('Export error:', err)
-      toast.error('Export failed: ' + err.message)
+      toast.error('Export failed. Please try again.')
     }
   }
 

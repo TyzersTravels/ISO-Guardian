@@ -35,7 +35,7 @@ const CompanySettings = () => {
       setLoading(true)
       const { data, error } = await supabase
         .from('companies')
-        .select('*')
+        .select('id, name, industry, company_code, logo_url, created_at, registration_number, address, contact_phone, contact_email, tier, status, updated_at')
         .eq('id', userProfile.company_id)
         .single()
 
@@ -118,7 +118,7 @@ const CompanySettings = () => {
       toast.success('Logo uploaded! It will appear on all branded PDF exports.')
     } catch (err) {
       console.error('Logo upload error:', err)
-      toast.error('Failed to upload logo: ' + err.message)
+      toast.error('Failed to upload logo. Please try again.')
     } finally {
       setUploading(false)
     }
@@ -150,7 +150,7 @@ const CompanySettings = () => {
             changes: { field: 'logo', status: 'removed' }
           })
         } catch (err) {
-          toast.error('Failed to remove logo: ' + err.message)
+          toast.error('Failed to remove logo. Please try again.')
         } finally {
           setSaving(false)
         }
@@ -191,7 +191,7 @@ const CompanySettings = () => {
 
       toast.success('Company settings saved.')
     } catch (err) {
-      toast.error('Failed to save: ' + err.message)
+      toast.error('Failed to save settings. Please try again.')
     } finally {
       setSaving(false)
     }

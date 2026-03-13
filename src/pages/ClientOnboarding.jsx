@@ -143,7 +143,7 @@ const ClientOnboarding = () => {
 
     } catch (error) {
       console.error('Error onboarding client:', error);
-      toast.error('Failed to onboard client: ' + error.message);
+      toast.error('Failed to onboard client. Please try again.');
     } finally {
       setLoading(false);
     }

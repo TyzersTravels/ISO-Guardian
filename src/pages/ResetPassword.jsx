@@ -41,7 +41,7 @@ const ResetPassword = () => {
       toast.success('Password updated successfully!')
       navigate('/login')
     } catch (err) {
-      setError(err.message || 'Failed to update password')
+      setError('Failed to update password. Please try again.')
     } finally {
       setLoading(false)
     }

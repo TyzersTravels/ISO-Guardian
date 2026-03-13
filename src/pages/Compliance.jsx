@@ -28,7 +28,7 @@ const Compliance = () => {
       const companyId = getEffectiveCompanyId()
       const { data, error } = await supabase
         .from('compliance_requirements')
-        .select('*')
+        .select('id, standard, clause, clause_title, status, score, evidence_notes, company_id, clause_number, clause_name, requirement_text, compliance_status, notes, last_reviewed')
         .eq('company_id', companyId)
         .eq('standard', selectedStandard)
         .order('clause_number')

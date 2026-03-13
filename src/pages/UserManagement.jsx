@@ -23,7 +23,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const query = supabase.from('users').select('*').order('created_at', { ascending: false })
+      const query = supabase.from('users').select('id, full_name, email, role, company_id, created_at, is_active, status, last_login, standards_access').order('created_at', { ascending: false })
 
       // Non-super-admins only see their own company
       if (!isSuperAdmin) {
@@ -61,7 +61,7 @@ const UserManagement = () => {
       fetchUsers()
     } catch (err) {
       console.error('Error updating role:', err)
-      toast.error('Failed to update role: ' + err.message)
+      toast.error('Failed to update role. Please try again.')
     }
   }
 
@@ -87,7 +87,7 @@ const UserManagement = () => {
       fetchUsers()
     } catch (err) {
       console.error('Error toggling user status:', err)
-      toast.error('Failed to update user: ' + err.message)
+      toast.error('Failed to update user. Please try again.')
     }
   }
 
@@ -113,7 +113,7 @@ const UserManagement = () => {
       fetchUsers()
     } catch (err) {
       console.error('Error updating user:', err)
-      toast.error('Failed to update user: ' + err.message)
+      toast.error('Failed to update user. Please try again.')
     }
   }
 
@@ -357,7 +357,7 @@ const InviteUserModal = ({ userProfile, onClose, onInvited }) => {
       if (err.message?.includes('duplicate') || err.code === '23505') {
         toast.error('A user with this email already exists.')
       } else {
-        toast.error('Failed to invite user: ' + err.message)
+        toast.error('Failed to invite user. Please try again.')
       }
     } finally {
       setSubmitting(false)

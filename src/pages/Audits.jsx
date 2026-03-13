@@ -84,7 +84,7 @@ const Audits = () => {
             setSelectedAudit(null)
           } catch (err) {
             console.error('Error deleting audit:', err)
-            toast.error('Failed to delete audit: ' + err.message)
+            toast.error('Failed to delete audit. Please try again.')
           }
         }
       })
@@ -104,7 +104,7 @@ const Audits = () => {
             setSelectedAudit(null)
           } catch (err) {
             console.error('Error archiving audit:', err)
-            toast.error('Failed to archive audit: ' + err.message)
+            toast.error('Failed to archive audit. Please try again.')
           }
         }
       })
@@ -119,7 +119,7 @@ const Audits = () => {
       fetchAudits()
     } catch (err) {
       console.error('Error restoring audit:', err)
-      toast.error('Failed to restore: ' + err.message)
+      toast.error('Failed to restore audit. Please try again.')
     }
   }
 
@@ -140,7 +140,7 @@ const Audits = () => {
       )
     } catch (err) {
       console.error('Export failed:', err)
-      toast.error('PDF export failed: ' + err.message)
+      toast.error('PDF export failed. Please try again.')
     }
   }
 
@@ -434,7 +434,7 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
       if (onUpdateStatus) onUpdateStatus(audit.id, 'Complete')
     } catch (err) {
       console.error('Error completing audit:', err)
-      toast.error('Failed to complete: ' + err.message)
+      toast.error('Failed to complete audit. Please try again.')
     } finally {
       setCompleting(false)
     }
@@ -631,7 +631,7 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
       onCreated()
     } catch (err) {
       console.error('Error creating audit:', err)
-      toast.error('Failed to schedule audit: ' + err.message)
+      toast.error('Failed to schedule audit. Please try again.')
     } finally {
       setSubmitting(false)
     }

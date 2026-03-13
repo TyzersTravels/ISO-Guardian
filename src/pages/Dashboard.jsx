@@ -108,7 +108,7 @@ const Dashboard = () => {
 
       const { data } = await supabase
         .from('audit_log')
-        .select('*')
+        .select('id, company_id, user_id, action, entity_type, entity_id, changes, created_at')
         .eq('company_id', companyId)
         .order('created_at', { ascending: false })
         .limit(6)
@@ -190,7 +190,7 @@ const Dashboard = () => {
       const userStandards = userProfile?.standards_access || []
 
       // Fetch documents (need full data to filter by standards_access + archived, matching Documents page)
-      const docQuery = supabase.from('documents').select('*')
+      const docQuery = supabase.from('documents').select('id, title, document_number, standard, clause, type, status, company_id, created_at, updated_at, file_path, archived, name')
       if (companyId) docQuery.eq('company_id', companyId)
       const { data: allDocs } = await docQuery
 
@@ -200,7 +200,7 @@ const Dashboard = () => {
       )
 
       // Fetch NCRs (scoped to company, exclude archived to match NCRs page)
-      const ncrQuery = supabase.from('ncrs').select('*')
+      const ncrQuery = supabase.from('ncrs').select('id, ncr_number, title, description, standard, clause, severity, status, source, raised_by, assigned_to, target_close_date, company_id, created_at, updated_at, archived')
       if (companyId) ncrQuery.eq('company_id', companyId)
       const { data: ncrs } = await ncrQuery
 
@@ -209,7 +209,7 @@ const Dashboard = () => {
       const criticalNCRs = openNCRs.filter(n => n.severity === 'Critical')
 
       // Fetch upcoming audits (scoped to company)
-      const auditQuery = supabase.from('audits').select('*').in('status', ['Scheduled', 'In Progress', 'Planned'])
+      const auditQuery = supabase.from('audits').select('id, audit_number, audit_type, standard, scope, audit_date, status, conclusion, evidence, recommendation, company_id, created_at, updated_at, archived').in('status', ['Scheduled', 'In Progress', 'Planned'])
       if (companyId) auditQuery.eq('company_id', companyId)
       const { data: audits } = await auditQuery
 

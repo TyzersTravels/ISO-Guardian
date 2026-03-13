@@ -39,7 +39,7 @@ const Documents = () => {
       const companyId = getEffectiveCompanyId()
       let query = supabase
         .from('documents')
-        .select('*')
+        .select('id, title, document_number, standard, clause, type, status, company_id, created_at, updated_at, file_path, archived, name, next_review_date, version_history')
         .eq('company_id', companyId)
 
       const { data, error: fetchError } = await query
@@ -55,7 +55,7 @@ const Documents = () => {
       setError(null)
     } catch (err) {
       console.error('Error fetching documents:', err)
-      setError(err.message)
+      setError('Failed to load documents. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -94,7 +94,7 @@ const Documents = () => {
             setPreviewDoc(null)
           } catch (err) {
             console.error('Error deleting document:', err)
-            toast.error('Failed to delete document: ' + err.message)
+            toast.error('Failed to delete document. Please try again.')
           }
         }
       })
@@ -118,7 +118,7 @@ const Documents = () => {
             setPreviewDoc(null)
           } catch (err) {
             console.error('Error deleting document:', err)
-            toast.error('Failed to archive document: ' + err.message)
+            toast.error('Failed to archive document. Please try again.')
           }
         }
       })
@@ -134,7 +134,7 @@ const Documents = () => {
       fetchDocuments()
     } catch (err) {
       console.error('Error restoring document:', err)
-      toast.error('Failed to restore document: ' + err.message)
+      toast.error('Failed to restore document. Please try again.')
     }
   }
 
@@ -171,7 +171,7 @@ const Documents = () => {
       }
     } catch (err) {
       console.error('Error downloading document:', err)
-      toast.error('Failed to download document: ' + err.message)
+      toast.error('Failed to download document. Please try again.')
     }
   }
 
@@ -212,7 +212,7 @@ const Documents = () => {
       }
     } catch (err) {
       console.error('Error viewing document:', err)
-      toast.error('Failed to view document: ' + err.message)
+      toast.error('Failed to view document. Please try again.')
     }
   }
 
@@ -288,7 +288,7 @@ ${htmlContent}
       }
     } catch (err) {
       console.error('Error exporting document:', err)
-      toast.error('Failed to export document: ' + err.message)
+      toast.error('Failed to export document. Please try again.')
     }
   }
 
@@ -345,7 +345,7 @@ ${htmlContent}
       fetchDocuments()
     } catch (err) {
       console.error('Error uploading new version:', err)
-      toast.error('Failed to upload new version: ' + err.message)
+      toast.error('Failed to upload new version. Please try again.')
     }
   }
 
@@ -934,7 +934,7 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
       onUploaded()
     } catch (err) {
       console.error('Error uploading document:', err)
-      toast.error('Failed to upload document: ' + err.message)
+      toast.error('Failed to upload document. Please try again.')
     } finally {
       setUploading(false)
     }

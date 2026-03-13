@@ -21,7 +21,7 @@ const ClientAnalytics = () => {
       const companyId = getEffectiveCompanyId()
       const { data: users, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, full_name, email, role, company_id, created_at, is_active')
         .eq('company_id', companyId)
 
       if (error) throw error

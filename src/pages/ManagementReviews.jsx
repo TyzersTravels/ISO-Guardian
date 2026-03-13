@@ -5,7 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
 
-const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'create' }) => {
+const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'create', getEffectiveCompanyId }) => {
   const toast = useToast();
   const [reviewNumber, setReviewNumber] = useState(review?.review_number || '');
   const [reviewDate, setReviewDate] = useState(review?.review_date || new Date().toISOString().split('T')[0]);
@@ -29,17 +29,17 @@ const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'cre
       if (mode === 'edit') {
         const { error } = await supabase.from('management_reviews').update(payload).eq('id', review.id);
         if (error) throw error;
-        await supabase.from('audit_log').insert({ company_id: userProfile?.company_id, user_id: userId, action: 'updated', entity_type: 'management_review', entity_id: review.id, changes: { review_number: reviewNumber } });
+        await supabase.from('audit_log').insert({ company_id: getEffectiveCompanyId(), user_id: userId, action: 'updated', entity_type: 'management_review', entity_id: review.id, changes: { review_number: reviewNumber } });
         toast.success('Review updated!');
       } else {
-        payload.company_id = userProfile?.company_id; payload.status = 'Scheduled'; payload.created_by = userId;
+        payload.company_id = getEffectiveCompanyId(); payload.status = 'Scheduled'; payload.created_by = userId;
         const { error } = await supabase.from('management_reviews').insert(payload);
         if (error) throw error;
-        await supabase.from('audit_log').insert({ company_id: userProfile?.company_id, user_id: userId, action: 'created', entity_type: 'management_review', entity_id: null, changes: { review_number: reviewNumber, chairperson } });
+        await supabase.from('audit_log').insert({ company_id: getEffectiveCompanyId(), user_id: userId, action: 'created', entity_type: 'management_review', entity_id: null, changes: { review_number: reviewNumber, chairperson } });
         toast.success('Review scheduled!');
       }
       onSaved();
-    } catch (err) { toast.error('Failed: ' + err.message); } finally { setSubmitting(false); }
+    } catch (err) { toast.error('Failed to save review. Please try again.'); } finally { setSubmitting(false); }
   };
 
   const c = "w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500";
@@ -103,7 +103,7 @@ const ManagementReviews = () => {
     try {
       setLoading(true);
       const companyId = getEffectiveCompanyId();
-      let query = supabase.from('management_reviews').select('*').eq('company_id', companyId).order('created_at', { ascending: false });
+      let query = supabase.from('management_reviews').select('id, title, review_date, status, minutes, action_items, company_id, created_at, updated_at, review_number, review_time, chairperson, attendees, agenda_items, decisions_made, resource_decisions, improvement_opportunities, next_review_date, archived, archive_reason, archived_at, created_by').eq('company_id', companyId).order('created_at', { ascending: false });
       if (viewMode === 'active') query = query.or('archived.is.null,archived.eq.false');
       else query = query.eq('archived', true);
       const { data, error } = await query;
@@ -112,7 +112,7 @@ const ManagementReviews = () => {
     } catch (e) { toast.error('Failed: ' + e.message); } finally { setLoading(false); }
   };
 
-  const log = async (action, id, details) => { try { await supabase.from('audit_log').insert({ company_id: userProfile?.company_id, user_id: user?.id, action, entity_type: 'management_review', entity_id: id, changes: details }); } catch(e) {} };
+  const log = async (action, id, details) => { try { await supabase.from('audit_log').insert({ company_id: getEffectiveCompanyId(), user_id: user?.id, action, entity_type: 'management_review', entity_id: id, changes: details }); } catch(e) {} };
 
   const handleArchive = (id) => {
     setConfirmAction({
@@ -141,7 +141,7 @@ const ManagementReviews = () => {
       reasonPlaceholder: 'Why is this review being permanently deleted?',
       onConfirm: async (reason) => {
         setConfirmAction(null);
-        try { await supabase.from('deletion_audit_trail').insert({ company_id: userProfile?.company_id, table_name: 'management_reviews', record_id: id, deleted_by: user?.id, reason, deleted_at: new Date().toISOString() }); await log('permanently_deleted', id, { reason }); await supabase.from('management_reviews').delete().eq('id', id); fetchReviews(); } catch (e) { toast.error('Failed: ' + e.message); }
+        try { await supabase.from('deletion_audit_trail').insert({ company_id: getEffectiveCompanyId(), table_name: 'management_reviews', record_id: id, deleted_by: user?.id, reason, deleted_at: new Date().toISOString() }); await log('permanently_deleted', id, { reason }); await supabase.from('management_reviews').delete().eq('id', id); fetchReviews(); } catch (e) { toast.error('Failed: ' + e.message); }
       }
     });
   };
@@ -232,7 +232,7 @@ const ManagementReviews = () => {
       doc.text('Signature', m + sw + 10, y + 14); doc.text('Name: ________', m + sw + 10, y + 19); doc.text('Date: ________', m + sw + 10, y + 24);
 
       doc.save(`${r.review_number || 'MR'}_Management_Review.pdf`);
-    } catch (err) { toast.error('Export failed: ' + err.message); }
+    } catch (err) { toast.error('Export failed. Please try again.'); }
   };
 
   const fmt = (d) => d ? new Date(d).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set';
@@ -315,8 +315,8 @@ const ManagementReviews = () => {
           ))}
         </div>
       </div>
-      {showCreateForm && <ReviewForm userProfile={userProfile} userId={user?.id} onClose={() => setShowCreateForm(false)} onSaved={() => { setShowCreateForm(false); fetchReviews(); }} mode="create" />}
-      {editingReview && <ReviewForm review={editingReview} userProfile={userProfile} userId={user?.id} onClose={() => setEditingReview(null)} onSaved={() => { setEditingReview(null); fetchReviews(); }} mode="edit" />}
+      {showCreateForm && <ReviewForm userProfile={userProfile} userId={user?.id} onClose={() => setShowCreateForm(false)} onSaved={() => { setShowCreateForm(false); fetchReviews(); }} mode="create" getEffectiveCompanyId={getEffectiveCompanyId} />}
+      {editingReview && <ReviewForm review={editingReview} userProfile={userProfile} userId={user?.id} onClose={() => setEditingReview(null)} onSaved={() => { setEditingReview(null); fetchReviews(); }} mode="edit" getEffectiveCompanyId={getEffectiveCompanyId} />}
       {selectedReview && <Detail r={selectedReview} />}
       {confirmAction && <ConfirmModal {...confirmAction} onCancel={() => setConfirmAction(null)} />}
     </Layout>

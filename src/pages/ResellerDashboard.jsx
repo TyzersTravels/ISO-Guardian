@@ -36,7 +36,7 @@ const ResellerDashboard = () => {
 
     } catch (err) {
       console.error('Error:', err);
-      setError('Failed to load data: ' + err.message);
+      setError('Failed to load data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -46,7 +46,7 @@ const ResellerDashboard = () => {
     // Get all resellers and clients for superadmin
     const { data: allResellers, error: resellersError } = await supabase
       .from('resellers')
-      .select('*')
+      .select('id, company_id, commission_rate, status, reseller_name, contact_email')
       .order('created_at', { ascending: false });
 
     if (resellersError) throw resellersError;
@@ -54,7 +54,7 @@ const ResellerDashboard = () => {
     // Get all clients
     const { data: allClients, error: clientsError } = await supabase
       .from('reseller_clients')
-      .select('*')
+      .select('id, reseller_company_id, client_company_id, client_name, status, mrr, subscription_tier, created_at, reseller_id, client_email, onboarded_date')
       .order('created_at', { ascending: false });
 
     if (clientsError) throw clientsError;
@@ -67,7 +67,7 @@ const ResellerDashboard = () => {
   const fetchResellerData = async () => {
     const { data: resellerInfo, error: resellerError } = await supabase
       .from('resellers')
-      .select('*')
+      .select('id, company_id, commission_rate, status, reseller_name, contact_email')
       .eq('contact_email', userProfile?.email)
       .single();
 
@@ -88,7 +88,7 @@ const ResellerDashboard = () => {
 
     const { data: clientsData, error: clientsError } = await supabase
       .from('reseller_clients')
-      .select('*')
+      .select('id, reseller_company_id, client_company_id, client_name, status, mrr, subscription_tier, created_at, reseller_id, client_email, onboarded_date')
       .eq('reseller_id', resellerInfo.id)
       .order('created_at', { ascending: false });
 

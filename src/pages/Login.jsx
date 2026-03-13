@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getLoginAttempts, recordFailedLogin, clearLoginAttempts, getLockoutRemainingMs } from '../lib/rateLimiter'
 
-const TURNSTILE_SITE_KEY = '0x4AAAAAACfLITd5DD70PYix'
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAACfLITd5DD70PYix'
 
 const Login = () => {
   const [email, setEmail] = useState('')

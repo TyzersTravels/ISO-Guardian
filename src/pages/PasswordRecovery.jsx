@@ -23,7 +23,7 @@ const PasswordRecovery = () => {
       setMessage('Password reset link sent! Check your email.')
       setEmail('')
     } catch (err) {
-      setError(err.message || 'Failed to send reset email')
+      setError('Failed to send reset email. Please try again.')
     } finally {
       setLoading(false)
     }

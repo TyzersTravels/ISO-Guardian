@@ -57,12 +57,12 @@ const AICopilot = () => {
           ...prev,
           {
             role: 'system',
-            content: err.message || 'Query limit reached. Upgrade your plan for more AI queries.',
+            content: 'Something went wrong. Please try again or contact support.',
           },
         ])
         setUsage({ remaining: err.remaining || 0, limit: err.limit })
       } else {
-        toast.error(err.message || 'Failed to get AI response')
+        toast.error('Failed to get AI response. Please try again.')
         // Remove the user message if we couldn't get a response
         setMessages(prev => prev.slice(0, -1))
       }

@@ -27,25 +27,25 @@ const SuperAdminDashboard = () => {
       // Fetch all companies
       const { data: companiesData } = await supabase
         .from('companies')
-        .select('*')
+        .select('id, name, industry, company_code, logo_url, created_at, location, employee_count')
         .order('created_at', { ascending: false })
 
       // Fetch all users
       const { data: usersData } = await supabase
         .from('users')
-        .select('*')
+        .select('id, full_name, email, role, company_id, created_at, is_active, last_login')
 
       // Fetch subscriptions
       const { data: subscriptionsData } = await supabase
         .from('subscriptions')
-        .select('*')
+        .select('id, company_id, tier, status, start_date, end_date, final_price, max_users, storage_limit, total_amount, plan, users_count, price_per_user')
 
       // Fetch invoices (table may not have RLS policies yet — handle gracefully)
       let invoicesData = []
       try {
         const { data, error } = await supabase
           .from('invoices')
-          .select('*')
+          .select('id, company_id, invoice_number, invoice_date, due_date, total, status, paid_date, payment_method')
           .order('invoice_date', { ascending: false })
           .limit(20)
         if (!error) invoicesData = data || []
@@ -56,7 +56,7 @@ const SuperAdminDashboard = () => {
       try {
         const { data, error } = await supabase
           .from('audit_log')
-          .select('*')
+          .select('id, company_id, user_id, action, entity_type, entity_id, changes, created_at, user_email')
           .order('created_at', { ascending: false })
           .limit(50)
         if (!error) activityData = data || []

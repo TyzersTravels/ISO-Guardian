@@ -27,7 +27,7 @@ const Analytics = () => {
       // Check if user is a reseller
       const { data: reseller } = await supabase
         .from('resellers')
-        .select('*')
+        .select('id, company_id, commission_rate, status, reseller_name, contact_email')
         .eq('contact_email', userProfile.email)
         .single()
 
@@ -37,7 +37,7 @@ const Analytics = () => {
         // Fetch reseller's clients
         const { data: resellerClients } = await supabase
           .from('reseller_clients')
-          .select('*')
+          .select('id, reseller_company_id, client_company_id, client_name, status, mrr, subscription_tier, created_at, reseller_id')
           .eq('reseller_id', reseller.id)
           .order('created_at', { ascending: false })
 
@@ -49,7 +49,7 @@ const Analytics = () => {
               
               const [docs, ncrs, audits, reviews] = await Promise.all([
                 supabase.from('documents').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
-                supabase.from('ncrs').select('*').eq('company_id', companyId),
+                supabase.from('ncrs').select('id, status').eq('company_id', companyId),
                 supabase.from('audits').select('id', { count: 'exact', head: true }).eq('company_id', companyId),
                 supabase.from('management_reviews').select('id', { count: 'exact', head: true }).eq('company_id', companyId)
               ])
@@ -76,10 +76,10 @@ const Analytics = () => {
       // SuperAdmin: fetch platform-wide stats
       if (isSuperAdmin) {
         const [companies, users, resellers, subscriptions] = await Promise.all([
-          supabase.from('companies').select('*'),
+          supabase.from('companies').select('id, name, industry, company_code, logo_url, created_at'),
           supabase.from('users').select('id, email, role, company_id, last_sign_in'),
-          supabase.from('resellers').select('*'),
-          supabase.from('subscriptions').select('*')
+          supabase.from('resellers').select('id, company_id, commission_rate, status, reseller_name, contact_email'),
+          supabase.from('subscriptions').select('id, company_id, tier, status, start_date, end_date, final_price, max_users, storage_limit, total_amount')
         ])
 
         const activeSubs = subscriptions.data?.filter(s => s.status === 'Active') || []

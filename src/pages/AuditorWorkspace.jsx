@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useToast } from '../contexts/ToastContext'
 import { generateAuditReport } from '../lib/auditReportPDF'
 
 const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auditor-portal`
 
 const AuditorWorkspace = () => {
+  const toast = useToast()
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') || ''
   const [session, setSession] = useState(null)
@@ -100,7 +102,7 @@ const AuditorWorkspace = () => {
       setPhotoFiles([])
       setFindingForm(prev => ({ ...prev, clause: '', description: '', evidence: '', auditor_notes: '' }))
     } catch (err) {
-      alert(err.message || 'Failed to submit finding')
+      toast.error('Failed to submit finding. Please try again.')
     } finally {
       setSubmitting(false)
     }

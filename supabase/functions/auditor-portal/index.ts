@@ -16,11 +16,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-auditor-token",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-};
+import { publicCorsHeaders as corsHeaders } from "../_shared/cors.ts";
 
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -289,9 +285,10 @@ async function uploadPhoto(session: any, req: Request) {
     return jsonResponse({ error: "File too large. Maximum 5MB" }, 400);
   }
 
-  const ext = file.name.split(".").pop() || "jpg";
+  const ext = file.name.split(".").pop()?.replace(/[^a-zA-Z0-9]/g, '') || "jpg";
   const timestamp = Date.now();
-  const path = `audit-evidence/${session.audit_id}/${findingId || "general"}/${timestamp}.${ext}`;
+  const randomId = crypto.randomUUID().slice(0, 8);
+  const path = `audit-evidence/${session.audit_id}/${findingId || "general"}/${timestamp}-${randomId}.${ext}`;
 
   const arrayBuffer = await file.arrayBuffer();
   const { error: uploadError } = await supabase.storage

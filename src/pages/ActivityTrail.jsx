@@ -21,14 +21,14 @@ const ActivityTrail = () => {
       const companyId = getEffectiveCompanyId();
       const { data: auditData, error: auditError } = await supabase
         .from('audit_log')
-        .select('*')
+        .select('id, company_id, user_id, action, entity_type, entity_id, changes, created_at')
         .eq('company_id', companyId)
         .order('created_at', { ascending: false })
         .limit(500);
 
       const { data: deletionData } = await supabase
         .from('deletion_audit_trail')
-        .select('*')
+        .select('id, company_id, table_name, record_id, deleted_by, reason, deleted_at')
         .eq('company_id', companyId)
         .order('deleted_at', { ascending: false })
         .limit(100);

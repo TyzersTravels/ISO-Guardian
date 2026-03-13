@@ -23,11 +23,11 @@ const DataExport = () => {
       // Fetch all company data
       const companyId = getEffectiveCompanyId()
       const [docsResult, ncrsResult, auditsResult, reviewsResult, complianceResult] = await Promise.all([
-        supabase.from('documents').select('*').eq('company_id', companyId),
-        supabase.from('ncrs').select('*').eq('company_id', companyId),
-        supabase.from('audits').select('*').eq('company_id', companyId),
-        supabase.from('management_reviews').select('*').eq('company_id', companyId),
-        supabase.from('compliance_requirements').select('*').eq('company_id', companyId)
+        supabase.from('documents').select('id, title, document_number, standard, clause, type, status, company_id, created_at, updated_at, file_path, archived').eq('company_id', companyId),
+        supabase.from('ncrs').select('id, ncr_number, title, description, standard, clause, severity, status, source, raised_by, assigned_to, target_close_date, company_id, created_at, updated_at, archived').eq('company_id', companyId),
+        supabase.from('audits').select('id, audit_number, audit_type, standard, scope, audit_date, status, conclusion, evidence, recommendation, company_id, created_at, updated_at, archived').eq('company_id', companyId),
+        supabase.from('management_reviews').select('id, title, review_date, status, minutes, action_items, company_id, created_at, updated_at').eq('company_id', companyId),
+        supabase.from('compliance_requirements').select('id, standard, clause, clause_title, status, score, evidence_notes, company_id').eq('company_id', companyId)
       ])
 
       const exportData = {
@@ -64,7 +64,7 @@ const DataExport = () => {
       toast.success('Data exported successfully!')
     } catch (err) {
       console.error('Export error:', err)
-      toast.error('Failed to export data: ' + err.message)
+      toast.error('Failed to export data. Please try again.')
     } finally {
       setExporting(false)
     }
