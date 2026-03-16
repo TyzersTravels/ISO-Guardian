@@ -39,7 +39,7 @@ const Documents = () => {
       const companyId = getEffectiveCompanyId()
       let query = supabase
         .from('documents')
-        .select('id, title, document_number, standard, clause, type, status, company_id, created_at, updated_at, file_path, archived, name, next_review_date')
+        .select('id, name, standard, clause, type, version, status, company_id, created_at, updated_at, file_path, archived, next_review_date')
         .eq('company_id', companyId)
 
       const { data, error: fetchError } = await query

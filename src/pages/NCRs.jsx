@@ -36,7 +36,7 @@ const NCRs = () => {
         // Fallback if foreign key name is different
         const { data: fallbackData, error: fbErr } = await supabase
           .from('ncrs')
-          .select('id, ncr_number, title, description, standard, clause, severity, status, source, raised_by, assigned_to, target_close_date, company_id, created_at, updated_at, archived, clause_name, date_opened, due_date, root_cause, corrective_action, date_closed')
+          .select('id, ncr_number, title, description, standard, clause, severity, status, assigned_to, company_id, created_at, updated_at, archived, clause_name, date_opened, due_date, root_cause, corrective_action, date_closed')
           .eq('company_id', companyId)
         if (fbErr) throw fbErr
         

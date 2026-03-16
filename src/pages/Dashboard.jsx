@@ -147,12 +147,12 @@ const Dashboard = () => {
           .limit(5),
         supabase
           .from('ncrs')
-          .select('id, ncr_number, title, target_close_date, status')
+          .select('id, ncr_number, title, due_date, status')
           .eq('company_id', companyId)
           .eq('status', 'Open')
-          .not('target_close_date', 'is', null)
-          .lte('target_close_date', in30Days)
-          .order('target_close_date', { ascending: true })
+          .not('due_date', 'is', null)
+          .lte('due_date', in30Days)
+          .order('due_date', { ascending: true })
           .limit(5),
       ])
 
@@ -169,9 +169,9 @@ const Dashboard = () => {
         })
       })
       ;(ncrsRes.data || []).forEach(n => {
-        const overdue = n.target_close_date < today
+        const overdue = n.due_date < today
         items.push({
-          type: 'ncr', label: n.ncr_number || n.title, date: n.target_close_date,
+          type: 'ncr', label: n.ncr_number || n.title, date: n.due_date,
           status: overdue ? 'Overdue' : 'Due', path: '/ncrs'
         })
       })
@@ -191,7 +191,7 @@ const Dashboard = () => {
       const userStandards = userProfile?.standards_access || []
 
       // Fetch documents (need full data to filter by standards_access + archived, matching Documents page)
-      const docQuery = supabase.from('documents').select('id, title, document_number, standard, clause, type, status, company_id, created_at, updated_at, file_path, archived, name')
+      const docQuery = supabase.from('documents').select('id, name, standard, clause, type, status, company_id, created_at, updated_at, file_path, archived')
       docQuery.eq('company_id', companyId)
       const { data: allDocs } = await docQuery
 
@@ -201,7 +201,7 @@ const Dashboard = () => {
       )
 
       // Fetch NCRs (scoped to company, exclude archived to match NCRs page)
-      const ncrQuery = supabase.from('ncrs').select('id, ncr_number, title, description, standard, clause, severity, status, source, raised_by, assigned_to, target_close_date, company_id, created_at, updated_at, archived')
+      const ncrQuery = supabase.from('ncrs').select('id, ncr_number, title, description, standard, clause, severity, status, assigned_to, due_date, company_id, created_at, updated_at, archived')
       ncrQuery.eq('company_id', companyId)
       const { data: ncrs } = await ncrQuery
 
@@ -210,7 +210,7 @@ const Dashboard = () => {
       const criticalNCRs = openNCRs.filter(n => n.severity === 'Critical')
 
       // Fetch upcoming audits (scoped to company)
-      const auditQuery = supabase.from('audits').select('id, audit_number, audit_type, standard, scope, audit_date, status, conclusion, evidence, recommendation, company_id, created_at, updated_at, archived').in('status', ['Scheduled', 'In Progress', 'Planned'])
+      const auditQuery = supabase.from('audits').select('id, audit_number, audit_type, standard, scope, audit_date, status, conclusion, evidence_reviewed, auditor_recommendation, company_id, created_at, updated_at, archived').in('status', ['Scheduled', 'In Progress', 'Planned'])
       auditQuery.eq('company_id', companyId)
       const { data: audits } = await auditQuery
 
