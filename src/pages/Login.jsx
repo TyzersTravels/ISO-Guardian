@@ -5,6 +5,39 @@ import { supabase } from '../lib/supabase'
 import { getLoginAttempts, recordFailedLogin, clearLoginAttempts, getLockoutRemainingMs } from '../lib/rateLimiter'
 
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+
+// Server-side rate limit helpers (Edge Function backed, with client-side fallback)
+async function serverRateLimitCheck(email) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/rate-limit/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    return await res.json()
+  } catch { return { allowed: true } } // fallback: allow if Edge Function unavailable
+}
+
+async function serverRecordFailed(email) {
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/rate-limit/record`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+  } catch { /* silent fallback to client-side */ }
+}
+
+async function serverClearAttempts(email) {
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/rate-limit/clear`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+  } catch { /* silent */ }
+}
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -73,7 +106,7 @@ const Login = () => {
     e.preventDefault()
     setError('')
 
-    // Check lockout
+    // Check lockout (client-side first, then server-side)
     const remaining = getLockoutRemainingMs()
     if (remaining > 0) {
       const mins = Math.ceil(remaining / 60000)
@@ -89,9 +122,19 @@ const Login = () => {
 
     setLoading(true)
 
+    // Server-side rate limit check
+    const serverCheck = await serverRateLimitCheck(email)
+    if (!serverCheck.allowed) {
+      setError(serverCheck.message || 'Too many failed attempts. Please try again later.')
+      setLockoutRemaining(serverCheck.remainingMs || LOCKOUT_MS)
+      setLoading(false)
+      return
+    }
+
     const { data, error: signInError } = await signIn(email, password, captchaToken)
 
     if (signInError) {
+      serverRecordFailed(email) // fire-and-forget server record
       const result = recordFailedLogin()
       if (result.lockedUntil) {
         setError('Account temporarily locked due to too many failed attempts. Please try again in 15 minutes.')
@@ -113,8 +156,9 @@ const Login = () => {
       return
     }
 
-    // Successful login — clear attempt tracking
+    // Successful login — clear attempt tracking (both client + server)
     clearLoginAttempts()
+    serverClearAttempts(email)
 
     if (data.user) {
       // Handle referral tracking
