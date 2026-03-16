@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getLoginAttempts, recordFailedLogin, clearLoginAttempts, getLockoutRemainingMs } from '../lib/rateLimiter'
 
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAACfLITd5DD70PYix'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
 // Server-side rate limit helpers (Edge Function backed, with client-side fallback)
