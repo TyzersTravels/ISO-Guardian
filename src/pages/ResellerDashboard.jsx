@@ -154,7 +154,7 @@ const ResellerDashboard = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Analytics Dashboard</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Analytics Dashboard</h1>
             <p className="text-sm text-white/60 mt-1">
               {isSuperAdmin && <span className="text-cyan-400 mr-2">SuperAdmin Access</span>}
               {resellerData?.reseller_name}

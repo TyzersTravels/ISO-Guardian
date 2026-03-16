@@ -179,7 +179,7 @@ const SuperAdminDashboard = () => {
         <div className="glass glass-border rounded-2xl p-6 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">🎯 Super Admin Dashboard</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Super Admin Dashboard</h1>
               <p className="text-purple-200">ISOGuardian System Overview</p>
             </div>
             <button 
@@ -254,17 +254,17 @@ const SuperAdminDashboard = () => {
             </div>
 
             {/* Usage Metrics */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="glass glass-border rounded-xl p-4">
-                <div className="text-4xl font-bold text-blue-400">{analytics?.total_documents}</div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+              <div className="glass glass-border rounded-xl p-3 md:p-4">
+                <div className="text-2xl md:text-4xl font-bold text-blue-400">{analytics?.total_documents}</div>
                 <div className="text-sm text-white/70 mt-1">Documents Managed</div>
               </div>
-              <div className="glass glass-border rounded-xl p-4">
-                <div className="text-4xl font-bold text-orange-400">{analytics?.total_ncrs}</div>
+              <div className="glass glass-border rounded-xl p-3 md:p-4">
+                <div className="text-2xl md:text-4xl font-bold text-orange-400">{analytics?.total_ncrs}</div>
                 <div className="text-sm text-white/70 mt-1">NCRs Tracked</div>
               </div>
-              <div className="glass glass-border rounded-xl p-4">
-                <div className="text-4xl font-bold text-green-400">{clients.reduce((sum, c) => sum + c.audits_count, 0)}</div>
+              <div className="glass glass-border rounded-xl p-3 md:p-4">
+                <div className="text-2xl md:text-4xl font-bold text-green-400">{clients.reduce((sum, c) => sum + c.audits_count, 0)}</div>
                 <div className="text-sm text-white/70 mt-1">Audits Scheduled</div>
               </div>
             </div>
@@ -339,7 +339,7 @@ const SuperAdminDashboard = () => {
                 </div>
 
                 {/* Usage Stats */}
-                <div className="grid grid-cols-4 gap-3 mb-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                   <div className="glass glass-border rounded-lg p-3 text-center">
                     <div className="text-xl font-bold text-blue-400">{client.documents_count}</div>
                     <div className="text-xs text-white/60">Documents</div>
@@ -379,8 +379,8 @@ const SuperAdminDashboard = () => {
         {activeTab === 'revenue' && (
           <div className="space-y-6">
             {/* Summary Cards */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="glass glass-border rounded-xl p-6 bg-green-500/10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="glass glass-border rounded-xl p-4 md:p-6 bg-green-500/10">
                 <div className="text-sm text-white/70 mb-1">Paid This Month</div>
                 <div className="text-3xl font-bold text-green-400">
                   R{invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + parseFloat(i.total || 0), 0).toLocaleString()}

@@ -164,7 +164,7 @@ const AuditorInvite = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Audit Connect</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Audit Connect</h1>
             <p className="text-white/50 text-sm mt-1">Invite external auditors to a secure audit workspace</p>
           </div>
           <button
@@ -199,7 +199,7 @@ const AuditorInvite = () => {
 
         {/* Create Form */}
         {showForm && (
-          <form onSubmit={handleCreate} className="glass glass-border rounded-2xl p-6 space-y-4">
+          <form onSubmit={handleCreate} className="glass glass-border rounded-2xl p-4 md:p-6 space-y-4">
             <h2 className="text-lg font-bold text-white mb-2">Invite External Auditor</h2>
 
             <div>

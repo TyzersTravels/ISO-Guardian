@@ -110,7 +110,7 @@ const Compliance = () => {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Compliance Management</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-2">Compliance Management</h2>
           <p className="text-white/60">Track compliance requirements by clause</p>
         </div>
 
@@ -136,9 +136,9 @@ const Compliance = () => {
 
         {/* Overall Score */}
         <div className="glass glass-border rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
             <div>
-              <h3 className="text-xl font-bold text-white">Overall Compliance</h3>
+              <h3 className="text-lg md:text-xl font-bold text-white">Overall Compliance</h3>
               <p className="text-sm text-white/60">
                 {overallMet} Met • {overallPartial} Partially Met • {overallTotal - overallMet - overallPartial} Not Met
               </p>
@@ -169,8 +169,8 @@ const Compliance = () => {
                   onClick={() => setSelectedClause(isExpanded ? null : parseInt(clauseNum))}
                   className="w-full p-4 text-left hover:bg-white/5 transition-colors"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-bold text-white">{data.clauseName}</h4>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <h4 className="font-bold text-white text-sm md:text-base">{data.clauseName}</h4>
                     <div className={`text-2xl font-bold ${
                       percentage >= 70 ? 'text-green-400' :
                       percentage >= 50 ? 'text-orange-400' :
@@ -179,7 +179,7 @@ const Compliance = () => {
                       {percentage}%
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-white/60 mb-2">
+                  <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm text-white/60 mb-2 flex-wrap">
                     <span>✓ {data.met} Met</span>
                     <span>◐ {data.partial} Partial</span>
                     <span>✗ {data.notMet} Not Met</span>
@@ -203,14 +203,14 @@ const Compliance = () => {
                     {requirements
                       .filter(r => r.clause_number === parseInt(clauseNum))
                       .map(req => (
-                        <div key={req.id} className="flex items-start justify-between p-3 bg-white/5 rounded-lg">
+                        <div key={req.id} className="flex flex-col sm:flex-row sm:items-start justify-between p-3 bg-white/5 rounded-lg gap-2">
                           <div className="flex-1">
                             <p className="text-white text-sm">{req.requirement_text}</p>
                             {req.notes && (
                               <p className="text-white/50 text-xs mt-1">{req.notes}</p>
                             )}
                           </div>
-                          <div className="ml-4 flex gap-1 shrink-0">
+                          <div className="sm:ml-4 flex gap-1 shrink-0">
                             <button
                               onClick={() => updateStatus(req.id, 'Not Met')}
                               className={`px-2 py-1 rounded text-xs font-semibold transition-all ${

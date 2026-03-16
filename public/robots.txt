@@ -17,5 +17,11 @@ Disallow: /users
 Disallow: /login
 Disallow: /password-recovery
 Disallow: /reset-password
+Disallow: /notifications
+Disallow: /create-company
+Disallow: /audit-connect
+Disallow: /profile
+Disallow: /auditor
+Disallow: /ai-copilot
 
 Sitemap: https://isoguardian.co.za/sitemap.xml

@@ -45,18 +45,18 @@ const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'cre
   const c = "w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500";
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border border-white/20 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+      <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border border-white/20 rounded-2xl w-full max-w-sm md:max-w-2xl mx-4 md:mx-auto max-h-[90vh] overflow-y-auto p-4 md:p-6">
         <div className="flex justify-between mb-6">
-          <h2 className="text-xl font-bold text-white">{mode === 'edit' ? 'Update Management Review' : 'Schedule Management Review'}</h2>
+          <h2 className="text-lg md:text-xl font-bold text-white">{mode === 'edit' ? 'Update Management Review' : 'Schedule Management Review'}</h2>
           <button onClick={onClose} className="text-white/50 hover:text-white text-2xl">&times;</button>
         </div>
         {mode === 'edit' && <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-2 mb-4"><p className="text-xs text-blue-300">Update this review with meeting outcomes, minutes, decisions, and action items.</p></div>}
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className="block text-sm text-white/70 mb-1">Review Number *</label><input type="text" value={reviewNumber} onChange={e => setReviewNumber(e.target.value)} placeholder="MR-2026-001" className={c} disabled={mode === 'edit'} /></div>
             <div><label className="block text-sm text-white/70 mb-1">Review Date *</label><input type="date" value={reviewDate} onChange={e => setReviewDate(e.target.value)} className={c} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className="block text-sm text-white/70 mb-1">Time</label><input type="time" value={reviewTime} onChange={e => setReviewTime(e.target.value)} className={c} /></div>
             <div><label className="block text-sm text-white/70 mb-1">Chairperson *</label><input type="text" value={chairperson} onChange={e => setChairperson(e.target.value)} placeholder="Name" className={c} /></div>
           </div>
@@ -239,10 +239,10 @@ const ManagementReviews = () => {
 
   const Detail = ({ r }) => (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border border-white/20 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-        <div className="flex justify-between mb-6"><h2 className="text-xl font-bold text-white">{r.review_number || 'Review Details'}</h2><button onClick={() => setSelectedReview(null)} className="text-white/50 hover:text-white text-2xl">&times;</button></div>
+      <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border border-white/20 rounded-2xl w-full max-w-sm md:max-w-2xl mx-4 md:mx-auto max-h-[90vh] overflow-y-auto p-4 md:p-6">
+        <div className="flex justify-between mb-6"><h2 className="text-lg md:text-xl font-bold text-white">{r.review_number || 'Review Details'}</h2><button onClick={() => setSelectedReview(null)} className="text-white/50 hover:text-white text-2xl">&times;</button></div>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[['Date', fmt(r.review_date)], ['Chairperson', r.chairperson || 'TBC'], ['Status', r.status || 'Scheduled'], ['Next Review', fmt(r.next_review_date)]].map(([l, v]) => (
               <div key={l} className="bg-white/5 rounded-xl p-3"><p className="text-xs text-white/50">{l}</p><p className="text-white font-medium">{v}</p></div>
             ))}
@@ -276,7 +276,7 @@ const ManagementReviews = () => {
     <Layout>
       <div className="space-y-6 pb-20">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-white">Management Reviews</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Management Reviews</h1>
           <button onClick={() => setShowCreateForm(true)} className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:scale-105 transition-transform shadow-lg">Schedule Review</button>
         </div>
         <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-2"><p className="text-xs text-purple-300">ISO 9001:9.3 • ISO 14001:9.3 • ISO 45001:9.3 — Top management shall review the management system at planned intervals</p></div>

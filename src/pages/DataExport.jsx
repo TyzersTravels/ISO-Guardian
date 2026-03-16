@@ -73,15 +73,15 @@ const DataExport = () => {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="glass glass-border rounded-2xl p-6">
-          <h1 className="text-3xl font-bold text-white mb-4">Data Export</h1>
+        <div className="glass glass-border rounded-2xl p-4 md:p-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">Data Export</h1>
           <p className="text-cyan-200">
             Export your compliance data as required by POPIA regulations.
           </p>
         </div>
 
-        <div className="glass glass-border rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-white mb-4">Your POPIA Rights</h2>
+        <div className="glass glass-border rounded-2xl p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-bold text-white mb-4">Your POPIA Rights</h2>
           <div className="text-white/80 space-y-2 text-sm mb-6">
             <p>✅ Right to access your personal information</p>
             <p>✅ Right to data portability (machine-readable format)</p>
@@ -125,8 +125,8 @@ const DataExport = () => {
           </button>
         </div>
 
-        <div className="glass glass-border rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-white mb-4">Need Help?</h2>
+        <div className="glass glass-border rounded-2xl p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-bold text-white mb-4">Need Help?</h2>
           <div className="text-white/80 text-sm space-y-2">
             <p><strong>Question about your data?</strong></p>
             <p>Email: Support@isoguardian.co.za</p>
@@ -134,8 +134,8 @@ const DataExport = () => {
           </div>
         </div>
 
-        <div className="glass glass-border rounded-2xl p-6 bg-red-500/10">
-          <h2 className="text-xl font-bold text-white mb-4">Request Data Deletion</h2>
+        <div className="glass glass-border rounded-2xl p-4 md:p-6 bg-red-500/10">
+          <h2 className="text-lg md:text-xl font-bold text-white mb-4">Request Data Deletion</h2>
           <div className="text-white/80 text-sm mb-4">
             <p className="mb-2">To permanently delete your data:</p>
             <p>1. Export your data first (above button)</p>

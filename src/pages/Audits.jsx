@@ -171,7 +171,7 @@ const Audits = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-white">Audit Schedule</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-white">Audit Schedule</h2>
             <p className="text-cyan-200 text-sm">{filteredAudits.length} audits {filterStatus === 'Archived' ? '(archived)' : ''}</p>
           </div>
           <button
@@ -199,7 +199,7 @@ const Audits = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="glass glass-border rounded-lg p-4">
             <div className="text-3xl font-bold text-cyan-400">{activeAudits.filter(a => a.status === 'Planned').length}</div>
             <div className="text-sm text-white/70">Planned</div>
@@ -442,19 +442,19 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
+      <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-4 md:p-6 max-w-sm md:max-w-2xl w-full mx-4 md:mx-auto max-h-[90vh] overflow-y-auto border border-white/20 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold text-white">{audit.audit_number}</h3>
+          <h3 className="text-xl md:text-2xl font-bold text-white">{audit.audit_number}</h3>
           <button onClick={onClose} className="text-white/60 hover:text-white">✕</button>
         </div>
 
         <div className="space-y-4">
           {/* Audit Info */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className="text-sm text-white/60">Type</label><div className="text-white">{audit.audit_type}</div></div>
             <div><label className="text-sm text-white/60">Standard</label><div className="text-white">{audit.standard?.replace('_', ' ')}</div></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className="text-sm text-white/60">Date</label><div className="text-white">{new Date(audit.audit_date).toLocaleDateString('en-ZA')}</div></div>
             <div><label className="text-sm text-white/60">Time</label><div className="text-white">{audit.audit_time || 'Not set'}</div></div>
           </div>
@@ -475,7 +475,7 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
               <div><label className="text-sm text-white/60">Findings (ISO 19011:6.5)</label><div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap">{audit.findings}</div></div>
               {audit.observations && <div><label className="text-sm text-white/60">Observations</label><div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap">{audit.observations}</div></div>}
               {audit.evidence_reviewed && <div><label className="text-sm text-white/60">Evidence Reviewed</label><div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap">{audit.evidence_reviewed}</div></div>}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label className="text-sm text-white/60">NCRs Raised</label><div className="text-white">{audit.ncrs_raised || 0}</div></div>
                 {audit.auditor_recommendation && <div><label className="text-sm text-white/60">Recommendation</label><div className={`font-semibold ${audit.auditor_recommendation === 'Conforming' ? 'text-green-400' : audit.auditor_recommendation === 'Critical' ? 'text-red-400' : 'text-orange-400'}`}>{audit.auditor_recommendation}</div></div>}
               </div>
@@ -513,7 +513,7 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
                   className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-cyan-500" />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-white/60 block mb-2">NCRs Raised</label>
                   <input type="number" min="0" value={closeOut.ncrs_raised} onChange={e => setCloseOut({...closeOut, ncrs_raised: e.target.value})}
@@ -639,11 +639,11 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="glass glass-border rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <h3 className="text-2xl font-bold text-white mb-6">Schedule New Audit</h3>
+      <div className="glass glass-border rounded-2xl p-4 md:p-6 max-w-sm md:max-w-2xl w-full mx-4 md:mx-auto max-h-[90vh] overflow-y-auto">
+        <h3 className="text-xl md:text-2xl font-bold text-white mb-6">Schedule New Audit</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-white/60 block mb-2">Audit Type *</label>
               <select
@@ -676,7 +676,7 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-white/60 block mb-2">Audit Date *</label>
               <input

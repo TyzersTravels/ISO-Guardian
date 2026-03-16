@@ -223,13 +223,13 @@ const CompanySettings = () => {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Company Settings</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Company Settings</h1>
           <p className="text-white/60">Manage your company profile, logo, and branding for exports</p>
         </div>
 
         {/* Logo Section */}
-        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6">
-          <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-semibold text-white mb-4 flex items-center gap-2">
             <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -239,9 +239,9 @@ const CompanySettings = () => {
             Your logo appears as the hero image on all branded PDF exports (NCR reports, Audit reports, Management Review minutes). Recommended: PNG or JPG, minimum 200x200px, maximum 2MB.
           </p>
 
-          <div className="flex items-start gap-6">
+          <div className="flex flex-col sm:flex-row items-start gap-6">
             {/* Logo Preview */}
-            <div className="w-32 h-32 rounded-xl border-2 border-dashed border-white/20 flex items-center justify-center bg-white/5 overflow-hidden flex-shrink-0">
+            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl border-2 border-dashed border-white/20 flex items-center justify-center bg-white/5 overflow-hidden flex-shrink-0">
               {logoPreview ? (
                 <img src={logoPreview} alt="Company logo" className="w-full h-full object-contain p-2" />
               ) : (
@@ -290,8 +290,8 @@ const CompanySettings = () => {
         </div>
 
         {/* Company Details Section */}
-        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6">
-          <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-semibold text-white mb-4 flex items-center gap-2">
             <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
@@ -378,7 +378,7 @@ const CompanySettings = () => {
         </div>
 
         {/* Company Code Info */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6">
           <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
             <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

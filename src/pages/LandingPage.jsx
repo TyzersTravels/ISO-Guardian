@@ -114,7 +114,7 @@ export default function LandingPage() {
 
       {/* ─── A. STICKY NAV ─────────────────────────────────────────────── */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-slate-900/80 backdrop-blur-xl border-b border-white/10 shadow-lg' : ''}`}>
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <img src="/isoguardian-logo.png" alt="ISOGuardian" className="w-10 h-10 object-contain" />
@@ -182,7 +182,7 @@ export default function LandingPage() {
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-500/15 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
         <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-purple-400/10 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
 
-        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center relative z-10">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 grid lg:grid-cols-2 gap-8 md:gap-16 items-center relative z-10">
           {/* Left — copy */}
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-full text-xs font-semibold text-purple-300 mb-6">
@@ -190,7 +190,7 @@ export default function LandingPage() {
               Enterprise ISO Compliance {'\u2014'} South Africa
             </div>
 
-            <h1 className="text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
               Your Shield Against{' '}
               <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
                 Non-Compliance.
@@ -325,7 +325,7 @@ export default function LandingPage() {
 
       {/* ─── C. TRUST BAR ──────────────────────────────────────────────── */}
       <section ref={trustRef} className="py-12 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <p className="text-center text-xs text-white/40 uppercase tracking-widest mb-6">
             Trusted by South African businesses
           </p>
@@ -353,9 +353,9 @@ export default function LandingPage() {
 
       {/* ─── D. PROBLEM SECTION ────────────────────────────────────────── */}
       <section id="features" ref={problemRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-extrabold mb-4">
+            <h2 className="text-2xl md:text-4xl font-extrabold mb-4">
               Manual compliance is costing you{' '}
               <span className="text-red-400">time, money, and certification.</span>
             </h2>
@@ -401,7 +401,7 @@ export default function LandingPage() {
                 iconColor: 'text-red-400',
               },
             ].map(({ icon, title, desc, accent, iconColor }) => (
-              <div key={title} className={`rounded-2xl border p-6 ${accent}`}>
+              <div key={title} className={`rounded-2xl border p-4 md:p-6 ${accent}`}>
                 <div className={`${iconColor} mb-4`}>{icon}</div>
                 <h3 className="font-bold text-white mb-2">{title}</h3>
                 <p className="text-white/60 text-sm leading-relaxed">{desc}</p>
@@ -421,9 +421,9 @@ export default function LandingPage() {
 
       {/* ─── E. FEATURES GRID ──────────────────────────────────────────── */}
       <section ref={featuresRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-extrabold mb-4">Everything you need. Nothing you don{'\u2019'}t.</h2>
+            <h2 className="text-2xl md:text-4xl font-extrabold mb-4">Everything you need. Nothing you don{'\u2019'}t.</h2>
             <p className="text-white/60">Six powerful modules. One unified platform.</p>
           </div>
           <div ref={featuresStaggerRef} className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -501,7 +501,7 @@ export default function LandingPage() {
                 iconBg: 'bg-gradient-to-br from-cyan-500/20 to-purple-500/20 text-cyan-400',
               },
             ].map(({ icon, title, desc, gradient, border, iconBg }) => (
-              <div data-stagger key={title} className={`relative rounded-2xl border ${border} bg-gradient-to-br ${gradient} p-6 hover:scale-[1.02] transition-transform duration-200 group`}>
+              <div data-stagger key={title} className={`relative rounded-2xl border ${border} bg-gradient-to-br ${gradient} p-4 md:p-6 hover:scale-[1.02] transition-transform duration-200 group`}>
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${iconBg}`}>
                   {icon}
                 </div>
@@ -517,9 +517,9 @@ export default function LandingPage() {
 
       {/* ─── F. STANDARDS SECTION ──────────────────────────────────────── */}
       <section id="standards" ref={standardsRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-extrabold mb-4">Built for the standards that matter.</h2>
+            <h2 className="text-2xl md:text-4xl font-extrabold mb-4">Built for the standards that matter.</h2>
             <p className="text-white/60">Full clause coverage from day one {'\u2014'} no add-ons, no hidden upgrades.</p>
           </div>
 
@@ -550,7 +550,7 @@ export default function LandingPage() {
                 border: 'border-amber-500/30',
               },
             ].map(({ code, year, name, clauses, color, border }) => (
-              <div key={code} className={`rounded-2xl border ${border} bg-white/5 p-6`}>
+              <div key={code} className={`rounded-2xl border ${border} bg-white/5 p-4 md:p-6`}>
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className={`text-2xl font-extrabold bg-gradient-to-r ${color} bg-clip-text text-transparent`}>{code}<span className="text-lg">{year}</span></h3>
@@ -581,9 +581,9 @@ export default function LandingPage() {
 
       {/* ─── G. HOW IT WORKS ───────────────────────────────────────────── */}
       <section ref={howRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-extrabold mb-4">Up and running in minutes.</h2>
+            <h2 className="text-2xl md:text-4xl font-extrabold mb-4">Up and running in minutes.</h2>
             <p className="text-white/60">Three steps from sign-up to full compliance management.</p>
           </div>
 
@@ -622,7 +622,7 @@ export default function LandingPage() {
             ].map(({ num, title, desc, icon }, i) => (
               <div data-stagger key={num} className="flex-1 relative">
                 {/* Step card */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 relative">
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 relative">
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center text-cyan-400 mb-4">
                     {icon}
                   </div>
@@ -654,9 +654,9 @@ export default function LandingPage() {
 
       {/* ─── I. PRICING ──────────────────────────────────────────────── */}
       <section id="pricing" ref={pricingRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <div className="text-center mb-4">
-            <h2 className="text-4xl font-extrabold mb-3">
+            <h2 className="text-2xl md:text-4xl font-extrabold mb-3">
               Starting from{' '}
               <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                 R2,000&nbsp;/&nbsp;month
@@ -693,7 +693,7 @@ export default function LandingPage() {
               <div
                 data-stagger
                 key={tier}
-                className={`relative rounded-2xl p-6 flex flex-col ${
+                className={`relative rounded-2xl p-4 md:p-6 flex flex-col ${
                   highlight
                     ? 'bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border-2 border-cyan-500/50 z-10 md:-mt-2 md:-mb-2'
                     : 'bg-white/5 border border-white/10 md:first:rounded-r-none md:last:rounded-l-none'
@@ -748,9 +748,9 @@ export default function LandingPage() {
 
       {/* ─── L. SECURITY & POPIA ─────────────────────────────────────── */}
       <section ref={securityRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-extrabold mb-4">Enterprise security. South African compliance.</h2>
+            <h2 className="text-2xl md:text-4xl font-extrabold mb-4">Enterprise security. South African compliance.</h2>
             <p className="text-white/60 max-w-2xl mx-auto">
               Security isn{'\u2019'}t a feature we bolt on {'\u2014'} it{'\u2019'}s the foundation we build on.
               Every architectural decision is made with your data{'\u2019'}s protection in mind.
@@ -804,7 +804,7 @@ export default function LandingPage() {
                 bg: 'bg-amber-500/10 border-amber-500/20',
               },
             ].map(({ icon, title, desc, color, bg }) => (
-              <div key={title} className={`rounded-2xl border p-6 ${bg}`}>
+              <div key={title} className={`rounded-2xl border p-4 md:p-6 ${bg}`}>
                 <div className={`${color} mb-4`}>{icon}</div>
                 <h3 className="font-bold text-white mb-2 text-lg">{title}</h3>
                 <p className="text-white/60 text-sm leading-relaxed">{desc}</p>
@@ -813,7 +813,7 @@ export default function LandingPage() {
           </div>
 
           {/* Legal links + contact */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-white mb-2">Legal &amp; Compliance Documents</p>
               <div className="flex flex-wrap gap-3 text-xs">
@@ -839,7 +839,7 @@ export default function LandingPage() {
 
       {/* ─── TESTIMONIALS / SOCIAL PROOF ──────────────────────────────── */}
       <section className="py-20">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <h2 className="text-3xl lg:text-4xl font-extrabold text-center mb-4">
             Trusted by{' '}
             <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
@@ -870,7 +870,7 @@ export default function LandingPage() {
                 company: "Compliance Advisory, KZN",
               },
             ].map((t, i) => (
-              <div key={i} className="glass glass-border rounded-2xl p-6 flex flex-col">
+              <div key={i} className="glass glass-border rounded-2xl p-4 md:p-6 flex flex-col">
                 <div className="flex gap-1 mb-4">
                   {[...Array(5)].map((_, j) => (
                     <svg key={j} className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
@@ -893,7 +893,7 @@ export default function LandingPage() {
 
       {/* ─── BECOME A RESELLER ─────────────────────────────────────────── */}
       <section id="reseller" ref={resellerRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left — copy */}
             <div>
@@ -902,7 +902,7 @@ export default function LandingPage() {
                 Partner Programme
               </div>
 
-              <h2 className="text-4xl font-extrabold mb-4">
+              <h2 className="text-2xl md:text-4xl font-extrabold mb-4">
                 Independent ISO consultant?{' '}
                 <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                   Grow with us.
@@ -1005,7 +1005,7 @@ export default function LandingPage() {
       {/* ─── O. CTA SECTION ──────────────────────────────────────────── */}
       {/* ─── FAQ ──────────────────────────────────────────────────────── */}
       <section id="faq" ref={faqRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
-        <div className="max-w-3xl mx-auto px-6">
+        <div className="max-w-3xl mx-auto px-4 md:px-6">
           <h2 className="text-3xl lg:text-4xl font-extrabold text-center mb-4">
             Frequently Asked{' '}
             <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Questions</span>
@@ -1046,7 +1046,7 @@ export default function LandingPage() {
       </section>
 
       <section id="contact" ref={ctaRef} className="py-20 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
-        <div className="max-w-4xl mx-auto px-6">
+        <div className="max-w-4xl mx-auto px-4 md:px-6">
           <div className="bg-gradient-to-br from-purple-900/60 to-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-12 text-center shadow-2xl">
             <h2 className="text-4xl lg:text-5xl font-extrabold mb-4">
               Ready to get{' '}

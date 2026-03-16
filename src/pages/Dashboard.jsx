@@ -187,11 +187,12 @@ const Dashboard = () => {
     try {
       setLoading(true)
       const companyId = getEffectiveCompanyId()
+      if (!companyId) { setLoading(false); return }
       const userStandards = userProfile?.standards_access || []
 
       // Fetch documents (need full data to filter by standards_access + archived, matching Documents page)
       const docQuery = supabase.from('documents').select('id, title, document_number, standard, clause, type, status, company_id, created_at, updated_at, file_path, archived, name')
-      if (companyId) docQuery.eq('company_id', companyId)
+      docQuery.eq('company_id', companyId)
       const { data: allDocs } = await docQuery
 
       // Filter to match Documents page: exclude archived, filter by user's standards access
@@ -201,7 +202,7 @@ const Dashboard = () => {
 
       // Fetch NCRs (scoped to company, exclude archived to match NCRs page)
       const ncrQuery = supabase.from('ncrs').select('id, ncr_number, title, description, standard, clause, severity, status, source, raised_by, assigned_to, target_close_date, company_id, created_at, updated_at, archived')
-      if (companyId) ncrQuery.eq('company_id', companyId)
+      ncrQuery.eq('company_id', companyId)
       const { data: ncrs } = await ncrQuery
 
       const activeNcrs = (ncrs || []).filter(n => !n.archived)
@@ -210,7 +211,7 @@ const Dashboard = () => {
 
       // Fetch upcoming audits (scoped to company)
       const auditQuery = supabase.from('audits').select('id, audit_number, audit_type, standard, scope, audit_date, status, conclusion, evidence, recommendation, company_id, created_at, updated_at, archived').in('status', ['Scheduled', 'In Progress', 'Planned'])
-      if (companyId) auditQuery.eq('company_id', companyId)
+      auditQuery.eq('company_id', companyId)
       const { data: audits } = await auditQuery
 
       // Recent documents: from visible (non-archived, standards-filtered), sorted by created_at
@@ -286,13 +287,13 @@ const Dashboard = () => {
           onComplete={completeOnboarding}
         />
       )}
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Welcome Header */}
-        <div className="relative overflow-hidden glass glass-border rounded-2xl p-6">
+        <div className="relative overflow-hidden glass glass-border rounded-2xl p-4 md:p-6">
           <div className="relative z-10">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-white mb-1">
+                <h2 className="text-xl md:text-2xl font-bold text-white mb-1">
                   Welcome back, {userProfile.full_name}
                 </h2>
                 <p className="text-white/60 text-sm">
@@ -314,7 +315,7 @@ const Dashboard = () => {
           <div className="glass glass-border rounded-2xl p-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-500/30">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <h3 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
                   <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
@@ -337,7 +338,7 @@ const Dashboard = () => {
                 { value: adminStats.totalClients, label: 'Total Companies', color: 'text-white' },
               ].map(({ value, label, color }) => (
                 <div key={label} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                  <div className={`text-2xl font-bold mb-1 ${color}`}>{value}</div>
+                  <div className={`text-xl md:text-2xl font-bold mb-1 ${color}`}>{value}</div>
                   <div className="text-purple-200 text-xs">{label}</div>
                 </div>
               ))}
@@ -346,9 +347,9 @@ const Dashboard = () => {
         )}
 
         {/* Compliance Scores + Stats Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Compliance Score Bars + Gauge */}
-          <div className="lg:col-span-2 glass glass-border rounded-2xl p-6">
+          <div className="md:col-span-2 lg:col-span-2 glass glass-border rounded-2xl p-4 md:p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-bold text-white">Compliance Scores</h3>
               <button
@@ -372,7 +373,7 @@ const Dashboard = () => {
                 </button>
               </div>
             ) : (
-              <div className="flex gap-6 items-start">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-center sm:items-start">
                 {/* Overall Gauge */}
                 {(() => {
                   const overall = complianceScores.length > 0
@@ -488,7 +489,7 @@ const Dashboard = () => {
                   {icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className={`text-2xl font-bold ${color}`}>{value}</div>
+                  <div className={`text-xl md:text-2xl font-bold ${color}`}>{value}</div>
                   <div className="text-white/50 text-xs">{label}</div>
                 </div>
                 {onClick && (
@@ -565,7 +566,7 @@ const Dashboard = () => {
         )}
 
         {/* Recent Activity + Recent Documents/NCRs */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Activity Feed */}
           <div className="glass glass-border rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">

@@ -320,7 +320,7 @@ const NCRs = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-white">Non-Conformance Reports</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-white">Non-Conformance Reports</h2>
             <p className="text-cyan-200 text-sm">{filteredNCRs.length} NCRs {statusFilter === 'Archived' ? '(archived)' : ''}</p>
           </div>
           <button
@@ -332,17 +332,17 @@ const NCRs = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3 md:gap-4">
           <div className="glass glass-border rounded-lg p-4">
-            <div className="text-3xl font-bold text-orange-400">{openCount}</div>
+            <div className="text-2xl md:text-3xl font-bold text-orange-400">{openCount}</div>
             <div className="text-sm text-white/70">Open NCRs</div>
           </div>
           <div className="glass glass-border rounded-lg p-4">
-            <div className="text-3xl font-bold text-red-400">{criticalCount}</div>
+            <div className="text-2xl md:text-3xl font-bold text-red-400">{criticalCount}</div>
             <div className="text-sm text-white/70">Critical</div>
           </div>
           <div className="glass glass-border rounded-lg p-4">
-            <div className="text-3xl font-bold text-white/40">{archivedCount}</div>
+            <div className="text-2xl md:text-3xl font-bold text-white/40">{archivedCount}</div>
             <div className="text-sm text-white/70">Archived</div>
           </div>
         </div>
@@ -430,9 +430,9 @@ const NCRs = () => {
         {/* NCR Details Modal */}
         {selectedNCR && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="glass glass-border rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-white">{selectedNCR.ncr_number}</h3>
+            <div className="glass glass-border rounded-2xl p-4 md:p-6 max-w-sm md:max-w-2xl w-full mx-4 md:mx-auto max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <h3 className="text-xl md:text-2xl font-bold text-white">{selectedNCR.ncr_number}</h3>
                 <button
                   onClick={() => setSelectedNCR(null)}
                   className="text-white/60 hover:text-white"
@@ -454,7 +454,7 @@ const NCRs = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-white/60">Standard</label>
                     <div className="text-white">{selectedNCR.standard.replace('_', ' ')}</div>
@@ -479,7 +479,7 @@ const NCRs = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-white/60">Date Opened</label>
                     <div className="text-white">{new Date(selectedNCR.date_opened).toLocaleDateString()}</div>
@@ -657,8 +657,8 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="glass glass-border rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <h3 className="text-2xl font-bold text-white mb-6">Create New NCR</h3>
+      <div className="glass glass-border rounded-2xl p-4 md:p-6 max-w-sm md:max-w-2xl w-full mx-4 md:mx-auto max-h-[90vh] overflow-y-auto">
+        <h3 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">Create New NCR</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -685,7 +685,7 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-white/60 block mb-2">Standard *</label>
               <select
@@ -717,7 +717,7 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-white/60 block mb-2">Severity *</label>
               <select

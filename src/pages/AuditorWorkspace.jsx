@@ -254,7 +254,7 @@ const AuditorWorkspace = () => {
                 { label: 'Compliance Avg', value: `${evidence.summary.complianceAvg}%`, color: evidence.summary.complianceAvg >= 80 ? 'text-green-400' : 'text-amber-400' },
               ].map((stat) => (
                 <div key={stat.label} className="glass glass-border rounded-xl p-4 text-center">
-                  <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+                  <p className={`text-2xl md:text-3xl font-bold ${stat.color}`}>{stat.value}</p>
                   <p className="text-white/50 text-sm">{stat.label}</p>
                 </div>
               ))}
@@ -367,7 +367,7 @@ const AuditorWorkspace = () => {
         {activeTab === 'findings' && (
           <div className="space-y-4">
             {showFindingForm && (
-              <form onSubmit={submitFinding} className="glass glass-border rounded-xl p-5 space-y-3">
+              <form onSubmit={submitFinding} className="glass glass-border rounded-xl p-4 md:p-5 space-y-3">
                 <h3 className="font-semibold text-white">Raise Audit Finding</h3>
                 <div className="grid sm:grid-cols-3 gap-3">
                   <div>

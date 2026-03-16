@@ -147,7 +147,7 @@ const UserManagement = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">User Management</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">User Management</h1>
             <p className="text-white/60 text-sm mt-1">
               {users.length} user{users.length !== 1 ? 's' : ''} in {isSuperAdmin ? 'platform' : 'your company'}
             </p>
@@ -191,7 +191,7 @@ const UserManagement = () => {
           <div className="divide-y divide-white/10">
             {users.map(u => (
               <div key={u.id} className="p-4 hover:bg-white/5 transition-colors">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
                       {(u.full_name || u.email || '?').charAt(0).toUpperCase()}
@@ -215,7 +215,7 @@ const UserManagement = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     {/* Role selector */}
                     <select
                       value={u.role || 'user'}
@@ -366,9 +366,9 @@ const InviteUserModal = ({ userProfile, onClose, onInvited }) => {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-6 max-w-lg w-full border border-white/20 shadow-2xl">
+      <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-4 md:p-6 max-w-sm md:max-w-lg w-full mx-4 md:mx-auto border border-white/20 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-white">Invite New User</h3>
+          <h3 className="text-lg md:text-xl font-bold text-white">Invite New User</h3>
           <button onClick={onClose} className="text-white/60 hover:text-white">{'\u2715'}</button>
         </div>
 
@@ -482,9 +482,9 @@ const EditUserModal = ({ user, isSuperAdmin, onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-6 max-w-lg w-full border border-white/20 shadow-2xl">
+      <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl p-4 md:p-6 max-w-sm md:max-w-lg w-full mx-4 md:mx-auto border border-white/20 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-white">Edit User</h3>
+          <h3 className="text-lg md:text-xl font-bold text-white">Edit User</h3>
           <button onClick={onClose} className="text-white/60 hover:text-white">{'\u2715'}</button>
         </div>
 

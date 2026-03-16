@@ -338,7 +338,7 @@ const ClientOnboarding = () => {
         {/* Summary */}
         <div className="bg-white/5 border border-white/20 rounded-xl p-6 space-y-3">
           <h3 className="font-bold text-white mb-4">Onboarding Summary</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-white/60">Company:</span>
               <span className="text-white ml-2">{formData.company_name || '-'}</span>

@@ -99,7 +99,7 @@ const AICopilot = () => {
 
   return (
     <Layout>
-      <div className="flex flex-col h-[calc(100vh-12rem)] max-w-4xl mx-auto">
+      <div className="flex flex-col h-[calc(100vh-10rem)] md:h-[calc(100vh-12rem)] max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -109,7 +109,7 @@ const AICopilot = () => {
               </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">AI Copilot</h1>
+              <h1 className="text-lg md:text-xl font-bold text-white">AI Copilot</h1>
               <p className="text-xs text-white/40">ISO compliance assistant</p>
             </div>
           </div>

@@ -132,7 +132,7 @@ const ActivityTrail = () => {
       <div className="space-y-6 pb-20">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Activity Trail</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Activity Trail</h1>
             <p className="text-sm text-white/50 mt-1">Complete audit log — ISO 7.5 documented information control</p>
           </div>
           <button onClick={fetchActivities} className="px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white text-sm hover:bg-white/20">
