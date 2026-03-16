@@ -130,7 +130,7 @@ const Dashboard = () => {
       const [auditsRes, docsRes, ncrsRes] = await Promise.all([
         supabase
           .from('audits')
-          .select('id, title, audit_date, status')
+          .select('id, audit_number, audit_date, status')
           .eq('company_id', companyId)
           .in('status', ['Planned', 'Scheduled'])
           .gte('audit_date', today)
@@ -158,7 +158,7 @@ const Dashboard = () => {
 
       const items = []
       ;(auditsRes.data || []).forEach(a => items.push({
-        type: 'audit', label: a.title || 'Audit', date: a.audit_date,
+        type: 'audit', label: a.audit_number || 'Audit', date: a.audit_date,
         status: a.status, path: '/audits'
       }))
       ;(docsRes.data || []).forEach(d => {

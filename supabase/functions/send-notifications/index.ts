@@ -232,7 +232,7 @@ async function sendDocumentReviewReminders(): Promise<number> {
 
   const { data: docs } = await supabase
     .from("documents")
-    .select("id, document_number, title, next_review_date, company_id")
+    .select("id, document_number, name, next_review_date, company_id")
     .neq("status", "archived")
     .lte("next_review_date", in7Days)
     .not("next_review_date", "is", null);
@@ -255,12 +255,12 @@ async function sendDocumentReviewReminders(): Promise<number> {
     for (const email of admins) {
       if (await alreadySent(companyUuid, email, "document_review", "document", doc.id)) continue;
 
-      const subject = `Document Due for Review: ${doc.title || doc.document_number}`;
+      const subject = `Document Due for Review: ${doc.name || doc.document_number}`;
       const body = `
         <p>The following document is due for review:</p>
         <table style="width:100%;border-collapse:collapse;margin:16px 0;">
           <tr><td style="padding:8px 0;color:#94a3b8;">Document Number</td><td style="padding:8px 0;color:#fff;font-weight:bold;">${doc.document_number || "N/A"}</td></tr>
-          <tr><td style="padding:8px 0;color:#94a3b8;">Title</td><td style="padding:8px 0;color:#fff;">${doc.title || "Untitled"}</td></tr>
+          <tr><td style="padding:8px 0;color:#94a3b8;">Name</td><td style="padding:8px 0;color:#fff;">${doc.name || "Untitled"}</td></tr>
           <tr><td style="padding:8px 0;color:#94a3b8;">Review Due</td><td style="padding:8px 0;color:#f59e0b;">${doc.next_review_date}</td></tr>
         </table>
         <p>Please review this document and update its status in ISOGuardian.</p>`;

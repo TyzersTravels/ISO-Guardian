@@ -90,7 +90,7 @@ const ManagementReviews = () => {
   const [isLeadAuditor, setIsLeadAuditor] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
 
-  useEffect(() => { checkUserRole(); fetchReviews(); }, [viewMode]);
+  useEffect(() => { if (userProfile) { checkUserRole(); fetchReviews(); } }, [viewMode, userProfile]);
 
   const checkUserRole = () => {
     const role = userProfile?.role || '';
@@ -103,7 +103,7 @@ const ManagementReviews = () => {
     try {
       setLoading(true);
       const companyId = getEffectiveCompanyId();
-      let query = supabase.from('management_reviews').select('id, title, review_date, status, minutes, action_items, company_id, created_at, updated_at, review_number, review_time, chairperson, attendees, agenda_items, decisions_made, resource_decisions, improvement_opportunities, next_review_date, archived, archive_reason, archived_at, created_by').eq('company_id', companyId).order('created_at', { ascending: false });
+      let query = supabase.from('management_reviews').select('id, review_date, status, minutes, action_items, company_id, created_at, updated_at, review_number, review_time, chairperson, attendees, agenda_items, decisions_made, resource_decisions, improvement_opportunities, next_review_date, archived, archive_reason, archived_at, created_by').eq('company_id', companyId).order('created_at', { ascending: false });
       if (viewMode === 'active') query = query.or('archived.is.null,archived.eq.false');
       else query = query.eq('archived', true);
       const { data, error } = await query;
