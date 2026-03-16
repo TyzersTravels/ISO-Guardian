@@ -115,19 +115,22 @@ export const AuthProvider = ({ children }) => {
       if (error) throw error
       setUserProfile(data)
 
-      // Check if this user is a reseller (match by company_id first, fallback to email)
-      let { data: reseller } = await supabase
+      // Check if this user is a reseller (try company_id as text, fallback to email)
+      let reseller = null
+      const { data: resellerByCompany, error: rcErr } = await supabase
         .from('resellers')
         .select('id, company_id, contact_email, commission_rate')
-        .eq('company_id', data.company_id)
-        .single()
+        .eq('company_id', String(data.company_id))
+        .maybeSingle()
 
-      if (!reseller) {
+      if (resellerByCompany) {
+        reseller = resellerByCompany
+      } else {
         const { data: resellerByEmail } = await supabase
           .from('resellers')
           .select('id, company_id, contact_email, commission_rate')
           .eq('contact_email', data.email)
-          .single()
+          .maybeSingle()
         reseller = resellerByEmail
       }
 
