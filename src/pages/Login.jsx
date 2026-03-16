@@ -126,7 +126,7 @@ const Login = () => {
     const serverCheck = await serverRateLimitCheck(email)
     if (!serverCheck.allowed) {
       setError(serverCheck.message || 'Too many failed attempts. Please try again later.')
-      setLockoutRemaining(serverCheck.remainingMs || LOCKOUT_MS)
+      setLockoutRemaining(serverCheck.remainingMs || 900000)
       setLoading(false)
       return
     }
