@@ -20,8 +20,8 @@ const NCRs = () => {
   const [severityFilter, setSeverityFilter] = useState('all')
 
   useEffect(() => {
-    fetchNCRs()
-  }, [])
+    if (userProfile) fetchNCRs()
+  }, [userProfile])
 
   const fetchNCRs = async () => {
     try {

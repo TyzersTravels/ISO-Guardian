@@ -19,8 +19,8 @@ const Compliance = () => {
   ]
 
   useEffect(() => {
-    fetchRequirements()
-  }, [selectedStandard])
+    if (userProfile) fetchRequirements()
+  }, [selectedStandard, userProfile])
 
   const fetchRequirements = async () => {
     try {

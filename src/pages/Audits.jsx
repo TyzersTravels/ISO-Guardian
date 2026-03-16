@@ -18,8 +18,8 @@ const Audits = () => {
   const [confirmAction, setConfirmAction] = useState(null)
 
   useEffect(() => {
-    fetchAudits()
-  }, [])
+    if (userProfile) fetchAudits()
+  }, [userProfile])
 
   const fetchAudits = async () => {
     try {

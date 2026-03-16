@@ -29,8 +29,8 @@ const Documents = () => {
   const pageSize = 20
 
   useEffect(() => {
-    fetchDocuments()
-  }, [])
+    if (userProfile) fetchDocuments()
+  }, [userProfile])
 
   const fetchDocuments = async () => {
     try {
@@ -39,7 +39,7 @@ const Documents = () => {
       const companyId = getEffectiveCompanyId()
       let query = supabase
         .from('documents')
-        .select('id, title, document_number, standard, clause, type, status, company_id, created_at, updated_at, file_path, archived, name, next_review_date, version_history')
+        .select('id, title, document_number, standard, clause, type, status, company_id, created_at, updated_at, file_path, archived, name, next_review_date, version_history, version')
         .eq('company_id', companyId)
 
       const { data, error: fetchError } = await query
