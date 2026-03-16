@@ -1,6 +1,7 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+**Last updated: 2026-03-15**
 
 ## Commands
 
@@ -14,17 +15,20 @@ No test runner is configured. No linter is configured.
 
 ## Architecture
 
-**ISOGuardian** is a South African ISO compliance management SaaS (multi-tenant). Frontend: React 18 + Vite + Tailwind. Backend: Supabase (Postgres + Auth + Storage + RLS + Edge Functions). Email: Resend API. Domain: https://isoguardian.co.za
+**ISOGuardian** is a South African ISO compliance management SaaS (multi-tenant). Frontend: React 18 + Vite + Tailwind. Backend: Supabase (Postgres + Auth + Storage + RLS + Edge Functions). Email: Resend API (verified). Domain: https://isoguardian.co.za. Hosted on Vercel.
 
 ### Auth & Multi-Tenancy
 
 `AuthContext.jsx` is the core context. It exposes:
-- `userProfile` — the authenticated user row with nested `company` join (explicit column select, not `*`)
+- `userProfile` — the authenticated user row with nested `company` join and `standards_access` field
 - `getEffectiveCompanyId()` — **always use this** for queries; returns the client's company_id when a reseller is in client-view mode, otherwise the user's own company_id
 - `isSuperAdmin`, `isAdmin`, `isLeadAuditor` — role-based boolean flags (single source of truth)
 - `isReseller`, `resellerClients`, `viewingClient`, `switchClient(client)`
+- `signIn`, `signOut`, `user`, `loading`
 
 **Every Supabase query must be scoped to `getEffectiveCompanyId()`** — RLS enforces it at the DB level, but the frontend filter is defence-in-depth. No company can ever see another company's data.
+
+**Critical: all data-fetching useEffects must guard with `if (userProfile)` and include `[userProfile]` in deps** to prevent race conditions where `getEffectiveCompanyId()` returns undefined.
 
 ### Route Protection
 
@@ -39,8 +43,13 @@ Route access matrix:
 | `/admin`, `/create-company` | `RoleProtectedRoute allowedRoles={['super_admin']}` |
 | `/analytics`, `/settings`, `/users` | `RoleProtectedRoute allowedRoles={['super_admin', 'admin']}` |
 | `/reseller`, `/client-onboarding` | `RoleProtectedRoute requireReseller` |
+| `/ai-copilot` | `ProtectedRoute` (any authenticated user) |
+| `/audit-connect` | `RoleProtectedRoute allowedRoles={['super_admin', 'admin', 'lead_auditor']}` |
+| `/auditor` | Public (token-based auth via query param) |
 
-Layout nav items are conditional: core items visible to all users, admin-only items (Analytics, Settings, Users) shown only to `admin`/`super_admin`, super_admin-only items (New Company) shown only to `super_admin`.
+### Code Splitting
+
+All pages except Login, LandingPage, and NotFound are lazy-loaded via `React.lazy()` with a `Suspense` wrapper showing a branded spinner. Main bundle: ~477KB (down from 1,222KB).
 
 ### Security Rules
 
@@ -53,12 +62,16 @@ Layout nav items are conditional: core items visible to all users, admin-only it
 
 ### Security Hardening (implemented)
 
-- **Login lockout**: 5 failed attempts → 15-minute cooldown (`src/lib/rateLimiter.js` + `Login.jsx`)
+- **Login lockout**: 5 failed attempts → 15-minute cooldown (client-side via `src/lib/rateLimiter.js` + server-side via `rate-limit` Edge Function)
+- **Server-side rate limiting**: Edge Function tracks failed attempts by IP + email in `failed_login_attempts` table
 - **Rate limiting**: Client-side token bucket throttle on public forms (3 submissions/60s)
 - **Honeypot fields**: Hidden input on ReadinessAssessment + ConsultationUpsell — bot submissions silently discarded
-- **Cloudflare Turnstile CAPTCHA**: On Login page
+- **Cloudflare Turnstile CAPTCHA**: On Login page (site key: `0x4AAAAAACfLITd5DD70PYix`, also set as Vercel env var)
 - **Security headers** (`vercel.json`): HSTS, X-Frame-Options: DENY, CSP, Permissions-Policy, X-XSS-Protection, nosniff
 - **Meta security tags** (`index.html`): X-Content-Type-Options, strict-origin-when-cross-origin referrer
+- **Idle session timeout**: 30 minutes of inactivity → auto sign-out (AuthContext)
+- **Concurrent session detection**: Only one device per account — stamps `active_session_token` on users table, checks every 30 seconds
+- **File upload validation**: Type whitelist + 25MB size limit on Documents page
 
 ### SuperAdmin: Client Onboarding
 
@@ -72,7 +85,7 @@ Two types of `company_id` columns exist:
 
 Helper functions available in Supabase: `get_my_company_id()`, `get_my_company_id_text()`, `is_super_admin()`, `is_reseller_for_uuid(uuid)`, `is_reseller_for_text(text)`
 
-~21 tables have RLS enabled but **no policies** (completely locked out): `ai_operations`, `audit_logs`, `clauses`, `client_health`, `clients`, `commissions`, `compliance_reports`, `document_approvals`, `failed_login_attempts`, `iso_standards`, `meeting_attendees`, `meetings`, `payments`, `reseller_commissions`, `reseller_milestones`, `security_events`, `system_metrics`, `team_members`, `user_permissions`.
+All tables now have RLS policies configured.
 
 ### UI Patterns
 
@@ -80,6 +93,7 @@ Glass morphism design system — **all styles are global** (no inline `<style>` 
 - CSS classes in `src/index.css` (`@layer components`): `.glass`, `.glass-border`, `.glass-card`, `.glass-input`, `.bg-app-gradient`, `.btn-primary`, `.btn-gradient`
 - All animations defined in `tailwind.config.js`: `fade-in`, `slide-up`, `slide-in`, `float`, `pulse-slow`, `beam`, `shake`, `toast-in`, `glow`, `connector` + variants
 - Brand colors in Tailwind config: `brand-cyan` (#06b6d4), `brand-purple` (#8b5cf6), `brand-slate` (#0f172a)
+- All pages have responsive Tailwind classes (sm/md/lg breakpoints) for mobile
 
 Toasts via `useToast()` from `ToastContext.jsx`. Activity logging via `logActivity({ companyId, userId, action, entityType, entityId, changes })` from `src/lib/auditLogger.js` — call after every data mutation.
 
@@ -103,7 +117,8 @@ Counters are stored on the `companies` row (`doc_counter`, `ncr_counter`, `audit
 
 ### PDF Export
 
-`src/lib/brandedPDFExport.js` — client logo is the hero image (top, large). ISOGuardian branding is subtle (small footer only). Include signature blocks on NCR close-outs and audit reports.
+- `src/lib/brandedPDFExport.js` — client logo as hero image (top, large). ISOGuardian branding subtle (small footer only). Signature blocks on NCR close-outs.
+- `src/lib/auditReportPDF.js` — audit report PDF generation.
 
 ### Roles
 
@@ -132,58 +147,107 @@ SEO: react-helmet-async for meta tags, JSON-LD, canonical URLs. `robots.txt` + `
 
 ### Email Notifications
 
-Supabase Edge Function: `supabase/functions/send-notifications/index.ts`
-- Uses Resend API, runs daily at 07:00 SAST via pg_cron
-- Notification types: audit reminders (7d + 1d), overdue NCRs, document review reminders, weekly digest (Monday), **lead notifications** (new assessments + consultations)
-- Auth required: `CRON_SECRET` header or service role key
-- Dedup via `notification_log` table
-- HTML escaping on all dynamic content (XSS prevention)
+**Resend domain verified. Emails are live.**
+
+Two Edge Functions handle email:
+1. `supabase/functions/notify-lead/index.ts` — **Instant** lead notifications (called by landing page forms)
+   - Types: `assessment`, `consultation`, `template_enquiry`, `auditor_invite`
+   - Sends to `ADMIN_NOTIFICATION_EMAIL` (or auditor for invite type)
+   - Has GET test endpoint for verifying Resend config
+2. `supabase/functions/send-notifications/index.ts` — **Scheduled** daily notifications via pg_cron at 07:00 SAST
+   - Audit reminders (7d + 1d before)
+   - Overdue NCR notifications
+   - Document review reminders (7d before)
+   - Weekly compliance digest (Mondays only)
+   - Lead notifications (backup for any missed by notify-lead)
+   - Dedup via `notification_log` table (24h window for daily, 168h for weekly)
+   - Auth required: `CRON_SECRET` header or service role key
+
+### AI Copilot
+
+`src/pages/AICopilot.jsx` — Claude API via `supabase/functions/ai-copilot/index.ts` Edge Function.
+- Auto-selects Haiku for simple queries, Sonnet for complex analysis
+- Fair usage limits per subscription tier
+- Document gap analysis capability
+- Requires `ANTHROPIC_API_KEY` Supabase secret
+
+### Audit Connect
+
+- `src/pages/AuditorInvite.jsx` — Admin creates audit invite, generates token-based link
+- `src/pages/AuditorWorkspace.jsx` — Public page for external auditors (no account needed)
+- `supabase/functions/auditor-portal/index.ts` — Token validation, findings, checklist, evidence access
+- Findings auto-create NCRs for major/minor non-conformities
 
 ### Database Tables
 
-**New tables** (created via `scripts/landing_page_tables.sql`):
-- `iso_readiness_assessments` — lead capture from landing page
-- `consultation_requests` — consultation booking requests
-- `referrals` — affiliate + partner referral tracking
-- `notification_log` — email notification dedup
+**Core tables** (all have RLS policies):
+- `users`, `companies`, `documents`, `ncrs`, `audits`, `management_reviews`
+- `audit_log`, `deletion_audit_trail`, `compliance_requirements`, `subscriptions`
+- `resellers`, `reseller_clients`
 
-**Added columns to `users`**: `referral_code`, `referred_by`
+**Compliance requirements** are seeded with ISO clause data for ISO 9001, 14001, and 45001.
 
-## Known Issues
+**Landing page tables**: `iso_readiness_assessments`, `consultation_requests`, `referrals`, `notification_log`
 
-1. **~21 tables locked out** — RLS enabled with no policies. Features depending on them are broken.
-2. **`documents.company_id` is TEXT**, not UUID — mismatch with most other tables.
-3. **Document numbering race condition** — read-then-write pattern can generate duplicates under concurrent use. Needs atomic PostgreSQL function.
-4. **CreateCompany + ClientOnboarding** — `supabase.auth.admin.createUser()` called from frontend anon key (will fail). Needs Edge Function with service role key.
-5. **No idle session timeout** — sessions persist indefinitely while browser is open.
-6. **Resend domain verification pending** — email notifications won't work until DNS records are verified.
-7. **Document version_history** — JSONB column needs to be created in Supabase `documents` table for versioning to work.
+**AI/Audit tables**: `ai_usage`, `ai_conversations`, `audit_sessions`, `audit_findings`, `audit_checklist`
+
+**Security**: `failed_login_attempts` (server-side rate limiting)
+
+### Database Column Notes
+
+- `management_reviews` does NOT have a `title` column — use `review_number` as identifier
+- `audits` does NOT have a `title` column — use `audit_number` as identifier
+- `documents` does NOT have `version` or `version_history` columns yet — do not query these
+- `documents.company_id` is TEXT (not UUID) — mismatch with most other tables
+- Reseller lookup uses `.maybeSingle()` not `.single()` (non-reseller users would crash with `.single()`)
+
+## Edge Functions (all deployed and ACTIVE)
+
+| Function | Purpose |
+|----------|---------|
+| `ai-copilot` | Claude API proxy for AI Copilot feature |
+| `auditor-portal` | Token-based auditor workspace API |
+| `notify-lead` | Instant lead notification emails |
+| `rate-limit` | Server-side brute force protection |
+| `send-notifications` | Scheduled daily notification emails |
+
+## Known Issues (as of 2026-03-15)
+
+1. **`documents.company_id` is TEXT**, not UUID — mismatch with most other tables. Functional but inconsistent.
+2. **Document numbering race condition** — read-then-write pattern can generate duplicates under concurrent use. Needs atomic PostgreSQL function.
+3. **CreateCompany + ClientOnboarding** — `supabase.auth.admin.createUser()` called from frontend anon key (will fail in production). Needs Edge Function with service role key.
+4. **Document versioning columns missing** — `version` and `version_history` columns don't exist on `documents` table yet. Version upload feature in Documents.jsx will fail. Queries have been fixed to not select these columns, but the feature itself is broken.
+5. **NCRs.jsx uses `select('*')`** as primary query with fallback — should use explicit columns only.
 
 ## Resolved Issues
 
+- RLS policies added to all 21 previously locked-out tables
+- Resend domain verified — email notifications working
+- Compliance requirements seeded with ISO 9001, 14001, 45001 clause data
+- Idle session timeout — 30 minutes of inactivity → auto sign-out
+- Concurrent session detection — one device per account
+- Server-side rate limiting — Edge Function tracks failed logins by IP + email
+- AuthContext `.single()` crash fixed → `.maybeSingle()` for reseller lookup
+- AuthContext `standards_access` added to user profile select query
+- Race conditions fixed in Documents, NCRs, Audits, Compliance, ManagementReviews (userProfile guard)
+- Non-existent column queries fixed: `management_reviews.title`, `audits.title`, `documents.version/version_history`
+- send-notifications Edge Function: `documents.title` → `documents.name`
+- DataExport: fixed `audits.evidence`/`recommendation` → `evidence_reviewed`/`auditor_recommendation`
+- DataExport: fixed `management_reviews.title` → `review_number`
+- Code splitting — React.lazy reduced main bundle from 1,222KB to 477KB (61%)
+- Mobile responsiveness — all 20+ pages have sm/md/lg Tailwind breakpoints
+- Turnstile CAPTCHA site key restored (was accidentally removed)
+- File upload validation — type whitelist + 25MB size limit
+- Hardcoded Turnstile fallback key removed then restored (Vercel env var now set)
 - All hardcoded email checks removed — replaced with role-based checks via AuthContext
-- Route protection — RoleProtectedRoute enforces role-based access on admin/reseller routes
-- Company_id filters — all data pages now filter by getEffectiveCompanyId() as defence-in-depth
+- Route protection — RoleProtectedRoute enforces role-based access
+- Company_id filters — all data pages filter by getEffectiveCompanyId()
 - Console stripping — production builds remove all console.error/log via terser
-- Password policy strengthened — 12+ chars with complexity requirements
-- Temp passwords — crypto.getRandomValues() replaces Math.random()
-- Assessment form — error handling added (no more silent failures)
-- DataExport email — updated to Support@isoguardian.co.za
-- Dashboard compliance score — matches Compliance page formula (weighted partial credit)
+- Password policy — 12+ chars with complexity requirements
 - Toast notifications — replaced 60+ alert() calls across 9 files
-- SEO foundation — meta tags, JSON-LD, robots.txt, sitemap.xml
-- Global CSS consolidation — removed inline `<style>` blocks from 19 files, centralized in index.css + tailwind.config.js
-- Logo preloader — professional loading screen with progress bar (index.html + main.jsx)
-- Cookie consent banner — POPIA-compliant 3-category consent (CookieConsent.jsx)
-- Security hardening — login lockout, rate limiting, honeypot fields, CSP headers, vercel.json headers
-- Nav routing fix — Activity Trail/Notifications accessible to all users (were incorrectly admin-only)
-- Dashboard admin stats — fixed NaN crash (wrong column names: price_per_user → final_price)
-- ClientOnboarding Layout — added missing Layout wrapper
-- Compliance toast errors — wired useToast() into catch blocks
-- Pagination — Documents + NCRs pages with page size controls
-- Document versioning — version history tracking on document updates
-- Notification preferences page — per-user email notification toggles
-- SuperAdmin company creation — CreateCompany.jsx at /create-company
+- SEO — meta tags, JSON-LD, robots.txt, sitemap.xml, noindex on protected routes
+- Cookie consent banner — POPIA-compliant 3-category consent
+- Security headers — HSTS, CSP, X-Frame-Options via vercel.json
 
 ## Legal Constraints
 
@@ -194,19 +258,24 @@ Supabase Edge Function: `supabase/functions/send-notifications/index.ts`
 
 ## Environment Variables
 
+### Vercel (Frontend)
 ```
 VITE_SUPABASE_URL
 VITE_SUPABASE_ANON_KEY
-VITE_TURNSTILE_SITE_KEY
+VITE_TURNSTILE_SITE_KEY=0x4AAAAAACfLITd5DD70PYix
 ```
 
 ### Supabase Secrets (for Edge Functions)
-
 ```
 RESEND_API_KEY          # Resend API key for email notifications
 CRON_SECRET             # Auth secret for Edge Function invocation
 ADMIN_NOTIFICATION_EMAIL  # Email for lead notifications (default: krugerreece@gmail.com)
+ANTHROPIC_API_KEY       # Claude API key for AI Copilot
 ```
+
+## Companies Currently Set Up
+- **ISOGuardian HQ**: company_code "HQ" (admin company)
+- **Simathemba Holdings**: company_code "SH" (first reseller partner)
 
 ## Related Projects (SEPARATE CODEBASES)
 
@@ -216,4 +285,8 @@ ADMIN_NOTIFICATION_EMAIL  # Email for lead notifications (default: krugerreece@g
 - **Client:** Simathemba Holdings — SHEQ consultancy, ISOGuardian reseller partner
 - **Domain:** simathemba.co.za
 - **Status:** Complete, audited for cross-contamination
-- **IMPORTANT:** Keep these projects completely separate. No ISOGuardian platform code in Simathemba. ISOGuardian appears only as technology partner in marketing content.
+- **IMPORTANT:** Keep these projects completely separate. No ISOGuardian platform code in Simathemba.
+
+## Session Continuity
+
+When approaching context limit (~85%), always update this file with current completed/outstanding status before the session ends. At the start of each new session, recall `MEMORY.md` and this file.
