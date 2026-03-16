@@ -1,37 +1,52 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import RoleProtectedRoute from './components/RoleProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
+import CookieConsent from './components/CookieConsent'
+
+// Eagerly loaded (public, first-paint critical)
 import Login from './pages/Login'
 import LandingPage from './pages/LandingPage'
-import Dashboard from './pages/Dashboard'
-import Documents from './pages/Documents'
-import NCRs from './pages/NCRs'
-import Compliance from './pages/Compliance'
-import Audits from './pages/Audits'
-import ManagementReviews from './pages/ManagementReviews'
-import POPIACompliance from './pages/POPIACompliance'
-import TermsOfService from './pages/TermsOfService'
-import DataExport from './pages/DataExport'
-import SuperAdminDashboard from './pages/SuperAdminDashboard'
-import Analytics from './pages/Analytics'
-import ActivityTrail from './pages/ActivityTrail'
-import CompanySettings from './pages/CompanySettings'
-import PasswordRecovery from './pages/PasswordRecovery'
-import ResetPassword from './pages/ResetPassword'
-import ResellerDashboard from './pages/ResellerDashboard'
-import ClientOnboarding from './pages/ClientOnboarding'
-import UserManagement from './pages/UserManagement'
-import NotificationPreferences from './pages/NotificationPreferences'
-import CreateCompany from './pages/CreateCompany'
-import UserProfile from './pages/UserProfile'
 import NotFound from './pages/NotFound'
-// import AICopilot from './pages/AICopilot' // Hidden until launch
-import AuditorInvite from './pages/AuditorInvite'
-import AuditorWorkspace from './pages/AuditorWorkspace'
-import CookieConsent from './components/CookieConsent'
+
+// Lazy-loaded pages (split into separate chunks)
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Documents = lazy(() => import('./pages/Documents'))
+const NCRs = lazy(() => import('./pages/NCRs'))
+const Compliance = lazy(() => import('./pages/Compliance'))
+const Audits = lazy(() => import('./pages/Audits'))
+const ManagementReviews = lazy(() => import('./pages/ManagementReviews'))
+const POPIACompliance = lazy(() => import('./pages/POPIACompliance'))
+const TermsOfService = lazy(() => import('./pages/TermsOfService'))
+const DataExport = lazy(() => import('./pages/DataExport'))
+const SuperAdminDashboard = lazy(() => import('./pages/SuperAdminDashboard'))
+const Analytics = lazy(() => import('./pages/Analytics'))
+const ActivityTrail = lazy(() => import('./pages/ActivityTrail'))
+const CompanySettings = lazy(() => import('./pages/CompanySettings'))
+const PasswordRecovery = lazy(() => import('./pages/PasswordRecovery'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const ResellerDashboard = lazy(() => import('./pages/ResellerDashboard'))
+const ClientOnboarding = lazy(() => import('./pages/ClientOnboarding'))
+const UserManagement = lazy(() => import('./pages/UserManagement'))
+const NotificationPreferences = lazy(() => import('./pages/NotificationPreferences'))
+const CreateCompany = lazy(() => import('./pages/CreateCompany'))
+const UserProfile = lazy(() => import('./pages/UserProfile'))
+// const AICopilot = lazy(() => import('./pages/AICopilot')) // Hidden until launch
+const AuditorInvite = lazy(() => import('./pages/AuditorInvite'))
+const AuditorWorkspace = lazy(() => import('./pages/AuditorWorkspace'))
+
+// Loading fallback for lazy-loaded routes
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0015] via-[#1a0a2e] to-[#0a001a]">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-10 h-10 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      <p className="text-white/50 text-sm">Loading...</p>
+    </div>
+  </div>
+)
 
 function App() {
   return (
@@ -39,6 +54,7 @@ function App() {
     <BrowserRouter>
       <ToastProvider>
       <AuthProvider>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
@@ -76,6 +92,7 @@ function App() {
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </AuthProvider>
       </ToastProvider>
     </BrowserRouter>
