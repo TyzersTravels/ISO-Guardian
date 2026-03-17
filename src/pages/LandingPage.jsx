@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useFadeIn, useStaggerFadeIn, useHeroParallax } from '../hooks/useAnimations'
 import { useReferralTracking } from '../hooks/useReferralTracking'
+import { supabase } from '../lib/supabase'
 import ReadinessAssessment from '../components/landing/ReadinessAssessment'
 import ConsultationUpsell from '../components/landing/ConsultationUpsell'
 import TemplateMarketplace from '../components/landing/TemplateMarketplace'
@@ -79,6 +80,40 @@ export default function LandingPage() {
   // Hero parallax
   const heroParallaxRef = useHeroParallax()
 
+  // PayFast checkout handler
+  const [checkoutLoading, setCheckoutLoading] = useState(null) // tier name or null
+  const handleCheckout = async (tier) => {
+    setCheckoutLoading(tier)
+    try {
+      // Get referral/partner codes from session
+      const refCode = sessionStorage.getItem('isoguardian_ref')
+      const refType = sessionStorage.getItem('isoguardian_ref_type')
+
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          tier,
+          email: '', // Will be collected on PayFast's page
+          companyName: '',
+          firstName: '',
+          lastName: '',
+          referralCode: refType === 'affiliate' ? refCode : null,
+          partnerCode: refType === 'partner' ? refCode : null,
+        },
+      })
+
+      if (error) throw error
+      if (data?.redirectUrl) {
+        window.location.href = data.redirectUrl
+      }
+    } catch (err) {
+      console.warn('Checkout error:', err)
+      // Fallback to login page if checkout fails
+      navigate('/login')
+    } finally {
+      setCheckoutLoading(null)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white overflow-x-hidden">
       {/* SEO */}
@@ -140,10 +175,13 @@ export default function LandingPage() {
               Login
             </button>
             <a
-              href={`mailto:${SUPPORT_EMAIL}?subject=Demo%20Request%20%E2%80%94%20ISOGuardian`}
-              className="px-5 py-2 text-sm font-bold bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 rounded-xl transition-all shadow-lg shadow-purple-900/40"
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-5 py-2 text-sm font-bold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 rounded-xl transition-all shadow-lg shadow-green-900/40"
             >
-              Book a Demo
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+              WhatsApp Us
             </a>
           </div>
 
@@ -170,7 +208,7 @@ export default function LandingPage() {
               </button>
             ))}
             <button onClick={() => { setMobileMenuOpen(false); navigate('/login') }} className="block w-full text-left text-white/70 hover:text-white py-2">Login</button>
-            <a href={`mailto:${SUPPORT_EMAIL}?subject=Demo%20Request`} className="block text-center py-2 mt-2 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl font-bold text-sm">Book a Demo</a>
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="block text-center py-2 mt-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl font-bold text-sm">WhatsApp Us</a>
           </div>
         )}
       </nav>
@@ -336,7 +374,7 @@ export default function LandingPage() {
               { label: 'ISO 14001:2015', color: 'border-cyan-500/40 text-cyan-300' },
               { label: 'ISO 45001:2018', color: 'border-cyan-500/40 text-cyan-300' },
               { label: 'AES-256 Encrypted', color: 'border-green-500/40 text-green-300' },
-              { label: 'POPIA Compliant', color: 'border-white/20 text-white/60' },
+              { label: '14-Day Free Trial', color: 'border-green-500/40 text-green-300' },
             ].map(({ label, color }) => (
               <div key={label} className={`px-5 py-2 rounded-full border text-sm font-semibold ${color} bg-white/5`}>
                 {label}
@@ -676,20 +714,29 @@ export default function LandingPage() {
             {[
               {
                 tier: 'Starter',
+                price: 'R2,000',
+                period: '/month',
                 highlight: false,
-                features: ['Up to 10 users', 'ISO 9001, 14001 & 45001', 'Document management', 'NCR tracking', 'Audit scheduling', 'Management reviews', 'Compliance scoring', 'Branded PDF exports', 'Activity trail', 'Email support (business hours)'],
+                cta: 'trial',
+                features: ['Up to 10 users', '5GB document storage', 'ISO 9001, 14001 & 45001', 'Document management', 'NCR tracking', 'Audit scheduling', 'Management reviews', 'Compliance scoring', 'Branded PDF exports', 'Activity trail', 'Email support (business hours)'],
               },
               {
                 tier: 'Growth',
+                price: 'R3,700',
+                period: '/month',
                 highlight: true,
-                features: ['Up to 20 users', 'ISO 9001, 14001 & 45001', 'Document management', 'NCR tracking', 'Audit scheduling', 'Management reviews', 'Compliance scoring', 'Branded PDF exports', 'Activity trail', 'Priority email support'],
+                cta: 'trial',
+                features: ['Up to 20 users', '15GB document storage', 'ISO 9001, 14001 & 45001', 'Document management', 'NCR tracking', 'Audit scheduling', 'Management reviews', 'Compliance scoring', 'Branded PDF exports', 'Activity trail', 'Priority email support'],
               },
               {
                 tier: 'Enterprise',
+                price: 'Custom',
+                period: '',
                 highlight: false,
-                features: ['21+ users', 'ISO 9001, 14001 & 45001', 'All Growth features', 'Custom onboarding', 'Dedicated account manager', 'SLA agreement'],
+                cta: 'contact',
+                features: ['21+ users', 'Unlimited storage', 'ISO 9001, 14001 & 45001', 'All Growth features', 'Custom onboarding', 'Dedicated account manager', 'SLA agreement'],
               },
-            ].map(({ tier, highlight, features }) => (
+            ].map(({ tier, price, period, highlight, cta, features }) => (
               <div
                 data-stagger
                 key={tier}
@@ -705,7 +752,10 @@ export default function LandingPage() {
                   </div>
                 )}
                 <h3 className="text-xl font-bold text-white mb-1">{tier}</h3>
-                <p className="text-white/40 text-sm mb-5">Contact us for pricing</p>
+                <div className="mb-5">
+                  <span className="text-3xl font-extrabold text-white">{price}</span>
+                  {period && <span className="text-white/40 text-sm">{period}</span>}
+                </div>
                 <ul className="space-y-2 flex-1 mb-6">
                   {features.map(f => (
                     <li key={f} className="flex items-start gap-2 text-sm text-white/70">
@@ -714,16 +764,26 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <a
-                  href={`mailto:${SUPPORT_EMAIL}?subject=Pricing%20Query%20%E2%80%94%20${encodeURIComponent(tier)}%20Plan`}
-                  className={`w-full text-center py-3 rounded-xl font-bold text-sm transition-all ${
-                    highlight
-                      ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400'
-                      : 'border border-white/20 hover:border-white/40 text-white/70 hover:text-white'
-                  }`}
-                >
-                  Get Custom Quote
-                </a>
+                {cta === 'trial' ? (
+                  <button
+                    onClick={() => handleCheckout(tier.toLowerCase())}
+                    disabled={checkoutLoading === tier.toLowerCase()}
+                    className={`w-full text-center py-3 rounded-xl font-bold text-sm transition-all cursor-pointer disabled:opacity-50 ${
+                      highlight
+                        ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400'
+                        : 'border border-white/20 hover:border-white/40 text-white/70 hover:text-white'
+                    }`}
+                  >
+                    {checkoutLoading === tier.toLowerCase() ? 'Redirecting...' : 'Start 14-Day Free Trial'}
+                  </button>
+                ) : (
+                  <a
+                    href={`mailto:${SUPPORT_EMAIL}?subject=Enterprise%20Pricing%20Enquiry`}
+                    className="w-full text-center py-3 rounded-xl font-bold text-sm transition-all border border-white/20 hover:border-white/40 text-white/70 hover:text-white"
+                  >
+                    Contact Sales
+                  </a>
+                )}
               </div>
             ))}
           </div>
@@ -837,52 +897,67 @@ export default function LandingPage() {
 
       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
 
-      {/* ─── TESTIMONIALS / SOCIAL PROOF ──────────────────────────────── */}
+      {/* ─── SOCIAL PROOF / WHY SA BUSINESSES CHOOSE US ────────────── */}
       <section className="py-20">
         <div className="max-w-6xl mx-auto px-4 md:px-6">
           <h2 className="text-3xl lg:text-4xl font-extrabold text-center mb-4">
-            Trusted by{' '}
+            Built for{' '}
             <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
               South African Businesses
             </span>
           </h2>
           <p className="text-center text-white/60 mb-12 max-w-xl mx-auto">
-            See why companies choose ISOGuardian for their ISO compliance management
+            Purpose-built for the SA compliance landscape {'\u2014'} not another US tool with a ZAR price tag
           </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-12">
+            {[
+              { value: '3', label: 'ISO Standards', desc: '9001, 14001 & 45001', color: 'text-cyan-400' },
+              { value: '100%', label: 'POPIA Compliant', desc: 'Data isolation by design', color: 'text-purple-400' },
+              { value: '<10min', label: 'Setup Time', desc: 'Sign up to first upload', color: 'text-green-400' },
+              { value: 'R67/day', label: 'From Just', desc: 'Less than a coffee meeting', color: 'text-amber-400' },
+            ].map(({ value, label, desc, color }) => (
+              <div key={label} className="text-center bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6">
+                <p className={`text-2xl md:text-3xl font-extrabold ${color} mb-1`}>{value}</p>
+                <p className="text-white font-bold text-sm">{label}</p>
+                <p className="text-white/40 text-xs mt-1">{desc}</p>
+              </div>
+            ))}
+          </div>
+
           <div className="grid md:grid-cols-3 gap-6">
             {[
               {
-                quote: "ISOGuardian transformed how we manage our ISO 9001 documentation. What used to take days now takes minutes.",
-                name: "Sarah M.",
-                role: "Quality Manager",
-                company: "Manufacturing Firm, Gauteng",
+                icon: (
+                  <svg className="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ),
+                title: 'South African First',
+                desc: 'ZAR pricing, SAST support hours, POPIA-compliant data handling, and designed for SA regulatory requirements.',
               },
               {
-                quote: "The audit scheduling and NCR tracking features saved us during our surveillance audit. Everything was organised and accessible.",
-                name: "Johan V.",
-                role: "Operations Director",
-                company: "Engineering Services, Western Cape",
+                icon: (
+                  <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ),
+                title: '80% Cheaper Than Competitors',
+                desc: 'Enterprise compliance tools charge R12,000+/mo. ISOGuardian starts at R2,000/mo with no setup fees.',
               },
               {
-                quote: "As a consultant managing multiple clients, the reseller dashboard is a game-changer. I can oversee all my clients from one place.",
-                name: "Thabo K.",
-                role: "ISO Consultant",
-                company: "Compliance Advisory, KZN",
+                icon: (
+                  <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                ),
+                title: 'Audit-Ready Every Day',
+                desc: 'No more 3-week audit prep scrambles. ISOGuardian keeps your compliance current so audits become a non-event.',
               },
-            ].map((t, i) => (
-              <div key={i} className="glass glass-border rounded-2xl p-4 md:p-6 flex flex-col">
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, j) => (
-                    <svg key={j} className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-white/80 text-sm leading-relaxed flex-1 mb-4">"{t.quote}"</p>
-                <div className="border-t border-white/10 pt-3">
-                  <p className="text-white font-semibold text-sm">{t.name}</p>
-                  <p className="text-white/40 text-xs">{t.role}, {t.company}</p>
-                </div>
+            ].map(({ icon, title, desc }) => (
+              <div key={title} className="glass glass-border rounded-2xl p-4 md:p-6">
+                <div className="mb-4">{icon}</div>
+                <h3 className="font-bold text-white mb-2 text-lg">{title}</h3>
+                <p className="text-white/60 text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
@@ -1080,8 +1155,26 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ─── STICKY MOBILE CTA BAR ─────────────────────────────────────── */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-slate-900/95 backdrop-blur-xl border-t border-white/10 px-4 py-3 flex gap-3">
+        <button
+          onClick={() => navigate('/login')}
+          className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-xl transition-all text-sm shadow-lg"
+        >
+          Start Free Trial
+        </button>
+        <a
+          href={WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600/20 border border-green-500/40 font-bold rounded-xl text-green-300 text-sm"
+        >
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+        </a>
+      </div>
+
       {/* ─── K. FOOTER ─────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/10 py-16 bg-slate-900/50">
+      <footer className="border-t border-white/10 py-16 pb-24 md:pb-16 bg-slate-900/50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
             {/* Brand col */}

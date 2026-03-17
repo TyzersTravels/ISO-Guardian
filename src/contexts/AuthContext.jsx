@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [viewingClient, setViewingClient] = useState(null) // { company_id, name } of client being viewed
   const [isReseller, setIsReseller] = useState(false)
   const [resellerClients, setResellerClients] = useState([])
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null) // { allowed, reason, daysRemaining, tier, status }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -144,10 +145,85 @@ export const AuthProvider = ({ children }) => {
           .order('client_name')
         setResellerClients(clients || [])
       }
+
+      // Fetch subscription status (super_admin always has access)
+      if (data.role !== 'super_admin') {
+        await fetchSubscriptionStatus(data.company_id)
+      } else {
+        setSubscriptionStatus({ allowed: true, reason: 'super_admin', tier: 'Enterprise', status: 'active' })
+      }
     } catch (error) {
       console.error('Error fetching user profile:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchSubscriptionStatus = async (companyId) => {
+    try {
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('id, plan, status, trial_ends_at, trial_end_date, grace_period_end, next_billing_date, users_count, total_amount')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!sub) {
+        setSubscriptionStatus({ allowed: false, reason: 'no_subscription', tier: null, status: 'none' })
+        return
+      }
+
+      const now = new Date()
+      let allowed = false
+      let reason = ''
+      let daysRemaining = null
+      // Use trial_ends_at (PayFast flow) or trial_end_date (original column)
+      const trialEnd = sub.trial_ends_at || sub.trial_end_date
+
+      if (sub.status === 'active' || sub.status === 'Active') {
+        allowed = true
+        reason = 'active'
+      } else if (sub.status === 'trial') {
+        if (trialEnd && new Date(trialEnd) > now) {
+          allowed = true
+          reason = 'trial'
+          daysRemaining = Math.ceil((new Date(trialEnd).getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
+        } else {
+          allowed = false
+          reason = 'trial_expired'
+        }
+      } else if (sub.status === 'past_due') {
+        if (sub.grace_period_end && new Date(sub.grace_period_end) > now) {
+          allowed = true
+          reason = 'past_due_grace'
+          daysRemaining = Math.ceil((new Date(sub.grace_period_end).getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
+        } else {
+          allowed = false
+          reason = 'past_due_expired'
+        }
+      } else if (sub.status === 'pending') {
+        // Manually onboarded but not yet paid — allow access (admin created)
+        allowed = true
+        reason = 'pending_manual'
+      } else {
+        allowed = false
+        reason = sub.status || 'unknown'
+      }
+
+      setSubscriptionStatus({
+        allowed,
+        reason,
+        daysRemaining,
+        tier: sub.plan,
+        status: sub.status,
+        price: sub.total_amount,
+        maxUsers: sub.users_count,
+      })
+    } catch (err) {
+      console.error('Error fetching subscription:', err)
+      // On error, allow access to prevent locking out users
+      setSubscriptionStatus({ allowed: true, reason: 'error_fallback', tier: null, status: 'unknown' })
     }
   }
 
@@ -224,7 +300,8 @@ export const AuthProvider = ({ children }) => {
     getEffectiveCompanyId,
     isSuperAdmin,
     isAdmin,
-    isLeadAuditor
+    isLeadAuditor,
+    subscriptionStatus
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
