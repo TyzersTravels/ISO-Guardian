@@ -4,6 +4,8 @@
 
 import { publicCorsHeaders } from '../_shared/cors.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { crypto as stdCrypto } from 'https://deno.land/std@0.224.0/crypto/mod.ts'
+import { encodeHex } from 'https://deno.land/std@0.224.0/encoding/hex.ts'
 
 const PAYFAST_MERCHANT_ID = Deno.env.get('PAYFAST_MERCHANT_ID')!
 const PAYFAST_MERCHANT_KEY = Deno.env.get('PAYFAST_MERCHANT_KEY')!
@@ -25,7 +27,7 @@ const TIERS: Record<string, { name: string; price: number; maxUsers: number; sto
 }
 
 // Generate PayFast signature (MD5 of sorted params)
-function generateSignature(data: Record<string, string>, passphrase: string): string {
+async function generateSignature(data: Record<string, string>, passphrase: string): Promise<string> {
   const params = Object.keys(data)
     .filter(key => data[key] !== '')
     .sort()
@@ -34,50 +36,9 @@ function generateSignature(data: Record<string, string>, passphrase: string): st
 
   const withPassphrase = passphrase ? `${params}&passphrase=${encodeURIComponent(passphrase).replace(/%20/g, '+')}` : params
 
-  // MD5 hash
-  const encoder = new TextEncoder()
-  const dataBytes = encoder.encode(withPassphrase)
-  const hashBuffer = new Uint8Array(16)
-
-  // Deno has crypto.subtle for hashing
-  // PayFast requires MD5 — use a simple implementation
-  return md5(withPassphrase)
-}
-
-// MD5 implementation for Deno (PayFast requires it)
-function md5(input: string): string {
-  const bytes = new TextEncoder().encode(input)
-  let a = 0x67452301, b = 0xefcdab89, c = 0x98badcfe, d = 0x10325476
-  const k = new Uint32Array(64)
-  const s = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21]
-  for (let i = 0; i < 64; i++) k[i] = Math.floor(2**32 * Math.abs(Math.sin(i + 1))) >>> 0
-
-  const padded = new Uint8Array(((bytes.length + 8 >> 6) + 1) << 6)
-  padded.set(bytes)
-  padded[bytes.length] = 0x80
-  const view = new DataView(padded.buffer)
-  view.setUint32(padded.length - 8, (bytes.length * 8) & 0xffffffff, true)
-  view.setUint32(padded.length - 4, (bytes.length * 8) >>> 32, true)
-
-  for (let offset = 0; offset < padded.length; offset += 64) {
-    const m = new Uint32Array(16)
-    for (let j = 0; j < 16; j++) m[j] = view.getUint32(offset + j * 4, true)
-    let aa = a, bb = b, cc = c, dd = d
-    for (let i = 0; i < 64; i++) {
-      let f: number, g: number
-      if (i < 16) { f = (bb & cc) | (~bb & dd); g = i }
-      else if (i < 32) { f = (dd & bb) | (~dd & cc); g = (5 * i + 1) % 16 }
-      else if (i < 48) { f = bb ^ cc ^ dd; g = (3 * i + 5) % 16 }
-      else { f = cc ^ (bb | ~dd); g = (7 * i) % 16 }
-      f = (f + aa + k[i] + m[g]) >>> 0
-      aa = dd; dd = cc; cc = bb
-      bb = (bb + ((f << s[i]) | (f >>> (32 - s[i])))) >>> 0
-    }
-    a = (a + aa) >>> 0; b = (b + bb) >>> 0; c = (c + cc) >>> 0; d = (d + dd) >>> 0
-  }
-
-  const hex = (n: number) => Array.from(new Uint8Array(new Uint32Array([n]).buffer)).map(b => b.toString(16).padStart(2, '0')).join('')
-  return hex(a) + hex(b) + hex(c) + hex(d)
+  // Use Deno std crypto for reliable MD5 hashing
+  const hash = await stdCrypto.subtle.digest('MD5', new TextEncoder().encode(withPassphrase))
+  return encodeHex(new Uint8Array(hash))
 }
 
 // In-memory rate limiting (per IP, 5 requests per minute)
@@ -164,7 +125,7 @@ Deno.serve(async (req) => {
     }
 
     // Generate signature
-    paymentData.signature = generateSignature(paymentData, PAYFAST_PASSPHRASE)
+    paymentData.signature = await generateSignature(paymentData, PAYFAST_PASSPHRASE)
 
     // Build the redirect URL
     const formParams = Object.entries(paymentData)

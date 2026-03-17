@@ -247,10 +247,11 @@ export default function LandingPage() {
 
             <div className="flex flex-wrap gap-4">
               <button
-                onClick={() => navigate('/login')}
-                className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-2xl transition-all shadow-xl shadow-purple-900/50 text-lg"
+                onClick={() => handleCheckout('starter')}
+                disabled={checkoutLoading === 'starter'}
+                className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-2xl transition-all shadow-xl shadow-purple-900/50 text-lg disabled:opacity-50"
               >
-                Start Your 14-Day Free Trial
+                {checkoutLoading === 'starter' ? 'Redirecting...' : 'Start Your 14-Day Free Trial'}
               </button>
               <button
                 onClick={() => scrollTo('pricing')}
@@ -718,29 +719,26 @@ export default function LandingPage() {
             {[
               {
                 tier: 'Starter',
-                price: 'R2,000',
-                period: '/month',
+                subtitle: '1–10 users',
                 highlight: false,
                 cta: 'trial',
                 features: ['Up to 10 users', '5GB document storage', 'ISO 9001, 14001 & 45001', 'Document management', 'NCR tracking', 'Audit scheduling', 'Management reviews', 'Compliance scoring', 'Branded PDF exports', 'Activity trail', 'Email support (business hours)'],
               },
               {
                 tier: 'Growth',
-                price: 'R3,700',
-                period: '/month',
+                subtitle: '11–20 users',
                 highlight: true,
                 cta: 'trial',
                 features: ['Up to 20 users', '15GB document storage', 'ISO 9001, 14001 & 45001', 'Document management', 'NCR tracking', 'Audit scheduling', 'Management reviews', 'Compliance scoring', 'Branded PDF exports', 'Activity trail', 'Priority email support'],
               },
               {
                 tier: 'Enterprise',
-                price: 'Custom',
-                period: '',
+                subtitle: '21+ users',
                 highlight: false,
                 cta: 'contact',
                 features: ['21+ users', 'Unlimited storage', 'ISO 9001, 14001 & 45001', 'All Growth features', 'Custom onboarding', 'Dedicated account manager', 'SLA agreement'],
               },
-            ].map(({ tier, price, period, highlight, cta, features }) => (
+            ].map(({ tier, subtitle, highlight, cta, features }) => (
               <div
                 data-stagger
                 key={tier}
@@ -757,8 +755,7 @@ export default function LandingPage() {
                 )}
                 <h3 className="text-xl font-bold text-white mb-1">{tier}</h3>
                 <div className="mb-5">
-                  <span className="text-3xl font-extrabold text-white">{price}</span>
-                  {period && <span className="text-white/40 text-sm">{period}</span>}
+                  <span className="text-white/50 text-sm">{subtitle}</span>
                 </div>
                 <ul className="space-y-2 flex-1 mb-6">
                   {features.map(f => (
@@ -1138,10 +1135,11 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => navigate('/login')}
-                className="px-10 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-2xl transition-all shadow-xl shadow-purple-900/50 text-lg"
+                onClick={() => handleCheckout('starter')}
+                disabled={checkoutLoading === 'starter'}
+                className="px-10 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-2xl transition-all shadow-xl shadow-purple-900/50 text-lg disabled:opacity-50"
               >
-                Start Your Free Trial
+                {checkoutLoading === 'starter' ? 'Redirecting...' : 'Start Your Free Trial'}
               </button>
               <a
                 href={WHATSAPP_URL}
@@ -1162,10 +1160,11 @@ export default function LandingPage() {
       {/* ─── STICKY MOBILE CTA BAR ─────────────────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-slate-900/95 backdrop-blur-xl border-t border-white/10 px-4 py-3 flex gap-3">
         <button
-          onClick={() => navigate('/login')}
-          className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-xl transition-all text-sm shadow-lg"
+          onClick={() => handleCheckout('starter')}
+          disabled={checkoutLoading === 'starter'}
+          className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-xl transition-all text-sm shadow-lg disabled:opacity-50"
         >
-          Start Free Trial
+          {checkoutLoading === 'starter' ? 'Redirecting...' : 'Start Free Trial'}
         </button>
         <a
           href={WHATSAPP_URL}
