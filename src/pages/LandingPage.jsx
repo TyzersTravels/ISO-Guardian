@@ -80,7 +80,7 @@ export default function LandingPage() {
   // Hero parallax
   const heroParallaxRef = useHeroParallax()
 
-  // PayFast checkout handler
+  // PayFast checkout handler — direct fetch (no auth required)
   const [checkoutLoading, setCheckoutLoading] = useState(null) // tier name or null
   const handleCheckout = async (tier) => {
     setCheckoutLoading(tier)
@@ -89,26 +89,30 @@ export default function LandingPage() {
       const refCode = sessionStorage.getItem('isoguardian_ref')
       const refType = sessionStorage.getItem('isoguardian_ref_type')
 
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const res = await fetch(`${supabaseUrl}/functions/v1/create-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           tier,
-          email: '', // Will be collected on PayFast's page
+          email: '',
           companyName: '',
           firstName: '',
           lastName: '',
           referralCode: refType === 'affiliate' ? refCode : null,
           partnerCode: refType === 'partner' ? refCode : null,
-        },
+        }),
       })
 
-      if (error) throw error
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Checkout failed')
       if (data?.redirectUrl) {
         window.location.href = data.redirectUrl
       }
     } catch (err) {
       console.warn('Checkout error:', err)
-      // Fallback to login page if checkout fails
-      navigate('/login')
+      // Show error instead of silently redirecting to login
+      alert('Unable to start checkout. Please try again or contact support@isoguardian.co.za')
     } finally {
       setCheckoutLoading(null)
     }
