@@ -85,7 +85,6 @@ export default function LandingPage() {
   const handleCheckout = async (tier) => {
     setCheckoutLoading(tier)
     try {
-      // Get referral/partner codes from session
       const refCode = sessionStorage.getItem('isoguardian_ref')
       const refType = sessionStorage.getItem('isoguardian_ref_type')
 
@@ -106,12 +105,24 @@ export default function LandingPage() {
 
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Checkout failed')
-      if (data?.redirectUrl) {
-        window.location.href = data.redirectUrl
+
+      // Submit to PayFast via hidden POST form (standard PayFast integration)
+      if (data?.pfUrl && data?.pfData) {
+        const form = document.createElement('form')
+        form.method = 'POST'
+        form.action = data.pfUrl
+        for (const [key, value] of Object.entries(data.pfData)) {
+          const input = document.createElement('input')
+          input.type = 'hidden'
+          input.name = key
+          input.value = value
+          form.appendChild(input)
+        }
+        document.body.appendChild(form)
+        form.submit()
       }
     } catch (err) {
       console.warn('Checkout error:', err)
-      // Show error instead of silently redirecting to login
       alert('Unable to start checkout. Please try again or contact support@isoguardian.co.za')
     } finally {
       setCheckoutLoading(null)

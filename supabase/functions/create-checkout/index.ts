@@ -1,9 +1,8 @@
 // ISOGuardian — PayFast Checkout Edge Function
-// Generates a PayFast payment URL for self-service subscription signup
-// Passes through referral/partner codes for commission tracking
+// Generates PayFast payment form data for self-service subscription signup
+// Frontend submits as POST form to PayFast (standard integration method)
 
 import { publicCorsHeaders } from '../_shared/cors.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { crypto as stdCrypto } from 'https://deno.land/std@0.224.0/crypto/mod.ts'
 import { encodeHex } from 'https://deno.land/std@0.224.0/encoding/hex.ts'
 
@@ -18,7 +17,6 @@ const PAYFAST_URL = PAYFAST_SANDBOX
 
 const SITE_URL = 'https://isoguardian.co.za'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
-const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 // Pricing tiers (ZAR, monthly)
 const TIERS: Record<string, { name: string; price: number; maxUsers: number; storageGb: number }> = {
@@ -26,17 +24,22 @@ const TIERS: Record<string, { name: string; price: number; maxUsers: number; sto
   growth:  { name: 'Growth',  price: 3700, maxUsers: 20, storageGb: 15 },
 }
 
-// Generate PayFast signature (MD5 of sorted params)
-async function generateSignature(data: Record<string, string>, passphrase: string): Promise<string> {
-  const params = Object.keys(data)
-    .filter(key => data[key] !== '')
-    .sort()
-    .map(key => `${key}=${encodeURIComponent(data[key]).replace(/%20/g, '+')}`)
+// Generate PayFast signature — MD5 of params in DEFINITION order (not sorted)
+// Per PayFast docs: "The data string follows the same order as the submit page"
+async function generateSignature(
+  data: Array<[string, string]>,
+  passphrase: string
+): Promise<string> {
+  // Build param string from non-empty values in definition order
+  const paramString = data
+    .filter(([, val]) => val !== '')
+    .map(([key, val]) => `${key}=${encodeURIComponent(val.trim()).replace(/%20/g, '+')}`)
     .join('&')
 
-  const withPassphrase = passphrase ? `${params}&passphrase=${encodeURIComponent(passphrase).replace(/%20/g, '+')}` : params
+  const withPassphrase = passphrase
+    ? `${paramString}&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`
+    : paramString
 
-  // Use Deno std crypto for reliable MD5 hashing
   const hash = await stdCrypto.subtle.digest('MD5', new TextEncoder().encode(withPassphrase))
   return encodeHex(new Uint8Array(hash))
 }
@@ -44,7 +47,7 @@ async function generateSignature(data: Record<string, string>, passphrase: strin
 // In-memory rate limiting (per IP, 5 requests per minute)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT = 5
-const RATE_WINDOW = 60_000 // 1 minute
+const RATE_WINDOW = 60_000
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now()
@@ -77,7 +80,6 @@ Deno.serve(async (req) => {
 
     const { tier, email, companyName, firstName, lastName, referralCode, partnerCode } = await req.json()
 
-    // Validate tier
     const tierConfig = TIERS[tier?.toLowerCase()]
     if (!tierConfig) {
       return new Response(JSON.stringify({ error: 'Invalid tier. Choose: starter, growth' }), {
@@ -86,57 +88,55 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Generate a unique payment ID for tracking
     const paymentId = crypto.randomUUID()
+    const billingDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    // Custom fields for PayFast — pass referral/partner codes + tier info
-    // PayFast supports custom_str1-5 and custom_int1-5
-    const customData = {
-      custom_str1: tier,                          // subscription tier
-      custom_str2: referralCode || '',             // affiliate referral code
-      custom_str3: partnerCode || '',              // reseller partner code
-      custom_str4: companyName || '',              // company name
-      custom_str5: paymentId,                      // internal tracking ID
+    // Build payment fields in PayFast's expected order
+    // Only include fields that have values — empty strings are excluded from signature
+    const fields: Array<[string, string]> = [
+      // Merchant details (required)
+      ['merchant_id', PAYFAST_MERCHANT_ID],
+      ['merchant_key', PAYFAST_MERCHANT_KEY],
+      // URLs
+      ['return_url', `${SITE_URL}/login?payment=success&tier=${tier}`],
+      ['cancel_url', `${SITE_URL}/?payment=cancelled`],
+      ['notify_url', `${SUPABASE_URL}/functions/v1/payfast-webhook`],
+      // Buyer details (optional — PayFast collects if empty)
+      ['name_first', firstName || ''],
+      ['name_last', lastName || ''],
+      ['email_address', email || ''],
+      // Transaction details
+      ['m_payment_id', paymentId],
+      ['amount', tierConfig.price.toFixed(2)],
+      ['item_name', `ISOGuardian ${tierConfig.name} Plan - Monthly`],
+      // Subscription/recurring fields
+      ['subscription_type', '1'],
+      ['billing_date', billingDate],
+      ['recurring_amount', tierConfig.price.toFixed(2)],
+      ['frequency', '3'],
+      ['cycles', '0'],
+      // Custom fields for webhook processing
+      ['custom_str1', tier],
+      ['custom_str2', referralCode || ''],
+      ['custom_str3', partnerCode || ''],
+      ['custom_str4', companyName || ''],
+      ['custom_str5', paymentId],
+    ]
+
+    // Generate signature from non-empty fields in definition order
+    const signature = await generateSignature(fields, PAYFAST_PASSPHRASE)
+
+    // Build the form data object (only non-empty fields + signature)
+    const formData: Record<string, string> = {}
+    for (const [key, val] of fields) {
+      if (val !== '') formData[key] = val
     }
-
-    // Build PayFast payment data
-    // Using subscription (recurring) payment
-    const paymentData: Record<string, string> = {
-      merchant_id: PAYFAST_MERCHANT_ID,
-      merchant_key: PAYFAST_MERCHANT_KEY,
-      return_url: `${SITE_URL}/login?payment=success&tier=${tier}`,
-      cancel_url: `${SITE_URL}/?payment=cancelled`,
-      notify_url: `${SUPABASE_URL}/functions/v1/payfast-webhook`,
-      name_first: firstName || '',
-      name_last: lastName || '',
-      email_address: email || '',  // PayFast will collect if empty
-      m_payment_id: paymentId,
-      amount: tierConfig.price.toFixed(2),
-      item_name: `ISOGuardian ${tierConfig.name} Plan — Monthly Subscription`,
-      item_description: `ISO compliance management platform. Up to ${tierConfig.maxUsers} users, ${tierConfig.storageGb}GB storage.`,
-      // Recurring billing
-      subscription_type: '1',        // 1 = subscription
-      billing_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // First billing after 14-day trial
-      recurring_amount: tierConfig.price.toFixed(2),
-      frequency: '3',                // 3 = monthly
-      cycles: '0',                   // 0 = indefinite
-      // Custom fields
-      ...customData,
-    }
-
-    // Generate signature
-    paymentData.signature = await generateSignature(paymentData, PAYFAST_PASSPHRASE)
-
-    // Build the redirect URL
-    const formParams = Object.entries(paymentData)
-      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-      .join('&')
-
-    const redirectUrl = `${PAYFAST_URL}?${formParams}`
+    formData.signature = signature
 
     return new Response(JSON.stringify({
       success: true,
-      redirectUrl,
+      pfUrl: PAYFAST_URL,
+      pfData: formData,
       paymentId,
       tier: tierConfig.name,
       amount: tierConfig.price,
