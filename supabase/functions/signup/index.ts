@@ -23,6 +23,23 @@ function checkRateLimit(ip: string): boolean {
   return true
 }
 
+// Block disposable/temporary email domains
+const BLOCKED_EMAIL_DOMAINS = new Set([
+  'tempmail.com', 'throwaway.email', 'guerrillamail.com', 'guerrillamail.de',
+  'mailinator.com', 'yopmail.com', 'sharklasers.com', 'guerrillamailblock.com',
+  'grr.la', 'dispostable.com', 'trashmail.com', 'trashmail.me', 'trashmail.net',
+  'temp-mail.org', 'tempail.com', 'fakeinbox.com', 'mailnesia.com', 'maildrop.cc',
+  'discard.email', 'mailcatch.com', 'mintemail.com', 'tmpmail.net', 'tmpmail.org',
+  'boun.cr', 'mt2015.com', 'tmail.ws', '10minutemail.com', 'getnada.com',
+  'mohmal.com', 'emailondeck.com', 'crazymailing.com', 'inboxbear.com',
+  'mailsac.com', 'harakirimail.com', 'tempr.email', 'burnermail.io',
+])
+
+function isDisposableEmail(email: string): boolean {
+  const domain = email.split('@')[1]?.toLowerCase()
+  return BLOCKED_EMAIL_DOMAINS.has(domain)
+}
+
 // Password validation (mirrors client-side)
 function validatePassword(pw: string): { valid: boolean; message: string } {
   if (pw.length < 12) return { valid: false, message: 'Password must be at least 12 characters' }
@@ -80,6 +97,13 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Block disposable email domains
+    if (isDisposableEmail(email.trim())) {
+      return new Response(JSON.stringify({ error: 'Please use a business or personal email address. Temporary email services are not accepted.' }), {
+        status: 400, headers: { ...publicCorsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Validate password
     const pwCheck = validatePassword(password)
     if (!pwCheck.valid) {
@@ -112,7 +136,6 @@ Deno.serve(async (req) => {
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
     // Check for duplicate email
-    const { data: existingUsers } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1 })
     const { data: emailCheck } = await adminClient
       .from('users')
       .select('id')
@@ -121,6 +144,19 @@ Deno.serve(async (req) => {
 
     if (emailCheck) {
       return new Response(JSON.stringify({ error: 'An account with this email already exists. Please sign in instead.' }), {
+        status: 409, headers: { ...publicCorsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Check for duplicate company name (prevent trial abuse by re-registering)
+    const { data: companyCheck } = await adminClient
+      .from('companies')
+      .select('id')
+      .ilike('name', companyName.trim())
+      .maybeSingle()
+
+    if (companyCheck) {
+      return new Response(JSON.stringify({ error: 'A company with this name already exists. Contact support@isoguardian.co.za if you need access.' }), {
         status: 409, headers: { ...publicCorsHeaders, 'Content-Type': 'application/json' },
       })
     }
