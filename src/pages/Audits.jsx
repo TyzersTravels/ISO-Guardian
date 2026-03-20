@@ -136,7 +136,8 @@ const Audits = () => {
         mapped,
         userProfile?.company?.name || 'ISOGuardian',
         userProfile?.email || '',
-        userProfile?.company?.company_code || 'IG'
+        userProfile?.company?.company_code || 'IG',
+        userProfile?.company?.logo_url || null
       )
     } catch (err) {
       console.error('Export failed:', err)

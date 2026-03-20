@@ -32,6 +32,7 @@ const LIGHT_BG = [249, 250, 251];
  * @param {string} options.companyName - Client company name
  * @param {string} options.preparedBy - User who generated it
  * @param {string} options.type - document | ncr | audit | management_review
+ * @param {string} options.companyLogoUrl - Supabase Storage URL for client's company logo
  * @param {Function} options.contentRenderer - function(doc, startY) that renders content, returns final Y
  */
 export const createBrandedPDF = async (options) => {
@@ -43,6 +44,7 @@ export const createBrandedPDF = async (options) => {
     companyName = 'ISOGuardian',
     preparedBy = '',
     type = 'document',
+    companyLogoUrl = null,
     contentRenderer = null,
   } = options;
 
@@ -53,7 +55,25 @@ export const createBrandedPDF = async (options) => {
   const contentWidth = pageWidth - (margin * 2);
   let currentPage = 1;
 
-  // Load logo as base64 (will be embedded)
+  // Load company logo (client branding — hero image)
+  let companyLogoLoaded = false;
+  let companyLogoImg = null;
+  if (companyLogoUrl) {
+    try {
+      const response = await fetch(companyLogoUrl);
+      const blob = await response.blob();
+      companyLogoImg = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+      companyLogoLoaded = true;
+    } catch (e) {
+      console.warn('Company logo not loaded, continuing without');
+    }
+  }
+
+  // Load ISOGuardian logo (subtle footer branding)
   let logoLoaded = false;
   let logoImg = null;
   try {
@@ -66,7 +86,7 @@ export const createBrandedPDF = async (options) => {
     });
     logoLoaded = true;
   } catch (e) {
-    console.warn('Logo not loaded, continuing without');
+    console.warn('ISOGuardian logo not loaded, continuing without');
   }
 
   const addHeader = (pageNum) => {
@@ -74,23 +94,25 @@ export const createBrandedPDF = async (options) => {
     doc.setFillColor(...PURPLE);
     doc.rect(0, 0, pageWidth, 32, 'F');
 
-    // Logo
-    if (logoLoaded && logoImg) {
+    // Client company logo (hero — left side, large)
+    let logoX = margin;
+    if (companyLogoLoaded && companyLogoImg) {
       try {
-        doc.addImage(logoImg, 'PNG', margin, 3, 26, 26);
+        doc.addImage(companyLogoImg, 'PNG', margin, 3, 26, 26);
+        logoX = margin + 30;
       } catch (e) { /* skip logo */ }
     }
 
-    // Title text
+    // Company name as header title
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(...WHITE);
-    doc.text('ISOGuardian', logoLoaded ? margin + 30 : margin, 14);
+    doc.text(companyName || 'ISOGuardian', logoX, 14);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(220, 220, 255);
-    doc.text('Enterprise ISO Compliance Management', logoLoaded ? margin + 30 : margin, 20);
+    doc.text('ISO Compliance Management', logoX, 20);
 
     // Page number in header
     doc.setFontSize(8);
@@ -131,10 +153,18 @@ export const createBrandedPDF = async (options) => {
     doc.setDrawColor(...GREY);
     doc.line(margin, y - 4, pageWidth - margin, y - 4);
 
-    doc.setFontSize(7);
+    // Subtle ISOGuardian logo in footer
+    if (logoLoaded && logoImg) {
+      try {
+        doc.addImage(logoImg, 'PNG', margin, y - 3, 5, 5);
+      } catch (e) { /* skip */ }
+    }
+
+    doc.setFontSize(6);
     doc.setTextColor(...GREY);
     doc.setFont('helvetica', 'normal');
-    doc.text('ISOGuardian (Pty) Ltd | Reg: 2026/082362/07 | www.isoguardian.co.za', margin, y);
+    const footerX = logoLoaded ? margin + 7 : margin;
+    doc.text('Powered by ISOGuardian | www.isoguardian.co.za', footerX, y);
     doc.text(`Printed: ${new Date().toLocaleDateString('en-ZA')} | CONFIDENTIAL`, pageWidth - margin, y, { align: 'right' });
   };
 
@@ -260,15 +290,16 @@ export const addTable = (doc, headers, rows, y, margin, contentWidth) => {
  * Quick export functions for each module
  */
 
-export const exportDocumentPDF = async (document, companyName, userName, companyCode) => {
+export const exportDocumentPDF = async (document, companyName, userName, companyCode, companyLogoUrl) => {
   const docNum = document.doc_number || `IG-${companyCode || 'XX'}-DOC-${String(document.id).slice(-3).toUpperCase()}`;
-  
+
   const pdf = await createBrandedPDF({
     title: document.name || 'Document',
     docNumber: docNum,
     companyName,
     preparedBy: userName,
     type: 'document',
+    companyLogoUrl,
     contentRenderer: (doc, y, margin, contentWidth) => {
       y = addSection(doc, 'Document Details', y, margin);
       y = addField(doc, 'Document Name', document.name, y, margin);
@@ -285,15 +316,16 @@ export const exportDocumentPDF = async (document, companyName, userName, company
   pdf.save(`${docNum}_${document.name?.replace(/\s+/g, '_')}.pdf`);
 };
 
-export const exportNCRPDF = async (ncr, companyName, userName, companyCode) => {
+export const exportNCRPDF = async (ncr, companyName, userName, companyCode, companyLogoUrl) => {
   const docNum = ncr.doc_number || `IG-${companyCode || 'XX'}-NCR-${String(ncr.ncr_number || '').padStart(3, '0')}`;
-  
+
   const pdf = await createBrandedPDF({
     title: `Non-Conformance Report: ${ncr.title || ncr.ncr_number}`,
     docNumber: docNum,
     companyName,
     preparedBy: userName,
     type: 'ncr',
+    companyLogoUrl,
     contentRenderer: (doc, y, margin, contentWidth) => {
       y = addSection(doc, 'NCR Details', y, margin);
       y = addField(doc, 'NCR Number', ncr.ncr_number, y, margin);
@@ -328,15 +360,16 @@ export const exportNCRPDF = async (ncr, companyName, userName, companyCode) => {
   pdf.save(`${docNum}_NCR.pdf`);
 };
 
-export const exportAuditPDF = async (audit, companyName, userName, companyCode) => {
+export const exportAuditPDF = async (audit, companyName, userName, companyCode, companyLogoUrl) => {
   const docNum = audit.doc_number || `IG-${companyCode || 'XX'}-AUD-${String(audit.id).slice(-3).toUpperCase()}`;
-  
+
   const pdf = await createBrandedPDF({
     title: `Audit Report: ${audit.title || audit.audit_type}`,
     docNumber: docNum,
     companyName,
     preparedBy: userName,
     type: 'audit',
+    companyLogoUrl,
     contentRenderer: (doc, y, margin, contentWidth) => {
       y = addSection(doc, 'Audit Information', y, margin);
       y = addField(doc, 'Audit Type', audit.audit_type, y, margin);
@@ -380,15 +413,16 @@ export const exportAuditPDF = async (audit, companyName, userName, companyCode) 
   pdf.save(`${docNum}_Audit_Report.pdf`);
 };
 
-export const exportReviewPDF = async (review, companyName, userName, companyCode) => {
+export const exportReviewPDF = async (review, companyName, userName, companyCode, companyLogoUrl) => {
   const docNum = review.doc_number || `IG-${companyCode || 'XX'}-MR-${String(review.review_number || '').padStart(3, '0')}`;
-  
+
   const pdf = await createBrandedPDF({
     title: `Management Review: ${review.review_number || 'N/A'}`,
     docNumber: docNum,
     companyName,
     preparedBy: userName,
     type: 'management_review',
+    companyLogoUrl,
     contentRenderer: (doc, y, margin, contentWidth) => {
       y = addSection(doc, 'Review Details', y, margin);
       y = addField(doc, 'Review Number', review.review_number, y, margin);
