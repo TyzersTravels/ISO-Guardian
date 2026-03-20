@@ -400,10 +400,18 @@ const Login = () => {
 
           {/* Footer */}
           <div className="mt-6 text-center space-y-4">
+            {/* Sign Up CTA */}
+            <a
+              href="/signup"
+              className="block w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-500/20 to-purple-500/20 hover:from-cyan-500/30 hover:to-purple-500/30 border border-cyan-500/30 text-cyan-300 text-center transition-all"
+            >
+              Don&apos;t have an account? Start your free trial
+            </a>
+
             {/* Contact Us */}
             <div className="glass-card p-4 rounded-xl border border-cyan-500/20">
               <p className="text-cyan-300 text-sm font-semibold mb-2">
-                Need Access? Contact Us
+                Need Help? Contact Us
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <a 

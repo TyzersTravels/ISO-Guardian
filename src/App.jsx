@@ -10,6 +10,7 @@ import CookieConsent from './components/CookieConsent'
 // Eagerly loaded (public, first-paint critical)
 import Login from './pages/Login'
 import LandingPage from './pages/LandingPage'
+import Signup from './pages/Signup'
 import NotFound from './pages/NotFound'
 
 // Lazy-loaded pages (split into separate chunks)
@@ -64,6 +65,7 @@ function App() {
           <Route path="/privacy" element={<POPIACompliance />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/auditor" element={<AuditorWorkspace />} />
+          <Route path="/signup" element={<Signup />} />
 
           {/* Protected routes */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

@@ -1,7 +1,4 @@
 // ISOGuardian — PayFast Checkout Edge Function
-// Generates PayFast payment form data for self-service subscription signup
-// Frontend submits as POST form to PayFast (standard integration method)
-
 import { publicCorsHeaders } from '../_shared/cors.ts'
 import { crypto as stdCrypto } from 'https://deno.land/std@0.224.0/crypto/mod.ts'
 import { encodeHex } from 'https://deno.land/std@0.224.0/encoding/hex.ts'
@@ -18,63 +15,137 @@ const PAYFAST_URL = PAYFAST_SANDBOX
 const SITE_URL = 'https://isoguardian.co.za'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 
-// Pricing tiers (ZAR, monthly)
 const TIERS: Record<string, { name: string; price: number; maxUsers: number; storageGb: number }> = {
   starter: { name: 'Starter', price: 2000, maxUsers: 10, storageGb: 5 },
   growth:  { name: 'Growth',  price: 3700, maxUsers: 20, storageGb: 15 },
 }
 
-// Generate PayFast signature — MD5 of params in DEFINITION order (not sorted)
-// Per PayFast docs: "The data string follows the same order as the submit page"
+// PHP-compatible urlencode: encodeURIComponent + spaces as +
+// Also encode chars that PHP encodes but JS doesn't: ! * ' ( ) ~
+function phpUrlencode(str: string): string {
+  return encodeURIComponent(str.trim())
+    .replace(/%20/g, '+')
+    .replace(/!/g, '%21')
+    .replace(/\*/g, '%2A')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/~/g, '%7E')
+}
+
+// PayFast signature: MD5 of param string with PHP-compatible encoding
 async function generateSignature(
-  data: Array<[string, string]>,
+  params: Array<[string, string]>,
   passphrase: string
 ): Promise<string> {
-  // Build param string from non-empty values in definition order
-  const paramString = data
-    .filter(([, val]) => val !== '')
-    .map(([key, val]) => `${key}=${encodeURIComponent(val.trim()).replace(/%20/g, '+')}`)
-    .join('&')
+  const parts: string[] = []
+  for (const [key, val] of params) {
+    if (val !== '') {
+      parts.push(`${key}=${phpUrlencode(val)}`)
+    }
+  }
+  let paramString = parts.join('&')
 
-  const withPassphrase = passphrase
-    ? `${paramString}&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`
-    : paramString
+  if (passphrase) {
+    paramString += `&passphrase=${phpUrlencode(passphrase)}`
+  }
 
-  const hash = await stdCrypto.subtle.digest('MD5', new TextEncoder().encode(withPassphrase))
+  const hash = await stdCrypto.subtle.digest('MD5', new TextEncoder().encode(paramString))
   return encodeHex(new Uint8Array(hash))
 }
 
-// In-memory rate limiting (per IP, 5 requests per minute)
+// Rate limiting
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT = 5
-const RATE_WINDOW = 60_000
-
 function checkRateLimit(ip: string): boolean {
   const now = Date.now()
   const entry = rateLimitMap.get(ip)
   if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW })
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 })
     return true
   }
-  if (entry.count >= RATE_LIMIT) return false
+  if (entry.count >= 5) return false
   entry.count++
   return true
 }
 
 Deno.serve(async (req) => {
+  const url = new URL(req.url)
+
+  // Minimal test: GET /create-checkout?test=true
+  // Submits a R10 once-off payment to verify signature works
+  if (req.method === 'GET' && url.searchParams.get('test') === 'true') {
+    const params: Array<[string, string]> = [
+      ['merchant_id', PAYFAST_MERCHANT_ID],
+      ['merchant_key', PAYFAST_MERCHANT_KEY],
+      ['return_url', `${SITE_URL}/?payment=success`],
+      ['cancel_url', `${SITE_URL}/?payment=cancelled`],
+      ['amount', '10.00'],
+      ['item_name', 'ISOGuardian Test Payment'],
+    ]
+    const signature = await generateSignature(params, PAYFAST_PASSPHRASE)
+
+    // Build auto-submit form
+    const formFields = params
+      .map(([k, v]) => `<input type="hidden" name="${k}" value="${v.replace(/"/g, '&quot;')}">`)
+      .join('\n      ')
+
+    const html = `<!DOCTYPE html>
+<html><head><title>Redirecting to PayFast...</title></head>
+<body>
+  <p>Redirecting to PayFast...</p>
+  <form id="pf" method="POST" action="${PAYFAST_URL}">
+      ${formFields}
+      <input type="hidden" name="signature" value="${signature}">
+      <button type="submit">Pay Now</button>
+  </form>
+  <script>document.getElementById('pf').submit();</script>
+</body></html>`
+
+    return new Response(html, {
+      headers: { 'Content-Type': 'text/html' },
+    })
+  }
+
+  // Debug GET endpoint — shows signature calculation
+  if (req.method === 'GET') {
+    const testParams: Array<[string, string]> = [
+      ['merchant_id', PAYFAST_MERCHANT_ID],
+      ['merchant_key', PAYFAST_MERCHANT_KEY],
+      ['amount', '2000.00'],
+      ['item_name', 'Test Payment'],
+    ]
+    const signature = await generateSignature(testParams, PAYFAST_PASSPHRASE)
+
+    // Build debug param string manually for display
+    const parts = testParams.map(([k, v]) => `${k}=${phpUrlencode(v)}`).join('&')
+    const fullString = PAYFAST_PASSPHRASE
+      ? `${parts}&passphrase=${phpUrlencode(PAYFAST_PASSPHRASE)}`
+      : parts
+
+    return new Response(JSON.stringify({
+      note: 'Debug endpoint. Add ?test=true to submit a R10 test payment to PayFast.',
+      merchant_id: PAYFAST_MERCHANT_ID,
+      passphrase_set: PAYFAST_PASSPHRASE !== '',
+      passphrase_length: PAYFAST_PASSPHRASE.length,
+      sandbox_mode: PAYFAST_SANDBOX,
+      payfast_url: PAYFAST_URL,
+      param_string: fullString,
+      signature,
+    }, null, 2), {
+      headers: { ...publicCorsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: publicCorsHeaders })
   }
 
   try {
-    // Rate limit by IP
     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-      || req.headers.get('cf-connecting-ip')
-      || 'unknown'
+      || req.headers.get('cf-connecting-ip') || 'unknown'
     if (!checkRateLimit(clientIp)) {
-      return new Response(JSON.stringify({ error: 'Too many requests. Please try again in a minute.' }), {
-        status: 429,
-        headers: { ...publicCorsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({ error: 'Too many requests.' }), {
+        status: 429, headers: { ...publicCorsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
@@ -82,61 +153,66 @@ Deno.serve(async (req) => {
 
     const tierConfig = TIERS[tier?.toLowerCase()]
     if (!tierConfig) {
-      return new Response(JSON.stringify({ error: 'Invalid tier. Choose: starter, growth' }), {
-        status: 400,
-        headers: { ...publicCorsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({ error: 'Invalid tier.' }), {
+        status: 400, headers: { ...publicCorsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
     const paymentId = crypto.randomUUID()
     const billingDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    // Build payment fields in PayFast's expected order
-    // Only include fields that have values — empty strings are excluded from signature
-    const fields: Array<[string, string]> = [
-      // Merchant details (required)
+    // PayFast params in documented order:
+    // merchant > urls > buyer > transaction > custom > subscription
+    const params: Array<[string, string]> = [
       ['merchant_id', PAYFAST_MERCHANT_ID],
       ['merchant_key', PAYFAST_MERCHANT_KEY],
-      // URLs
       ['return_url', `${SITE_URL}/login?payment=success&tier=${tier}`],
       ['cancel_url', `${SITE_URL}/?payment=cancelled`],
       ['notify_url', `${SUPABASE_URL}/functions/v1/payfast-webhook`],
-      // Buyer details (optional — PayFast collects if empty)
-      ['name_first', firstName || ''],
-      ['name_last', lastName || ''],
-      ['email_address', email || ''],
-      // Transaction details
+    ]
+
+    // Optional buyer details
+    if (firstName) params.push(['name_first', firstName])
+    if (lastName) params.push(['name_last', lastName])
+    if (email) params.push(['email_address', email])
+
+    // Transaction — R0 initial for 14-day free trial, recurring starts after trial
+    params.push(
       ['m_payment_id', paymentId],
-      ['amount', tierConfig.price.toFixed(2)],
-      ['item_name', `ISOGuardian ${tierConfig.name} Plan - Monthly`],
-      // Subscription/recurring fields
+      ['amount', '0.00'],
+      ['item_name', `ISOGuardian ${tierConfig.name} Plan`],
+    )
+
+    // Custom strings
+    params.push(['custom_str1', tier])
+    if (referralCode) params.push(['custom_str2', referralCode])
+    if (partnerCode) params.push(['custom_str3', partnerCode])
+    if (companyName) params.push(['custom_str4', companyName])
+    params.push(['custom_str5', paymentId])
+
+    // Subscription/recurring
+    params.push(
       ['subscription_type', '1'],
       ['billing_date', billingDate],
       ['recurring_amount', tierConfig.price.toFixed(2)],
       ['frequency', '3'],
       ['cycles', '0'],
-      // Custom fields for webhook processing
-      ['custom_str1', tier],
-      ['custom_str2', referralCode || ''],
-      ['custom_str3', partnerCode || ''],
-      ['custom_str4', companyName || ''],
-      ['custom_str5', paymentId],
-    ]
+    )
 
-    // Generate signature from non-empty fields in definition order
-    const signature = await generateSignature(fields, PAYFAST_PASSPHRASE)
+    // Generate signature
+    const signature = await generateSignature(params, PAYFAST_PASSPHRASE)
 
-    // Build the form data object (only non-empty fields + signature)
-    const formData: Record<string, string> = {}
-    for (const [key, val] of fields) {
-      if (val !== '') formData[key] = val
+    // Build form data in same order as params
+    const pfData: Record<string, string> = {}
+    for (const [key, val] of params) {
+      if (val !== '') pfData[key] = val
     }
-    formData.signature = signature
+    pfData.signature = signature
 
     return new Response(JSON.stringify({
       success: true,
       pfUrl: PAYFAST_URL,
-      pfData: formData,
+      pfData,
       paymentId,
       tier: tierConfig.name,
       amount: tierConfig.price,
@@ -148,8 +224,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error('create-checkout error:', err)
     return new Response(JSON.stringify({ error: 'Failed to create checkout session' }), {
-      status: 500,
-      headers: { ...publicCorsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...publicCorsHeaders, 'Content-Type': 'application/json' },
     })
   }
 })

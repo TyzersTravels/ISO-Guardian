@@ -80,54 +80,8 @@ export default function LandingPage() {
   // Hero parallax
   const heroParallaxRef = useHeroParallax()
 
-  // PayFast checkout handler — direct fetch (no auth required)
-  const [checkoutLoading, setCheckoutLoading] = useState(null) // tier name or null
-  const handleCheckout = async (tier) => {
-    setCheckoutLoading(tier)
-    try {
-      const refCode = sessionStorage.getItem('isoguardian_ref')
-      const refType = sessionStorage.getItem('isoguardian_ref_type')
-
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      const res = await fetch(`${supabaseUrl}/functions/v1/create-checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tier,
-          email: '',
-          companyName: '',
-          firstName: '',
-          lastName: '',
-          referralCode: refType === 'affiliate' ? refCode : null,
-          partnerCode: refType === 'partner' ? refCode : null,
-        }),
-      })
-
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Checkout failed')
-
-      // Submit to PayFast via hidden POST form (standard PayFast integration)
-      if (data?.pfUrl && data?.pfData) {
-        const form = document.createElement('form')
-        form.method = 'POST'
-        form.action = data.pfUrl
-        for (const [key, value] of Object.entries(data.pfData)) {
-          const input = document.createElement('input')
-          input.type = 'hidden'
-          input.name = key
-          input.value = value
-          form.appendChild(input)
-        }
-        document.body.appendChild(form)
-        form.submit()
-      }
-    } catch (err) {
-      console.warn('Checkout error:', err)
-      alert('Unable to start checkout. Please try again or contact support@isoguardian.co.za')
-    } finally {
-      setCheckoutLoading(null)
-    }
-  }
+  // Navigate to signup page for free trial
+  const startTrial = () => navigate('/signup')
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white overflow-x-hidden">
@@ -258,11 +212,10 @@ export default function LandingPage() {
 
             <div className="flex flex-wrap gap-4">
               <button
-                onClick={() => handleCheckout('starter')}
-                disabled={checkoutLoading === 'starter'}
-                className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-2xl transition-all shadow-xl shadow-purple-900/50 text-lg disabled:opacity-50"
+                onClick={startTrial}
+                className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-2xl transition-all shadow-xl shadow-purple-900/50 text-lg"
               >
-                {checkoutLoading === 'starter' ? 'Redirecting...' : 'Start Your 14-Day Free Trial'}
+                Start Your 14-Day Free Trial
               </button>
               <button
                 onClick={() => scrollTo('pricing')}
@@ -778,15 +731,14 @@ export default function LandingPage() {
                 </ul>
                 {cta === 'trial' ? (
                   <button
-                    onClick={() => handleCheckout(tier.toLowerCase())}
-                    disabled={checkoutLoading === tier.toLowerCase()}
-                    className={`w-full text-center py-3 rounded-xl font-bold text-sm transition-all cursor-pointer disabled:opacity-50 ${
+                    onClick={startTrial}
+                    className={`w-full text-center py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${
                       highlight
                         ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400'
                         : 'border border-white/20 hover:border-white/40 text-white/70 hover:text-white'
                     }`}
                   >
-                    {checkoutLoading === tier.toLowerCase() ? 'Redirecting...' : 'Start 14-Day Free Trial'}
+                    Start 14-Day Free Trial
                   </button>
                 ) : (
                   <a
@@ -1146,11 +1098,10 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => handleCheckout('starter')}
-                disabled={checkoutLoading === 'starter'}
-                className="px-10 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-2xl transition-all shadow-xl shadow-purple-900/50 text-lg disabled:opacity-50"
+                onClick={startTrial}
+                className="px-10 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-2xl transition-all shadow-xl shadow-purple-900/50 text-lg"
               >
-                {checkoutLoading === 'starter' ? 'Redirecting...' : 'Start Your Free Trial'}
+                Start Your Free Trial
               </button>
               <a
                 href={WHATSAPP_URL}
@@ -1171,11 +1122,10 @@ export default function LandingPage() {
       {/* ─── STICKY MOBILE CTA BAR ─────────────────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-slate-900/95 backdrop-blur-xl border-t border-white/10 px-4 py-3 flex gap-3">
         <button
-          onClick={() => handleCheckout('starter')}
-          disabled={checkoutLoading === 'starter'}
-          className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-xl transition-all text-sm shadow-lg disabled:opacity-50"
+          onClick={startTrial}
+          className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-xl transition-all text-sm shadow-lg"
         >
-          {checkoutLoading === 'starter' ? 'Redirecting...' : 'Start Free Trial'}
+          Start Free Trial
         </button>
         <a
           href={WHATSAPP_URL}
