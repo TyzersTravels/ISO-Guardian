@@ -146,9 +146,12 @@ export async function generateTemplatePDF(template, options = {}) {
     doc.saveGraphicsState()
     doc.setGState(new doc.GState({ opacity: 0.04 }))
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(44)
+    doc.setFontSize(40)
     doc.setTextColor(124, 58, 237)
-    doc.text(`Licensed to ${companyName}`, pageWidth / 2, pageHeight / 2, { align: 'center', angle: 35 })
+    // Visually center on the content area (between header and footer)
+    const centerX = pageWidth / 2
+    const centerY = (14 + pageHeight - 8) / 2 // midpoint between header bottom and footer top
+    doc.text(`Licensed to ${companyName}`, centerX, centerY, { align: 'center', angle: 45 })
     doc.restoreGraphicsState()
   }
 
