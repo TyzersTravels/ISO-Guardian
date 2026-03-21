@@ -23,5 +23,6 @@ Disallow: /audit-connect
 Disallow: /profile
 Disallow: /auditor
 Disallow: /ai-copilot
+Disallow: /templates
 
 Sitemap: https://isoguardian.co.za/sitemap.xml

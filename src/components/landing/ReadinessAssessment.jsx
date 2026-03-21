@@ -75,23 +75,6 @@ export default function ReadinessAssessment() {
     }
     setError('')
 
-    // Capture lead immediately before they start the assessment
-    if (!honeypot) {
-      supabase.functions.invoke('notify-lead', {
-        body: {
-          type: 'assessment',
-          data: {
-            company_name: contactInfo.company_name,
-            email: contactInfo.email,
-            phone: contactInfo.phone,
-            standard: contactInfo.standard,
-            score: null,
-          },
-        },
-      }).then(res => { if (res?.error) console.warn('notify-lead error:', res.error) })
-        .catch(err => console.warn('notify-lead failed:', err))
-    }
-
     setStep(1)
   }
 

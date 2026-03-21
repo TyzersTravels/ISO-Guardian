@@ -38,6 +38,7 @@ const UserProfile = lazy(() => import('./pages/UserProfile'))
 // const AICopilot = lazy(() => import('./pages/AICopilot')) // Hidden until launch
 const AuditorInvite = lazy(() => import('./pages/AuditorInvite'))
 const AuditorWorkspace = lazy(() => import('./pages/AuditorWorkspace'))
+const Templates = lazy(() => import('./pages/Templates'))
 
 // Loading fallback for lazy-loaded routes
 const PageLoader = () => (
@@ -87,6 +88,7 @@ function App() {
           {/* <Route path="/ai-copilot" element={<ProtectedRoute><AICopilot /></ProtectedRoute>} /> */}{/* Hidden until launch */}
           <Route path="/audit-connect" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin', 'lead_auditor']}><AuditorInvite /></RoleProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+          <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
 
           {/* Landing */}
           <Route path="/" element={<LandingPage />} />

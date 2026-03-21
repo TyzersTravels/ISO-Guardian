@@ -2,7 +2,7 @@
 // Called by landing page forms after a lead submits (assessment or consultation)
 // Sends an immediate email to the admin so leads aren't missed
 
-import { corsHeaders } from '../_shared/cors.ts'
+import { corsHeaders, getCorsHeaders } from '../_shared/cors.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const ADMIN_EMAIL = Deno.env.get('ADMIN_NOTIFICATION_EMAIL') || 'support@isoguardian.co.za'
@@ -45,8 +45,10 @@ function emailTemplate(subject: string, body: string): string {
 }
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req)
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: cors })
   }
 
   // GET = test endpoint to verify Resend config
@@ -75,12 +77,12 @@ Deno.serve(async (req) => {
         api_key_set: !!RESEND_API_KEY,
         api_key_prefix: RESEND_API_KEY ? RESEND_API_KEY.slice(0, 8) + '...' : 'NOT SET',
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     } catch (err) {
       return new Response(JSON.stringify({ error: String(err), api_key_set: !!RESEND_API_KEY }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
   }
@@ -91,7 +93,7 @@ Deno.serve(async (req) => {
     if (!type || !data) {
       return new Response(JSON.stringify({ error: 'Missing type or data' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
 
@@ -158,12 +160,12 @@ Deno.serve(async (req) => {
         const err = await auditorRes.text()
         return new Response(JSON.stringify({ error: 'Email send failed', details: err }), {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...cors, 'Content-Type': 'application/json' },
         })
       }
 
       return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     } else if (type === 'template_enquiry') {
       subject = `Template Enquiry: ${escapeHtml(data.template_name || 'Unknown')}`
@@ -179,7 +181,7 @@ Deno.serve(async (req) => {
     } else {
       return new Response(JSON.stringify({ error: 'Invalid lead type' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
 
@@ -198,17 +200,17 @@ Deno.serve(async (req) => {
       const err = await res.text()
       return new Response(JSON.stringify({ error: 'Email send failed', details: err }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
 
     return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...cors, 'Content-Type': 'application/json' },
     })
   } catch (err) {
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...cors, 'Content-Type': 'application/json' },
     })
   }
 })
