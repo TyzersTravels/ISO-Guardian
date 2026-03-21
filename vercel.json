@@ -1,12 +1,4 @@
 {
-  "redirects": [
-    {
-      "source": "/:path(.*)",
-      "has": [{ "type": "host", "value": "www.isoguardian.co.za" }],
-      "destination": "https://isoguardian.co.za/:path",
-      "permanent": true
-    }
-  ],
   "rewrites": [
     { "source": "/((?!.*\\.).*)", "destination": "/index.html" }
   ],
