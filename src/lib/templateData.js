@@ -134,8 +134,8 @@ export const PERSONNEL_ROLES = [
   { key: 'hr_manager', label: 'HR / Training Manager', placeholder: '{{HR_NAME}}', titlePlaceholder: '{{HR_TITLE}}', required: false, description: 'Competence, training records, awareness programmes' },
 ]
 
-// Helper: resolve all placeholders including personnel and cross-refs
-export function resolveAllPlaceholders(text, companyData = {}) {
+// Helper: resolve all placeholders including personnel, cross-refs, and live data
+export function resolveAllPlaceholders(text, companyData = {}, liveData = null) {
   if (!text) return ''
 
   const {
@@ -196,7 +196,164 @@ export function resolveAllPlaceholders(text, companyData = {}) {
     return match
   })
 
+  // ─── LIVE DATA PLACEHOLDERS ───
+  // Only resolved when liveData is provided (from fetchLiveData)
+  if (liveData) {
+    result = result.replace(/\{\{LIVE:([A-Z_]+(?::[A-Za-z0-9_.]+)?)\}\}/g, (match, key) => {
+      const resolved = resolveLivePlaceholder(key, liveData)
+      return resolved !== null ? resolved : match
+    })
+  }
+
   return result
+}
+
+// ─── Live data placeholder resolver ───
+function resolveLivePlaceholder(key, liveData) {
+  if (!liveData) return null
+
+  // Handle parameterised keys like COMPLIANCE_STATUS:4.1
+  const [type, param] = key.split(':')
+
+  switch (type) {
+    // ── Compliance ──
+    case 'COMPLIANCE_STATUS': {
+      if (!param) return null
+      // Search across all standards for matching clause
+      for (const std of ['ISO_9001', 'ISO_14001', 'ISO_45001']) {
+        const items = liveData.compliance?.[std] || []
+        const clause = items.find(c => String(c.clause_number) === param)
+        if (clause) {
+          const status = clause.compliance_status
+          if (status === 'Met') return '[X] C  [ ] NC  [ ] OFI'
+          if (status === 'Not Met') return '[ ] C  [X] NC  [ ] OFI'
+          if (status === 'Partially Met') return '[ ] C  [ ] NC  [X] OFI'
+          return '[ ] C  [ ] NC  [ ] OFI'
+        }
+      }
+      return null // keep original if no data
+    }
+
+    case 'COMPLIANCE_NOTES': {
+      if (!param) return null
+      for (const std of ['ISO_9001', 'ISO_14001', 'ISO_45001']) {
+        const items = liveData.compliance?.[std] || []
+        const clause = items.find(c => String(c.clause_number) === param)
+        if (clause && clause.notes) return clause.notes
+      }
+      return ''
+    }
+
+    case 'COMPLIANCE_SCORE': {
+      const scores = liveData.complianceScores?.[param]
+      if (scores && scores.total > 0) return `${scores.score}%`
+      return null
+    }
+
+    // ── NCRs ──
+    case 'NCR_OPEN_COUNT':
+      return liveData.ncrs ? String(liveData.ncrs.totalOpen) : null
+    case 'NCR_CLOSED_COUNT':
+      return liveData.ncrs ? String(liveData.ncrs.totalClosed) : null
+    case 'NCR_OVERDUE_COUNT':
+      return liveData.ncrs ? String(liveData.ncrs.overdue) : null
+    case 'NCR_SUMMARY': {
+      if (!liveData.ncrs) return null
+      const n = liveData.ncrs
+      return `Open: ${n.totalOpen} | Closed: ${n.totalClosed} | Overdue: ${n.overdue}`
+    }
+
+    // ── Audits ──
+    case 'AUDIT_NUMBER':
+      return liveData.audits?.latest?.audit_number || null
+    case 'AUDIT_DATE': {
+      const d = liveData.audits?.latest?.audit_date
+      if (d) return new Date(d).toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })
+      return null
+    }
+    case 'AUDITOR_NAME':
+      return liveData.audits?.latest?.assigned_auditor_name || null
+    case 'AUDIT_SCHEDULE': {
+      const upcoming = liveData.audits?.upcoming
+      if (!upcoming || upcoming.length === 0) return null
+      const rows = ['| Audit No. | Date | Standard | Scope | Auditor |', '|---|---|---|---|---|']
+      upcoming.forEach(a => {
+        const date = a.audit_date ? new Date(a.audit_date).toLocaleDateString('en-ZA') : '[TBD]'
+        rows.push(`| ${a.audit_number || '[TBD]'} | ${date} | ${a.standard || ''} | ${a.scope || ''} | ${a.assigned_auditor_name || '[TBD]'} |`)
+      })
+      return rows.join('\n')
+    }
+
+    // ── Documents ──
+    case 'DOCUMENT_COUNT':
+      return liveData.documents ? String(liveData.documents.totalCount) : null
+    case 'DOCUMENT_REGISTER': {
+      const docs = liveData.documents?.controlled
+      if (!docs || docs.length === 0) return null
+      const rows = ['| Document | Type | Standard | Version | Status | Next Review |', '|---|---|---|---|---|---|']
+      docs.slice(0, 25).forEach(d => {
+        const review = d.next_review_date ? new Date(d.next_review_date).toLocaleDateString('en-ZA') : 'N/A'
+        rows.push(`| ${d.name || ''} | ${d.type || ''} | ${d.standard || ''} | ${d.version || '1.0'} | ${d.status || 'Active'} | ${review} |`)
+      })
+      if (docs.length > 25) rows.push(`| ... and ${docs.length - 25} more documents | | | | | |`)
+      return rows.join('\n')
+    }
+
+    // ── Management Reviews ──
+    case 'REVIEW_DATE': {
+      const rd = liveData.managementReviews?.latest?.review_date
+      if (rd) return new Date(rd).toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })
+      return null
+    }
+    case 'REVIEW_ATTENDEES':
+      return liveData.managementReviews?.latest?.attendees || null
+    case 'REVIEW_ACTIONS':
+      return liveData.managementReviews?.latest?.action_items || null
+    case 'REVIEW_DECISIONS':
+      return liveData.managementReviews?.latest?.decisions_made || null
+
+    // ── Users ──
+    case 'AUDITOR_LIST': {
+      const auditors = liveData.users?.auditors
+      if (!auditors || auditors.length === 0) return null
+      return auditors.map(a => a.full_name).join(', ')
+    }
+    case 'USER_LIST': {
+      const users = liveData.users?.active
+      if (!users || users.length === 0) return null
+      const rows = ['| Name | Email | Role |', '|---|---|---|']
+      users.forEach(u => {
+        const role = (u.role || '').replace('_', ' ')
+        rows.push(`| ${u.full_name || ''} | ${u.email || ''} | ${role} |`)
+      })
+      return rows.join('\n')
+    }
+    case 'USER_COUNT':
+      return liveData.users ? String(liveData.users.totalActive) : null
+
+    // ── Risk Gaps (non-compliant clauses as risk items) ──
+    case 'RISK_GAPS': {
+      const gaps = []
+      for (const std of ['ISO_9001', 'ISO_14001', 'ISO_45001']) {
+        const items = liveData.compliance?.[std] || []
+        items.filter(c => c.compliance_status === 'Not Met' || c.compliance_status === 'Partially Met').forEach(c => {
+          gaps.push({ clause: c.clause_number, name: c.clause_name, status: c.compliance_status, standard: std })
+        })
+      }
+      if (gaps.length === 0) return null
+      const rows = ['| Risk ID | Description | Source | Category | Likelihood | Impact | Risk Level | Treatment | Owner | Status |', '|---|---|---|---|---|---|---|---|---|---|']
+      gaps.forEach((g, i) => {
+        const level = g.status === 'Not Met' ? 'High' : 'Medium'
+        const likelihood = g.status === 'Not Met' ? '4' : '3'
+        const impact = g.status === 'Not Met' ? '4' : '3'
+        rows.push(`| R-${String(i + 1).padStart(3, '0')} | Non-compliance: Clause ${g.clause} — ${g.name} | ${g.standard.replace('_', ' ')} Compliance Gap | Compliance | ${likelihood} | ${impact} | ${level} | Corrective action required | [Assign owner] | Open |`)
+      })
+      return rows.join('\n')
+    }
+
+    default:
+      return null
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

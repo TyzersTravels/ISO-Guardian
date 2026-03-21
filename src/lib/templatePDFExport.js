@@ -53,12 +53,13 @@ export async function generateTemplatePDF(template, options = {}) {
     productsServices = '',
     qmsScope = '',
     qualityPolicy = '',
+    liveData = null,
   } = options
 
   const companyData = { companyName, companyCode, preparedBy, personnel, productsServices, qmsScope, qualityPolicy }
   const content = template.content
-  const docNumber = resolveAllPlaceholders(content.docNumber || '', companyData)
-  const title = resolveAllPlaceholders(content.title || template.title, companyData)
+  const docNumber = resolveAllPlaceholders(content.docNumber || '', companyData, liveData)
+  const title = resolveAllPlaceholders(content.title || template.title, companyData, liveData)
   const today = new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })
   const reviewDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' })
 
@@ -274,8 +275,8 @@ export async function generateTemplatePDF(template, options = {}) {
     y = newPage()
 
     content.sections.forEach((section, sectionIdx) => {
-      const heading = resolveAllPlaceholders(section.heading, companyData)
-      const body = resolveAllPlaceholders(section.body, companyData)
+      const heading = resolveAllPlaceholders(section.heading, companyData, liveData)
+      const body = resolveAllPlaceholders(section.body, companyData, liveData)
       const clauseColour = getClauseColour(heading)
 
       // Check if we need a new page — need at least 35mm for heading + first content
@@ -322,7 +323,7 @@ export async function generateTemplatePDF(template, options = {}) {
           while (j < lines.length && lines[j].trim().startsWith('|') && lines[j].trim().endsWith('|')) {
             const row = lines[j].trim()
             if (!/^\|[\s\-|:]+\|$/.test(row)) {
-              const cells = row.split('|').filter((c, idx, arr) => idx > 0 && idx < arr.length - 1).map(c => c.trim())
+              const cells = row.split('|').filter((_, idx, arr) => idx > 0 && idx < arr.length - 1).map(s => s.trim())
               tableRows.push(cells)
             }
             j++

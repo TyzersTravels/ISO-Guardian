@@ -97,7 +97,14 @@ Refer to Section 3 of this manual.
 | Quality Control & Inspection | {{QM_NAME}} | Products/services, standards | Inspection records, release |
 | Customer Feedback & Satisfaction | {{MR_NAME}} | Complaints, surveys | Corrective actions, improvements |
 
-Process interactions are documented in the Process Interaction Map (separate document).`
+Process interactions are documented in the Process Interaction Map (separate document).
+
+**System Statistics (auto-populated from ISOGuardian):**
+- Controlled Documents: {{LIVE:DOCUMENT_COUNT}}
+- Active Users: {{LIVE:USER_COUNT}}
+- ISO 9001 Compliance Score: {{LIVE:COMPLIANCE_SCORE:ISO_9001}}
+- Open NCRs: {{LIVE:NCR_OPEN_COUNT}}
+- Completed Audits: {{LIVE:AUDIT_NUMBER}}`
         },
         {
           heading: '5. Leadership (Clause 5)',
@@ -492,7 +499,11 @@ In urgent situations, verbal approval from the Approver is acceptable, followed 
 | Supplier evaluations | 3 years |
 | Calibration records | Life of equipment + 1 year |
 
-Records are stored securely in ISOGuardian with access restricted to authorised personnel. Backup and disaster recovery are managed by the platform.`
+Records are stored securely in ISOGuardian with access restricted to authorised personnel. Backup and disaster recovery are managed by the platform.
+
+**Current Controlled Document Register ({{LIVE:DOCUMENT_COUNT}} documents):**
+
+{{LIVE:DOCUMENT_REGISTER}}`
         },
       ],
     },
@@ -560,7 +571,13 @@ All processes/clauses must be audited at least once per year. Higher-risk areas 
 | Q3 | Internal Audit (Clause 9.2) | [Name] | Planned |
 | Q3 | Competence (Clause 7.2) | [Name] | Planned |
 | Q4 | Management Review (Clause 9.3) | [Name] | Planned |
-| Q4 | Improvement (Clause 10) | [Name] | Planned |`
+| Q4 | Improvement (Clause 10) | [Name] | Planned |
+
+**Qualified Internal Auditors:** {{LIVE:AUDITOR_LIST}}
+
+**Upcoming Scheduled Audits:**
+
+{{LIVE:AUDIT_SCHEDULE}}`
         },
         {
           heading: '6. Conducting the Audit',
@@ -812,8 +829,8 @@ Where possible, data should be presented as:
           heading: '7. Minutes Template',
           body: `| Field | Detail |
 |-------|--------|
-| Meeting Date | [Date] |
-| Attendees | [Names and roles] |
+| Meeting Date | {{LIVE:REVIEW_DATE}} |
+| Attendees | {{LIVE:REVIEW_ATTENDEES}} |
 | Apologies | [Names] |
 | Chair | [Name] |
 | Minutes By | [Name] |
@@ -1077,8 +1094,8 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 | **Date Raised** | {{DATE}} |
 | **Raised By** | {{PREPARED_BY}} |
 | **Department/Area** | [Department] |
-| **Source** | ☐ Internal Audit  ☐ External Audit  ☐ Customer Complaint  ☐ Process Failure  ☐ Supplier  ☐ Other: _______ |
-| **Classification** | ☐ Major  ☐ Minor |
+| **Source** | [ ] Internal Audit  [ ] External Audit  [ ] Customer Complaint  [ ] Process Failure  [ ] Supplier  [ ] Other: _______ |
+| **Classification** | [ ] Major  [ ] Minor |
 | **ISO Clause Reference** | [Clause number] |`
         },
         {
@@ -1101,11 +1118,11 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 | Action by | [Name] |
 | Date | [Date] |
 | Product/service affected | [Describe what was affected] |
-| Customer notified? | ☐ Yes  ☐ No  ☐ N/A |`
+| Customer notified? | [ ] Yes  [ ] No  [ ] N/A |`
         },
         {
           heading: 'Section D: Root Cause Analysis',
-          body: `**Method used:** ☐ 5 Why  ☐ Fishbone  ☐ Fault Tree  ☐ Other: _______
+          body: `**Method used:** [ ] 5 Why  [ ] Fishbone  [ ] Fault Tree  [ ] Other: _______
 
 **Analysis:**
 
@@ -1128,13 +1145,13 @@ Workers must be consulted and have the opportunity to participate in the hazard 
           heading: 'Section E: Corrective Action Plan',
           body: `| # | Corrective Action | Responsible | Target Date | Status |
 |---|------------------|-------------|-------------|--------|
-| 1 | [Action] | [Name] | [Date] | ☐ Open  ☐ In Progress  ☐ Complete |
-| 2 | [Action] | [Name] | [Date] | ☐ Open  ☐ In Progress  ☐ Complete |
-| 3 | [Action] | [Name] | [Date] | ☐ Open  ☐ In Progress  ☐ Complete |
+| 1 | [Action] | [Name] | [Date] | [ ] Open  [ ] In Progress  [ ] Complete |
+| 2 | [Action] | [Name] | [Date] | [ ] Open  [ ] In Progress  [ ] Complete |
+| 3 | [Action] | [Name] | [Date] | [ ] Open  [ ] In Progress  [ ] Complete |
 
-**Similar risk elsewhere?** ☐ Yes → [Where? Actions taken?]  ☐ No
+**Similar risk elsewhere?** [ ] Yes → [Where? Actions taken?]  [ ] No
 
-**QMS changes required?** ☐ Yes → [Which documents?]  ☐ No`
+**QMS changes required?** [ ] Yes → [Which documents?]  [ ] No`
         },
         {
           heading: 'Section F: Verification of Effectiveness',
@@ -1143,8 +1160,8 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 | **Verification date** | [Date — minimum 30 days after implementation] |
 | **Verified by** | [Name — must not be the person who implemented the action] |
 | **Evidence of effectiveness** | [Describe how effectiveness was confirmed] |
-| **Has the nonconformity recurred?** | ☐ Yes → [Reopen / escalate]  ☐ No |
-| **Corrective action effective?** | ☐ Yes  ☐ No → [Further action required] |
+| **Has the nonconformity recurred?** | [ ] Yes → [Reopen / escalate]  [ ] No |
+| **Corrective action effective?** | [ ] Yes  [ ] No → [Further action required] |
 
 **Signatures:**
 
@@ -1165,7 +1182,7 @@ Workers must be consulted and have the opportunity to participate in the hazard 
           heading: 'Audit Information',
           body: `| Field | Detail |
 |-------|--------|
-| Audit Number | IG-{{CODE}}-AUD-[XXX] |
+| Audit Number | {{LIVE:AUDIT_NUMBER}} |
 | Audit Date | {{DATE}} |
 | Lead Auditor | {{PREPARED_BY}} |
 | Audit Team | [Names] |
@@ -1177,10 +1194,10 @@ Workers must be consulted and have the opportunity to participate in the hazard 
           heading: 'Clause 4: Context of the Organisation',
           body: `| # | Audit Question | Evidence to Review | Conformity | Finding |
 |---|---------------|-------------------|-----------|---------|
-| 4.1 | Has the organisation determined external and internal issues relevant to its purpose? | Context analysis document, SWOT, PESTLE | ☐ C  ☐ NC  ☐ OFI | |
-| 4.2 | Are interested parties and their requirements identified and monitored? | Interested parties register | ☐ C  ☐ NC  ☐ OFI | |
-| 4.3 | Is the scope of the QMS defined, documented, and available? | Quality Manual, scope statement | ☐ C  ☐ NC  ☐ OFI | |
-| 4.4 | Are QMS processes identified with inputs, outputs, sequence, and interactions? | Process map, turtle diagrams | ☐ C  ☐ NC  ☐ OFI | |
+| 4.1 | Has the organisation determined external and internal issues relevant to its purpose? | Context analysis document, SWOT, PESTLE | {{LIVE:COMPLIANCE_STATUS:4.1}} | {{LIVE:COMPLIANCE_NOTES:4.1}} |
+| 4.2 | Are interested parties and their requirements identified and monitored? | Interested parties register | {{LIVE:COMPLIANCE_STATUS:4.2}} | {{LIVE:COMPLIANCE_NOTES:4.2}} |
+| 4.3 | Is the scope of the QMS defined, documented, and available? | Quality Manual, scope statement | {{LIVE:COMPLIANCE_STATUS:4.3}} | {{LIVE:COMPLIANCE_NOTES:4.3}} |
+| 4.4 | Are QMS processes identified with inputs, outputs, sequence, and interactions? | Process map, turtle diagrams | {{LIVE:COMPLIANCE_STATUS:4.4}} | {{LIVE:COMPLIANCE_NOTES:4.4}} |
 
 **C** = Conforming  **NC** = Nonconformity  **OFI** = Opportunity for Improvement`
         },
@@ -1188,66 +1205,68 @@ Workers must be consulted and have the opportunity to participate in the hazard 
           heading: 'Clause 5: Leadership',
           body: `| # | Audit Question | Evidence to Review | Conformity | Finding |
 |---|---------------|-------------------|-----------|---------|
-| 5.1.1 | Does top management demonstrate commitment to the QMS? | Interview, resource evidence, meeting minutes | ☐ C  ☐ NC  ☐ OFI | |
-| 5.1.2 | Is customer focus maintained (requirements determined, risks addressed)? | Customer feedback, complaint records | ☐ C  ☐ NC  ☐ OFI | |
-| 5.2 | Is the quality policy established, communicated, and available? | Policy document, display, awareness | ☐ C  ☐ NC  ☐ OFI | |
-| 5.3 | Are roles, responsibilities, and authorities assigned and communicated? | Org chart, job descriptions, interviews | ☐ C  ☐ NC  ☐ OFI | |`
+| 5.1.1 | Does top management demonstrate commitment to the QMS? | Interview, resource evidence, meeting minutes | {{LIVE:COMPLIANCE_STATUS:5.1}} | {{LIVE:COMPLIANCE_NOTES:5.1}} |
+| 5.1.2 | Is customer focus maintained (requirements determined, risks addressed)? | Customer feedback, complaint records | {{LIVE:COMPLIANCE_STATUS:5.1}} | {{LIVE:COMPLIANCE_NOTES:5.1}} |
+| 5.2 | Is the quality policy established, communicated, and available? | Policy document, display, awareness | {{LIVE:COMPLIANCE_STATUS:5.2}} | {{LIVE:COMPLIANCE_NOTES:5.2}} |
+| 5.3 | Are roles, responsibilities, and authorities assigned and communicated? | Org chart, job descriptions, interviews | {{LIVE:COMPLIANCE_STATUS:5.3}} | {{LIVE:COMPLIANCE_NOTES:5.3}} |`
         },
         {
           heading: 'Clause 6: Planning',
           body: `| # | Audit Question | Evidence to Review | Conformity | Finding |
 |---|---------------|-------------------|-----------|---------|
-| 6.1 | Are risks and opportunities identified and actions taken? | Risk register, risk assessments | ☐ C  ☐ NC  ☐ OFI | |
-| 6.2 | Are quality objectives established (SMART) at relevant functions? | Objectives document, KPI tracking | ☐ C  ☐ NC  ☐ OFI | |
-| 6.3 | Are changes to the QMS planned and controlled? | Change records, management review minutes | ☐ C  ☐ NC  ☐ OFI | |`
+| 6.1 | Are risks and opportunities identified and actions taken? | Risk register, risk assessments | {{LIVE:COMPLIANCE_STATUS:6.1}} | {{LIVE:COMPLIANCE_NOTES:6.1}} |
+| 6.2 | Are quality objectives established (SMART) at relevant functions? | Objectives document, KPI tracking | {{LIVE:COMPLIANCE_STATUS:6.2}} | {{LIVE:COMPLIANCE_NOTES:6.2}} |
+| 6.3 | Are changes to the QMS planned and controlled? | Change records, management review minutes | {{LIVE:COMPLIANCE_STATUS:6.3}} | {{LIVE:COMPLIANCE_NOTES:6.3}} |`
         },
         {
           heading: 'Clause 7: Support',
           body: `| # | Audit Question | Evidence to Review | Conformity | Finding |
 |---|---------------|-------------------|-----------|---------|
-| 7.1 | Are adequate resources provided? | Budget, staff levels, equipment | ☐ C  ☐ NC  ☐ OFI | |
-| 7.2 | Are persons competent (education, training, experience)? | Training records, competence matrix | ☐ C  ☐ NC  ☐ OFI | |
-| 7.3 | Are persons aware of QMS policy, objectives, and their contribution? | Interviews, induction records | ☐ C  ☐ NC  ☐ OFI | |
-| 7.4 | Are internal and external communications planned and effective? | Communication records, meeting minutes | ☐ C  ☐ NC  ☐ OFI | |
-| 7.5 | Is documented information controlled (creation, approval, distribution, access)? | Document register, version control | ☐ C  ☐ NC  ☐ OFI | |`
+| 7.1 | Are adequate resources provided? | Budget, staff levels, equipment | {{LIVE:COMPLIANCE_STATUS:7.1}} | {{LIVE:COMPLIANCE_NOTES:7.1}} |
+| 7.2 | Are persons competent (education, training, experience)? | Training records, competence matrix | {{LIVE:COMPLIANCE_STATUS:7.2}} | {{LIVE:COMPLIANCE_NOTES:7.2}} |
+| 7.3 | Are persons aware of QMS policy, objectives, and their contribution? | Interviews, induction records | {{LIVE:COMPLIANCE_STATUS:7.3}} | {{LIVE:COMPLIANCE_NOTES:7.3}} |
+| 7.4 | Are internal and external communications planned and effective? | Communication records, meeting minutes | {{LIVE:COMPLIANCE_STATUS:7.4}} | {{LIVE:COMPLIANCE_NOTES:7.4}} |
+| 7.5 | Is documented information controlled (creation, approval, distribution, access)? | Document register, version control | {{LIVE:COMPLIANCE_STATUS:7.5}} | {{LIVE:COMPLIANCE_NOTES:7.5}} |`
         },
         {
           heading: 'Clause 8: Operation',
           body: `| # | Audit Question | Evidence to Review | Conformity | Finding |
 |---|---------------|-------------------|-----------|---------|
-| 8.1 | Is operational planning and control in place? | Process controls, work instructions | ☐ C  ☐ NC  ☐ OFI | |
-| 8.2 | Are customer requirements determined and reviewed before acceptance? | Quotations, orders, contract review | ☐ C  ☐ NC  ☐ OFI | |
-| 8.4 | Are external providers controlled and evaluated? | Approved supplier list, evaluations | ☐ C  ☐ NC  ☐ OFI | |
-| 8.5 | Is production/service provision controlled? | Process records, inspection records | ☐ C  ☐ NC  ☐ OFI | |
-| 8.6 | Are release activities completed before delivery? | Inspection/test records, release sign-off | ☐ C  ☐ NC  ☐ OFI | |
-| 8.7 | Are nonconforming outputs identified and controlled? | NCR records, segregation evidence | ☐ C  ☐ NC  ☐ OFI | |`
+| 8.1 | Is operational planning and control in place? | Process controls, work instructions | {{LIVE:COMPLIANCE_STATUS:8.1}} | {{LIVE:COMPLIANCE_NOTES:8.1}} |
+| 8.2 | Are customer requirements determined and reviewed before acceptance? | Quotations, orders, contract review | {{LIVE:COMPLIANCE_STATUS:8.2}} | {{LIVE:COMPLIANCE_NOTES:8.2}} |
+| 8.4 | Are external providers controlled and evaluated? | Approved supplier list, evaluations | {{LIVE:COMPLIANCE_STATUS:8.4}} | {{LIVE:COMPLIANCE_NOTES:8.4}} |
+| 8.5 | Is production/service provision controlled? | Process records, inspection records | {{LIVE:COMPLIANCE_STATUS:8.5}} | {{LIVE:COMPLIANCE_NOTES:8.5}} |
+| 8.6 | Are release activities completed before delivery? | Inspection/test records, release sign-off | {{LIVE:COMPLIANCE_STATUS:8.6}} | {{LIVE:COMPLIANCE_NOTES:8.6}} |
+| 8.7 | Are nonconforming outputs identified and controlled? | NCR records, segregation evidence | {{LIVE:COMPLIANCE_STATUS:8.7}} | {{LIVE:COMPLIANCE_NOTES:8.7}} |`
         },
         {
           heading: 'Clause 9: Performance Evaluation',
           body: `| # | Audit Question | Evidence to Review | Conformity | Finding |
 |---|---------------|-------------------|-----------|---------|
-| 9.1 | Is monitoring, measurement, and analysis performed? | KPI data, trend analysis | ☐ C  ☐ NC  ☐ OFI | |
-| 9.1.2 | Is customer satisfaction monitored? | Surveys, feedback, complaint trends | ☐ C  ☐ NC  ☐ OFI | |
-| 9.2 | Are internal audits conducted per the programme? | Audit reports, programme, auditor qualifications | ☐ C  ☐ NC  ☐ OFI | |
-| 9.3 | Are management reviews conducted with all required inputs/outputs? | MR minutes, action tracking | ☐ C  ☐ NC  ☐ OFI | |`
+| 9.1 | Is monitoring, measurement, and analysis performed? | KPI data, trend analysis | {{LIVE:COMPLIANCE_STATUS:9.1}} | {{LIVE:COMPLIANCE_NOTES:9.1}} |
+| 9.1.2 | Is customer satisfaction monitored? | Surveys, feedback, complaint trends | {{LIVE:COMPLIANCE_STATUS:9.1}} | {{LIVE:COMPLIANCE_NOTES:9.1}} |
+| 9.2 | Are internal audits conducted per the programme? | Audit reports, programme, auditor qualifications | {{LIVE:COMPLIANCE_STATUS:9.2}} | {{LIVE:COMPLIANCE_NOTES:9.2}} |
+| 9.3 | Are management reviews conducted with all required inputs/outputs? | MR minutes, action tracking | {{LIVE:COMPLIANCE_STATUS:9.3}} | {{LIVE:COMPLIANCE_NOTES:9.3}} |`
         },
         {
           heading: 'Clause 10: Improvement',
           body: `| # | Audit Question | Evidence to Review | Conformity | Finding |
 |---|---------------|-------------------|-----------|---------|
-| 10.1 | Are improvement opportunities determined and implemented? | Improvement projects, innovation records | ☐ C  ☐ NC  ☐ OFI | |
-| 10.2 | Are nonconformities addressed with root cause analysis and corrective action? | NCR register, root cause analysis, effectiveness verification | ☐ C  ☐ NC  ☐ OFI | |
-| 10.3 | Is continual improvement of the QMS pursued? | Trend data, management review outputs | ☐ C  ☐ NC  ☐ OFI | |`
+| 10.1 | Are improvement opportunities determined and implemented? | Improvement projects, innovation records | {{LIVE:COMPLIANCE_STATUS:10.1}} | {{LIVE:COMPLIANCE_NOTES:10.1}} |
+| 10.2 | Are nonconformities addressed with root cause analysis and corrective action? | NCR register, root cause analysis, effectiveness verification | {{LIVE:COMPLIANCE_STATUS:10.2}} | {{LIVE:COMPLIANCE_NOTES:10.2}} |
+| 10.3 | Is continual improvement of the QMS pursued? | Trend data, management review outputs | {{LIVE:COMPLIANCE_STATUS:10.3}} | {{LIVE:COMPLIANCE_NOTES:10.3}} |`
         },
         {
           heading: 'Audit Summary',
           body: `| Category | Count |
 |----------|-------|
-| Conformities | [#] |
-| Major Nonconformities | [#] |
-| Minor Nonconformities | [#] |
-| Observations / OFIs | [#] |
-| Positive Findings | [#] |
+| Conformities | {{LIVE:COMPLIANCE_SCORE:ISO_9001}} conforming |
+| Open NCRs | {{LIVE:NCR_OPEN_COUNT}} |
+| Overdue NCRs | {{LIVE:NCR_OVERDUE_COUNT}} |
+| Closed NCRs | {{LIVE:NCR_CLOSED_COUNT}} |
+| Total Documents | {{LIVE:DOCUMENT_COUNT}} |
+
+**NCR Summary:** {{LIVE:NCR_SUMMARY}}
 
 **Audit Conclusion:**
 [Overall assessment of QMS conformity and effectiveness]
@@ -1277,9 +1296,9 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 **Training History:**
 | Date | Training/Course | Provider | Duration | Certificate? | Effectiveness Review |
 |------|----------------|----------|----------|-------------|---------------------|
-| [Date] | Induction Training | Internal | 1 day | N/A | ☐ Competent  ☐ Needs follow-up |
-| [Date] | ISO 9001 Awareness | [Provider] | 2 hours | ☐ Yes ☐ No | ☐ Competent  ☐ Needs follow-up |
-| [Date] | [Course] | [Provider] | [Duration] | ☐ Yes ☐ No | ☐ Competent  ☐ Needs follow-up |`
+| [Date] | Induction Training | Internal | 1 day | N/A | [ ] Competent  [ ] Needs follow-up |
+| [Date] | ISO 9001 Awareness | [Provider] | 2 hours | [ ] Yes [ ] No | [ ] Competent  [ ] Needs follow-up |
+| [Date] | [Course] | [Provider] | [Duration] | [ ] Yes [ ] No | [ ] Competent  [ ] Needs follow-up |`
         },
         {
           heading: 'Competence Matrix',
@@ -1293,6 +1312,10 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 - **2** = Competent with supervision
 - **1** = Awareness only / Under training
 - **0** = Not applicable / Not trained
+
+**Company Personnel (from ISOGuardian):**
+
+{{LIVE:USER_LIST}}
 
 | Competence Area | Employee A | Employee B | Employee C | Employee D | Min. Required |
 |----------------|-----------|-----------|-----------|-----------|--------------|
@@ -1309,7 +1332,7 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 **Training Gaps Identified:**
 | Employee | Competence Gap | Training Required | Target Date | Priority |
 |----------|---------------|------------------|-------------|----------|
-| [Name] | [Gap] | [Training] | [Date] | ☐ High  ☐ Medium  ☐ Low |`
+| [Name] | [Gap] | [Training] | [Date] | [ ] High  [ ] Medium  [ ] Low |`
         },
         {
           heading: 'Training Effectiveness Evaluation',
@@ -1329,7 +1352,7 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 | Can the employee explain the key concepts? | [1-5] | [Comment] |
 | Has the training objective been met? | [1-5] | [Comment] |
 
-**Overall Assessment:** ☐ Competent  ☐ Partially competent — further training required  ☐ Not competent — retraining required
+**Overall Assessment:** [ ] Competent  [ ] Partially competent — further training required  [ ] Not competent — retraining required
 
 **Manager Signature:** _________________ Date: _________`
         },
@@ -1351,8 +1374,8 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 | Address | [Physical address] |
 | Products/Services Supplied | [Description] |
 | B-BBEE Level | [Level] |
-| ISO Certification(s) | ☐ ISO 9001  ☐ ISO 14001  ☐ ISO 45001  ☐ Other: _______ |
-| Evaluation Type | ☐ Initial Evaluation  ☐ Re-evaluation (Annual) |
+| ISO Certification(s) | [ ] ISO 9001  [ ] ISO 14001  [ ] ISO 45001  [ ] Other: _______ |
+| Evaluation Type | [ ] Initial Evaluation  [ ] Re-evaluation (Annual) |
 | Evaluation Date | {{DATE}} |
 | Evaluated By | {{PREPARED_BY}} |`
         },
@@ -1389,7 +1412,7 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 **Conditions (if applicable):**
 [List any conditions for approval, e.g., "Must provide ISO 9001 certificate by Q3"]
 
-**Decision:** ☐ Approved (Preferred)  ☐ Approved  ☐ Approved with Conditions  ☐ Not Approved
+**Decision:** [ ] Approved (Preferred)  [ ] Approved  [ ] Approved with Conditions  [ ] Not Approved
 
 **Approved By:**
 | Role | Name | Signature | Date |
@@ -1450,7 +1473,11 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 | R03 | Customer requirements misunderstood | Process | Quality | 3 | 4 | 12 | Medium | Contract review procedure, customer sign-off | Sales Manager | Open |
 | R04 | Regulatory change affecting operations | External | Compliance | 2 | 4 | 8 | Low | Legal register, subscribe to regulatory updates | Management Rep | Open |
 | R05 | IT system failure / data loss | Internal | Technology | 2 | 5 | 10 | Medium | Backup system, cloud storage, disaster recovery plan | IT / Admin | Open |
-| R06 | [Add your risks] | | | | | | | | | |`
+| R06 | [Add your risks] | | | | | | | | | |
+
+**Auto-detected Compliance Gaps (from ISOGuardian):**
+
+{{LIVE:RISK_GAPS}}`
         },
         {
           heading: 'Opportunity Register',
@@ -1527,12 +1554,12 @@ Workers must be consulted and have the opportunity to participate in the hazard 
           heading: 'Legal Register Summary',
           body: `| Legislation | Applicable Section | Aspect Affected | Compliance Status |
 |------------|-------------------|----------------|------------------|
-| NEMA (Act 107 of 1998) | S28 — Duty of care | All environmental aspects | ☐ Compliant ☐ Non-compliant |
-| NEM:WA (Act 59 of 2008) | Waste classification & disposal | Waste generation | ☐ Compliant ☐ Non-compliant |
-| NEM:AQA (Act 39 of 2004) | Listed activities, AELs | Air emissions | ☐ Compliant ☐ Non-compliant |
-| NWA (Act 36 of 1998) | Water use licence, effluent standards | Water consumption, effluent | ☐ Compliant ☐ Non-compliant |
-| OHSA (Act 85 of 1993) | HCS Regulations | Chemical handling | ☐ Compliant ☐ Non-compliant |
-| Municipal by-laws | Noise, trade effluent, waste | Various | ☐ Compliant ☐ Non-compliant |
+| NEMA (Act 107 of 1998) | S28 — Duty of care | All environmental aspects | [ ] Compliant [ ] Non-compliant |
+| NEM:WA (Act 59 of 2008) | Waste classification & disposal | Waste generation | [ ] Compliant [ ] Non-compliant |
+| NEM:AQA (Act 39 of 2004) | Listed activities, AELs | Air emissions | [ ] Compliant [ ] Non-compliant |
+| NWA (Act 36 of 1998) | Water use licence, effluent standards | Water consumption, effluent | [ ] Compliant [ ] Non-compliant |
+| OHSA (Act 85 of 1993) | HCS Regulations | Chemical handling | [ ] Compliant [ ] Non-compliant |
+| Municipal by-laws | Noise, trade effluent, waste | Various | [ ] Compliant [ ] Non-compliant |
 
 Legal compliance is reviewed at least annually and after any regulatory change.`
         },

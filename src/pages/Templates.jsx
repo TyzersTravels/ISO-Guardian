@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import Layout from '../components/Layout'
 import { TEMPLATES, TEMPLATE_CATEGORIES } from '../lib/templateData'
 import { generateTemplatePDF } from '../lib/templatePDFExport'
+import { fetchLiveData } from '../lib/liveDataFetcher'
 import { supabase } from '../lib/supabase'
 
 const STANDARD_LABELS = {
@@ -143,6 +144,54 @@ const Templates = () => {
     return TEMPLATE_CONTENT[templateId] || null
   }
 
+  // Download a blank form (no live data injection)
+  const handleDownloadBlank = async (template) => {
+    if (!userProfile) {
+      toast.warning('Please sign in to download templates.')
+      return
+    }
+
+    setGenerating(template.id)
+    try {
+      const hasAccess = await verifySubscription()
+      if (!hasAccess) {
+        toast.error('An active subscription is required to download templates.')
+        return
+      }
+
+      const content = await loadTemplateContent(template.id)
+      if (!content) {
+        toast.error('Template content unavailable. Please try again later.')
+        return
+      }
+
+      const companyName = userProfile.company?.name || 'Your Company'
+      const companyCode = userProfile.company?.company_code || 'XX'
+      const preparedBy = userProfile.full_name || userProfile.email || 'System'
+      const companyLogoUrl = userProfile.company?.logo_url || null
+      const companyExtra = await fetchCompanyExtras()
+
+      // Generate PDF WITHOUT live data — blank form for manual completion
+      await generateTemplatePDF({ ...template, content }, {
+        companyName,
+        companyCode,
+        preparedBy,
+        companyLogoUrl,
+        ...companyExtra,
+        liveData: null,
+      })
+
+      await logDownload(template.id)
+      toast.success(`${template.title} (blank) downloaded successfully`)
+    } catch (err) {
+      console.error('Template PDF generation failed:', err)
+      toast.error('Failed to generate template. Please try again.')
+    } finally {
+      setGenerating(null)
+    }
+  }
+
+  // Download with live data injection (auto-populated from ISOGuardian)
   const handleDownload = async (template) => {
     if (!userProfile) {
       toast.warning('Please sign in to download templates.')
@@ -169,17 +218,22 @@ const Templates = () => {
       const companyCode = userProfile.company?.company_code || 'XX'
       const preparedBy = userProfile.full_name || userProfile.email || 'System'
       const companyLogoUrl = userProfile.company?.logo_url || null
+      const companyId = userProfile?.company_id || userProfile?.company?.id
 
-      // Fetch personnel & QMS data for template auto-population
-      const companyExtra = await fetchCompanyExtras()
+      // Fetch personnel, QMS data, and live system data in parallel
+      const [companyExtra, liveData] = await Promise.all([
+        fetchCompanyExtras(),
+        fetchLiveData(companyId),
+      ])
 
-      // 3. Generate PDF with watermark (content merged at download time)
+      // 3. Generate PDF with watermark + live data (content merged at download time)
       await generateTemplatePDF({ ...template, content }, {
         companyName,
         companyCode,
         preparedBy,
         companyLogoUrl,
         ...companyExtra,
+        liveData,
       })
 
       // 4. Log the download
@@ -220,8 +274,14 @@ const Templates = () => {
       const companyCode = userProfile.company?.company_code || 'XX'
       const preparedBy = userProfile.full_name || userProfile.email || 'System'
       const companyLogoUrl = userProfile.company?.logo_url || null
-      const companyExtra = await fetchCompanyExtras()
-      const options = { companyName, companyCode, preparedBy, companyLogoUrl, ...companyExtra }
+      const companyId = userProfile?.company_id || userProfile?.company?.id
+
+      // Fetch personnel, QMS data, and live system data in parallel (once for entire bundle)
+      const [companyExtra, liveData] = await Promise.all([
+        fetchCompanyExtras(),
+        fetchLiveData(companyId),
+      ])
+      const options = { companyName, companyCode, preparedBy, companyLogoUrl, ...companyExtra, liveData }
 
       // 3. Download each template in the bundle
       let downloadCount = 0
@@ -367,7 +427,17 @@ const Templates = () => {
 
                   {/* Title & Description */}
                   <h3 className="text-white font-bold text-lg mb-2 leading-tight">{template.title}</h3>
-                  <p className="text-white/50 text-sm leading-relaxed mb-4 flex-1">{template.description}</p>
+                  <p className="text-white/50 text-sm leading-relaxed mb-3 flex-1">{template.description}</p>
+
+                  {/* Live data badge */}
+                  {isSubscriber && (
+                    <div className="flex items-center gap-1.5 text-xs text-cyan-400 mb-3">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                      </svg>
+                      Auto-populated with your live system data
+                    </div>
+                  )}
 
                   {/* Clause reference */}
                   {template.clauseRef && (
@@ -426,6 +496,17 @@ const Templates = () => {
                       >
                         Preview
                       </button>
+                      {/* Dual-mode for form templates: Blank + Live Data */}
+                      {template.docType === 'form' && isSubscriber && (
+                        <button
+                          onClick={() => handleDownloadBlank(template)}
+                          disabled={isGenerating}
+                          className="px-3 py-2 glass glass-border rounded-xl text-white/60 hover:text-white text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Download blank form for manual completion"
+                        >
+                          Blank
+                        </button>
+                      )}
                       <button
                         onClick={() => isBundle ? handleBundleDownload(template) : handleDownload(template)}
                         disabled={isGenerating || (!isSubscriber && price > 0)}
@@ -441,7 +522,7 @@ const Templates = () => {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
-                            {isBundle ? 'Download All' : 'Download PDF'}
+                            {isBundle ? 'Download All' : template.docType === 'form' ? 'Live Data' : 'Download PDF'}
                           </>
                         )}
                       </button>
