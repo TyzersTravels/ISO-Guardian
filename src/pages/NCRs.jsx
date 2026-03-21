@@ -597,32 +597,12 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
         10: 'Clause 10: Improvement'
       }
 
-      const { count } = await supabase
-        .from('ncrs')
-        .select('*', { count: 'exact', head: true })
-        .eq('company_id', userProfile.company_id)
+      // Atomic NCR number generation via PostgreSQL function
+      const { data: ncrNumResult, error: ncrNumError } = await supabase
+        .rpc('next_ncr_number', { p_company_id: getEffectiveCompanyId() })
 
-      // Get highest existing number to avoid duplicates (deleted NCRs leave gaps)
-      const { data: existingNCRs } = await supabase
-        .from('ncrs')
-        .select('ncr_number')
-        .eq('company_id', userProfile.company_id)
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      const year = new Date().getFullYear()
-      let maxNum = 0
-      if (existingNCRs) {
-        existingNCRs.forEach(n => {
-          const match = n.ncr_number?.match(/NCR-\d{4}-(\d+)/)
-          if (match) {
-            const num = parseInt(match[1])
-            if (num > maxNum) maxNum = num
-          }
-        })
-      }
-      const nextNumber = maxNum + 1
-      const ncrNumber = `NCR-${year}-${String(nextNumber).padStart(3, '0')}`
+      if (ncrNumError) throw ncrNumError
+      const ncrNumber = ncrNumResult
 
       const { error } = await supabase
         .from('ncrs')

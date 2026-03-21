@@ -601,14 +601,12 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
     setSubmitting(true)
 
     try {
-      const { count } = await supabase
-        .from('audits')
-        .select('*', { count: 'exact', head: true })
-        .eq('company_id', userProfile.company_id)
+      // Atomic audit number generation via PostgreSQL function
+      const { data: auditNumResult, error: auditNumError } = await supabase
+        .rpc('next_audit_number', { p_company_id: getEffectiveCompanyId() })
 
-      const nextNumber = (count || 0) + 1
-      const year = new Date().getFullYear()
-      const auditNumber = `AUD-${year}-${String(nextNumber).padStart(3, '0')}`
+      if (auditNumError) throw auditNumError
+      const auditNumber = auditNumResult
 
       const { error } = await supabase
         .from('audits')

@@ -6,16 +6,24 @@ import { getLoginAttempts, recordFailedLogin, clearLoginAttempts, getLockoutRema
 
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAACfLITd5DD70PYix'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 // Server-side rate limit helpers (Edge Function backed, with client-side fallback)
 async function serverRateLimitCheck(email) {
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/rate-limit/check`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
       body: JSON.stringify({ email }),
     })
-    return await res.json()
+    const data = await res.json()
+    // If response has error field (not rate limit data), treat as unavailable
+    if (data.error && data.allowed === undefined) return { allowed: true }
+    return data
   } catch { return { allowed: true } } // fallback: allow if Edge Function unavailable
 }
 
@@ -23,7 +31,11 @@ async function serverRecordFailed(email) {
   try {
     await fetch(`${SUPABASE_URL}/functions/v1/rate-limit/record`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
       body: JSON.stringify({ email }),
     })
   } catch { /* silent fallback to client-side */ }
@@ -33,7 +45,11 @@ async function serverClearAttempts(email) {
   try {
     await fetch(`${SUPABASE_URL}/functions/v1/rate-limit/clear`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
       body: JSON.stringify({ email }),
     })
   } catch { /* silent */ }
