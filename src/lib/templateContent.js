@@ -21,17 +21,17 @@ This manual serves as the top-level document of the QMS and provides a roadmap t
 | Revision | 01 |
 | Effective Date | {{DATE}} |
 | Prepared By | {{PREPARED_BY}} |
-| Approved By | [Management Representative] |
+| Approved By | {{MR_NAME}} ({{MR_TITLE}}) |
 | Next Review Date | [12 months from effective date] |`
         },
         {
           heading: '2. Company Profile',
           body: `**Organisation:** {{COMPANY}}
 
-**Products/Services:** [Describe your core products or services]
+**Products/Services:** {{PRODUCTS_SERVICES}}
 
 **Organisational Structure:**
-{{COMPANY}} operates under a defined organisational structure with clear lines of authority and responsibility. The Management Representative has been appointed to oversee the QMS and report on its performance to top management.
+{{COMPANY}} operates under a defined organisational structure with clear lines of authority and responsibility. {{MR_NAME}} ({{MR_TITLE}}) has been appointed to oversee the QMS and report on its performance to top management ({{MD_NAME}}, {{MD_TITLE}}).
 
 **Key Interested Parties:**
 | Interested Party | Needs & Expectations |
@@ -46,12 +46,12 @@ This manual serves as the top-level document of the QMS and provides a roadmap t
           heading: '3. Scope of the QMS',
           body: `The QMS of {{COMPANY}} applies to the following:
 
-**Scope Statement:** [Define the scope of your QMS — what products, services, sites, and processes are covered]
+**Scope Statement:** {{QMS_SCOPE}}
 
 **Applicability of ISO 9001:2015 Clauses:**
 All clauses of ISO 9001:2015 are applicable unless otherwise justified below.
 
-**Exclusions:** [If any clause is not applicable, justify here. Note: only Clause 8.3 (Design & Development) may be excluded if the organisation does not design products/services]
+**Exclusions:** [If any clause is not applicable, justify here. Note: only Clause 8.3 (Design and Development) may be excluded if the organisation does not design products/services]
 
 **Normative References:**
 - ISO 9001:2015 — Quality management systems — Requirements
@@ -91,11 +91,11 @@ Refer to Section 3 of this manual.
 
 | Process | Owner | Key Inputs | Key Outputs |
 |---------|-------|-----------|-------------|
-| Sales & Customer Requirements | [Name] | Customer enquiries, RFQs | Quotations, orders, contracts |
-| Operations / Service Delivery | [Name] | Customer orders, specifications | Completed products/services |
-| Purchasing & Supplier Management | [Name] | Purchase requirements | Approved suppliers, materials |
-| Quality Control & Inspection | [Name] | Products/services, standards | Inspection records, release |
-| Customer Feedback & Satisfaction | [Name] | Complaints, surveys | Corrective actions, improvements |
+| Sales & Customer Requirements | {{MD_NAME}} | Customer enquiries, RFQs | Quotations, orders, contracts |
+| Operations / Service Delivery | {{MD_NAME}} | Customer orders, specifications | Completed products/services |
+| Purchasing & Supplier Management | {{QM_NAME}} | Purchase requirements | Approved suppliers, materials |
+| Quality Control & Inspection | {{QM_NAME}} | Products/services, standards | Inspection records, release |
+| Customer Feedback & Satisfaction | {{MR_NAME}} | Complaints, surveys | Corrective actions, improvements |
 
 Process interactions are documented in the Process Interaction Map (separate document).`
         },
@@ -122,7 +122,7 @@ Top management ensures that customer requirements and applicable statutory/regul
 
 The Quality Policy of {{COMPANY}}:
 
-> *{{COMPANY}} is committed to delivering products and services that consistently meet or exceed customer expectations and regulatory requirements. We achieve this through effective management of our quality system, competent people, continual improvement, and a culture of accountability. Every employee is responsible for quality.*
+> *{{QUALITY_POLICY}}*
 
 The Quality Policy is:
 - Available as documented information
@@ -132,13 +132,14 @@ The Quality Policy is:
 
 **5.3 Organisational Roles, Responsibilities, and Authorities**
 
-| Role | QMS Responsibility |
-|------|-------------------|
-| Managing Director | Overall accountability for QMS, resource provision |
-| Management Representative | Day-to-day QMS management, reporting to top management |
-| Department Managers | Process ownership, compliance within their areas |
-| Quality Coordinator | Document control, audit coordination, NCR management |
-| All Employees | Follow documented procedures, report nonconformities |`
+| Role | Person | QMS Responsibility |
+|------|--------|-------------------|
+| {{MD_TITLE}} | {{MD_NAME}} | Overall accountability for QMS, resource provision |
+| {{MR_TITLE}} | {{MR_NAME}} | Day-to-day QMS management, reporting to top management |
+| {{QM_TITLE}} | {{QM_NAME}} | Document control, audit coordination, NCR management |
+| {{IAL_TITLE}} | {{IAL_NAME}} | Internal audit programme, auditor assignment |
+| {{HR_TITLE}} | {{HR_NAME}} | Training, competence, and awareness programmes |
+| All Employees | — | Follow documented procedures, report nonconformities |`
         },
         {
           heading: '6. Planning (Clause 6)',
@@ -151,7 +152,7 @@ The Quality Policy is:
 - Customer feedback and complaints
 - Audit findings
 
-Risks are assessed using the Risk Register (IG-{{CODE}}-REG-001) and managed according to the Risk Management Procedure.
+Risks are assessed using the Risk Register ({{REF:risk-register}}) and managed according to the Risk Management Procedure.
 
 **Risk Assessment Matrix:**
 | Likelihood → | Rare (1) | Unlikely (2) | Possible (3) | Likely (4) | Almost Certain (5) |
@@ -228,7 +229,7 @@ The QMS documentation hierarchy:
 3. **Level 3:** Work instructions (step-by-step task instructions)
 4. **Level 4:** Forms, records, and supporting documents
 
-Document control is managed per the Document Control Procedure (IG-{{CODE}}-SOP-001).`
+Document control is managed per the Document Control Procedure ({{REF:doc-control-proc}}).`
         },
         {
           heading: '8. Operation (Clause 8)',
@@ -257,7 +258,7 @@ Document control is managed per the Document Control Procedure (IG-{{CODE}}-SOP-
 - Supplier performance monitoring
 - Re-evaluation at planned intervals
 
-Refer to the Purchasing & Supplier Management Procedure (IG-{{CODE}}-SOP-004).
+Refer to the Supplier Evaluation Form ({{REF:supplier-eval-form}}).
 
 **8.5 Production and Service Provision**
 
@@ -277,7 +278,7 @@ Products and services are not released until planned arrangements have been sati
 
 **8.7 Control of Nonconforming Outputs**
 
-Nonconforming outputs are identified and controlled to prevent unintended use or delivery. Actions include correction, segregation, containment, return, or informing the customer. Refer to the NCR Procedure (IG-{{CODE}}-SOP-003).`
+Nonconforming outputs are identified and controlled to prevent unintended use or delivery. Actions include correction, segregation, containment, return, or informing the customer. Refer to the NCR Procedure ({{REF:corrective-action-proc}}).`
         },
         {
           heading: '9. Performance Evaluation (Clause 9)',
@@ -299,7 +300,7 @@ Nonconforming outputs are identified and controlled to prevent unintended use or
 - Conforms to {{COMPANY}}'s own requirements and ISO 9001:2015 requirements
 - Is effectively implemented and maintained
 
-Audits are conducted per the Internal Audit Procedure (IG-{{CODE}}-SOP-002). Auditors do not audit their own work. Results are reported to relevant management and recorded in the audit report.
+Audits are conducted per the Internal Audit Procedure ({{REF:internal-audit-proc}}). Auditors do not audit their own work. Results are reported to relevant management and recorded in the audit report.
 
 **9.3 Management Review**
 
@@ -341,7 +342,7 @@ When a nonconformity occurs (including complaints), {{COMPANY}}:
 
 Nonconformities are managed through the NCR process. Root cause analysis uses appropriate tools (5 Why, Fishbone, etc.).
 
-Refer to the Corrective Action Procedure (IG-{{CODE}}-SOP-003).
+Refer to the Corrective Action Procedure ({{REF:corrective-action-proc}}).
 
 **10.3 Continual Improvement**
 
@@ -400,8 +401,8 @@ Improvement projects are tracked and their effectiveness verified at subsequent 
           heading: '3. Responsibilities',
           body: `| Role | Responsibility |
 |------|---------------|
-| Management Representative | Oversee document control system, approve Level 1 & 2 documents |
-| Quality Coordinator | Maintain document register, issue/withdraw documents, manage archive |
+| {{MR_NAME}} ({{MR_TITLE}}) | Oversee document control system, approve Level 1 & 2 documents |
+| {{DC_NAME}} ({{DC_TITLE}}) | Maintain document register, issue/withdraw documents, manage archive |
 | Document Authors | Draft and revise documents according to this procedure |
 | Department Managers | Approve department-level documents, ensure compliance |
 | All Staff | Use current approved versions only, return obsolete copies |`
@@ -411,7 +412,7 @@ Improvement projects are tracked and their effectiveness verified at subsequent 
           body: `| Level | Document Type | Approval Authority | Examples |
 |-------|--------------|-------------------|----------|
 | 1 | Policies & Manuals | Managing Director | Quality Manual, Quality Policy |
-| 2 | Procedures | Management Representative | SOPs, department procedures |
+| 2 | Procedures | {{MR_TITLE}} | SOPs, department procedures |
 | 3 | Work Instructions | Department Manager | Step-by-step task instructions |
 | 4 | Forms & Records | Quality Coordinator | Checklists, logs, forms |`
         },
@@ -517,7 +518,7 @@ Records are stored securely in ISOGuardian with access restricted to authorised 
           heading: '3. Responsibilities',
           body: `| Role | Responsibility |
 |------|---------------|
-| Management Representative | Approve annual audit programme, assign lead auditor, review results |
+| {{MR_NAME}} ({{MR_TITLE}}) | Approve annual audit programme, assign lead auditor, review results |
 | Lead Auditor | Plan audits, assign audit team, prepare audit plan and checklist, conduct opening/closing meetings |
 | Internal Auditors | Conduct audit activities, gather evidence, document findings |
 | Auditees | Provide access, information, and cooperation during audits |
@@ -540,7 +541,7 @@ A register of qualified internal auditors is maintained, recording:
         {
           heading: '5. Annual Audit Programme',
           body: `**5.1 Planning:**
-The Management Representative prepares an annual audit programme considering:
+The {{MR_TITLE}} ({{MR_NAME}}) prepares an annual audit programme considering:
 - Importance and status of processes
 - Results of previous audits
 - Changes to the organisation or management system
@@ -704,9 +705,9 @@ Quality Coordinator reviews evidence of effectiveness, closes NCR, and updates t
           heading: '7. Escalation',
           body: `| Condition | Escalation |
 |-----------|-----------|
-| NCR not addressed within deadline | Quality Coordinator escalates to Management Representative |
+| NCR not addressed within deadline | {{QM_NAME}} escalates to {{MR_NAME}} |
 | Repeat NCR (same root cause within 12 months) | Escalated to Management Review as systemic issue |
-| Customer-affecting NCR | Immediately notified to Management Representative + customer liaison |
+| Customer-affecting NCR | Immediately notified to {{MR_NAME}} + customer liaison |
 | Regulatory NCR | Immediately notified to Managing Director |`
         },
         {
@@ -740,12 +741,12 @@ NCR records are retained for a minimum of 5 years. NCR trend data is reported at
 | Role | Required/Optional |
 |------|------------------|
 | Managing Director | Required (Chair) |
-| Management Representative | Required |
+| {{MR_NAME}} ({{MR_TITLE}}) | Required |
 | Department Managers | Required |
 | Quality Coordinator | Required (Minutes) |
 | External Consultants | Optional (by invitation) |
 
-A quorum of at least the Managing Director and Management Representative is required.`
+A quorum of at least the {{MD_TITLE}} ({{MD_NAME}}) and {{MR_TITLE}} ({{MR_NAME}}) is required.`
         },
         {
           heading: '3. Required Inputs (Agenda)',
@@ -782,7 +783,7 @@ All decisions and actions must have:
         {
           heading: '5. Preparation',
           body: `**5.1 Before the Review:**
-1. Management Representative circulates agenda at least 10 working days before the meeting
+1. {{MR_TITLE}} circulates agenda at least 10 working days before the meeting
 2. Department Managers prepare input data for their areas
 3. Quality Coordinator prepares:
    - NCR summary and trends
@@ -1395,7 +1396,7 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 |------|------|-----------|------|
 | Evaluator | [Name] | _________ | [Date] |
 | Purchasing Manager | [Name] | _________ | [Date] |
-| Management Representative | [Name] | _________ | [Date] |
+| {{MR_TITLE}} | {{MR_NAME}} | _________ | [Date] |
 
 **Next Re-evaluation Date:** [12 months from evaluation date]`
         },
@@ -1415,7 +1416,7 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 | Document Number | IG-{{CODE}}-REG-001 |
 | Revision | 01 |
 | Effective Date | {{DATE}} |
-| Owner | [Management Representative] |
+| Owner | {{MR_NAME}} ({{MR_TITLE}}) |
 | Review Frequency | Quarterly (minimum) |
 | Last Review | {{DATE}} |
 | Next Review | [3 months from effective date] |`

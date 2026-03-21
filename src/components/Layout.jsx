@@ -56,7 +56,7 @@ const Layout = ({ children }) => {
     {
       label: 'Intelligence',
       items: [
-        { path: '/templates', label: 'Templates', icon: 'templates' },
+        ...(isSuperAdmin ? [{ path: '/templates', label: 'Templates', icon: 'templates' }] : []),
         // AI Copilot hidden until launch — code preserved in src/pages/AICopilot.jsx
         ...(isAdmin || isLeadAuditor ? [{ path: '/audit-connect', label: 'Audit Connect', icon: 'auditConnect' }] : []),
       ],

@@ -5,6 +5,7 @@ import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 import { useToast } from '../contexts/ToastContext'
+import { PERSONNEL_ROLES } from '../lib/templateData'
 
 const CompanySettings = () => {
   const { userProfile } = useAuth()
@@ -15,6 +16,7 @@ const CompanySettings = () => {
   const [uploading, setUploading] = useState(false)
   const [logoPreview, setLogoPreview] = useState(null)
   const [confirmAction, setConfirmAction] = useState(null)
+  const [activeTab, setActiveTab] = useState('profile')
   const [formData, setFormData] = useState({
     name: '',
     registration_number: '',
@@ -22,6 +24,12 @@ const CompanySettings = () => {
     address: '',
     contact_phone: '',
     contact_email: '',
+  })
+  const [personnel, setPersonnel] = useState({})
+  const [qmsData, setQmsData] = useState({
+    products_services: '',
+    qms_scope: '',
+    quality_policy: '',
   })
 
   const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin'
@@ -35,7 +43,7 @@ const CompanySettings = () => {
       setLoading(true)
       const { data, error } = await supabase
         .from('companies')
-        .select('id, name, industry, company_code, logo_url, created_at, registration_number, address, contact_phone, contact_email, tier, status, updated_at')
+        .select('id, name, industry, company_code, logo_url, created_at, registration_number, address, contact_phone, contact_email, tier, status, updated_at, key_personnel, products_services, qms_scope, quality_policy')
         .eq('id', userProfile.company_id)
         .single()
 
@@ -48,6 +56,12 @@ const CompanySettings = () => {
         address: data.address || '',
         contact_phone: data.contact_phone || '',
         contact_email: data.contact_email || '',
+      })
+      setPersonnel(data.key_personnel || {})
+      setQmsData({
+        products_services: data.products_services || '',
+        qms_scope: data.qms_scope || '',
+        quality_policy: data.quality_policy || '',
       })
       if (data.logo_url) setLogoPreview(data.logo_url)
     } catch (err) {
@@ -174,6 +188,10 @@ const CompanySettings = () => {
           address: formData.address?.trim() || null,
           contact_phone: formData.contact_phone?.trim() || null,
           contact_email: formData.contact_email?.trim() || null,
+          key_personnel: personnel,
+          products_services: qmsData.products_services?.trim() || null,
+          qms_scope: qmsData.qms_scope?.trim() || null,
+          quality_policy: qmsData.quality_policy?.trim() || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', userProfile.company_id)
@@ -224,9 +242,35 @@ const CompanySettings = () => {
         {/* Header */}
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Company Settings</h1>
-          <p className="text-white/60">Manage your company profile, logo, and branding for exports</p>
+          <p className="text-white/60">Manage your company profile, personnel, and ISO documentation settings</p>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-1 bg-white/5 border border-white/10 rounded-xl p-1">
+          {[
+            { id: 'profile', label: 'Profile & Logo', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+            { id: 'personnel', label: 'Key Personnel', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
+            { id: 'qms', label: 'QMS Content', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                activeTab === tab.id
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-white border border-cyan-500/30'
+                  : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={tab.icon} />
+              </svg>
+              <span className="hidden sm:inline">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* ═══ PROFILE & LOGO TAB ═══ */}
+        {activeTab === 'profile' && <>
         {/* Logo Section */}
         <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-4 md:p-6">
           <h2 className="text-lg md:text-xl font-semibold text-white mb-4 flex items-center gap-2">
@@ -412,6 +456,228 @@ const CompanySettings = () => {
             </div>
           </div>
         </div>
+
+        </>}
+
+        {/* ═══ KEY PERSONNEL TAB ═══ */}
+        {activeTab === 'personnel' && <>
+        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-semibold text-white mb-2 flex items-center gap-2">
+            <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Key Personnel
+          </h2>
+          <p className="text-sm text-white/50 mb-6">
+            These personnel are automatically referenced in your ISO documentation templates. When you download a template, the correct names and titles are populated throughout the document.
+          </p>
+
+          <div className="space-y-4">
+            {PERSONNEL_ROLES.map(role => (
+              <div key={role.key} className={`bg-white/5 border rounded-xl p-4 transition-all ${
+                role.required ? 'border-cyan-500/30' : 'border-white/10'
+              }`}>
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                      {role.label}
+                      {role.required && (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded-full font-medium">Required</span>
+                      )}
+                    </h3>
+                    <p className="text-xs text-white/40 mt-0.5">{role.description}</p>
+                  </div>
+                  {personnel[role.key]?.name && (
+                    <span className="text-[10px] px-2 py-0.5 bg-green-500/20 text-green-300 rounded-full">Set</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-white/40 block mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      value={personnel[role.key]?.name || ''}
+                      onChange={e => setPersonnel(p => ({
+                        ...p,
+                        [role.key]: { ...p[role.key], name: e.target.value }
+                      }))}
+                      placeholder="e.g. John Smith"
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder-white/25 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/40 block mb-1">Job Title</label>
+                    <input
+                      type="text"
+                      value={personnel[role.key]?.title || ''}
+                      onChange={e => setPersonnel(p => ({
+                        ...p,
+                        [role.key]: { ...p[role.key], title: e.target.value }
+                      }))}
+                      placeholder={role.label}
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder-white/25 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-3 mt-4">
+            <p className="text-xs text-purple-300">
+              <strong>How this works:</strong> When you download ISO templates from the Template Marketplace, these personnel names automatically populate throughout the documents. For example, your Management Representative appears in the QMS Manual, audit procedures, and management review minutes — all correctly cross-referenced.
+            </p>
+          </div>
+
+          <div className="flex justify-end mt-6">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold rounded-xl transition-all"
+            >
+              {saving ? 'Saving...' : 'Save Personnel'}
+            </button>
+          </div>
+        </div>
+
+        {/* Personnel completeness indicator */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-white">Personnel Completeness</h3>
+            <span className="text-sm text-cyan-400 font-mono">
+              {PERSONNEL_ROLES.filter(r => personnel[r.key]?.name).length} / {PERSONNEL_ROLES.length}
+            </span>
+          </div>
+          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full transition-all duration-500"
+              style={{ width: `${(PERSONNEL_ROLES.filter(r => personnel[r.key]?.name).length / PERSONNEL_ROLES.length) * 100}%` }}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {PERSONNEL_ROLES.map(role => (
+              <span
+                key={role.key}
+                className={`text-[10px] px-2 py-1 rounded-full ${
+                  personnel[role.key]?.name
+                    ? 'bg-green-500/20 text-green-300'
+                    : role.required
+                      ? 'bg-red-500/20 text-red-300'
+                      : 'bg-white/10 text-white/40'
+                }`}
+              >
+                {role.label.split(' / ')[0].split(' (')[0]}
+              </span>
+            ))}
+          </div>
+        </div>
+        </>}
+
+        {/* ═══ QMS CONTENT TAB ═══ */}
+        {activeTab === 'qms' && <>
+        <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-semibold text-white mb-2 flex items-center gap-2">
+            <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            QMS Documentation Content
+          </h2>
+          <p className="text-sm text-white/50 mb-6">
+            This content is used to auto-populate your ISO documentation templates. Complete these fields so your QMS Manual and procedures contain your company-specific information.
+          </p>
+
+          <div className="space-y-5">
+            {/* Products & Services */}
+            <div>
+              <label className="text-sm text-white/70 block mb-2 font-medium">
+                Products & Services
+                <span className="text-white/40 font-normal ml-2">Used in QMS Manual Section 2</span>
+              </label>
+              <textarea
+                value={qmsData.products_services}
+                onChange={e => setQmsData(p => ({ ...p, products_services: e.target.value }))}
+                placeholder="Describe your core products or services. E.g.: 'Manufacturing of precision-engineered steel components for the automotive and mining industries, including CNC machining, welding, and quality inspection services.'"
+                rows={3}
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-sm placeholder-white/25 focus:outline-none focus:border-cyan-500 resize-y"
+              />
+            </div>
+
+            {/* QMS Scope */}
+            <div>
+              <label className="text-sm text-white/70 block mb-2 font-medium">
+                QMS Scope Statement
+                <span className="text-white/40 font-normal ml-2">Used in QMS Manual Section 3 (ISO 9001 Clause 4.3)</span>
+              </label>
+              <textarea
+                value={qmsData.qms_scope}
+                onChange={e => setQmsData(p => ({ ...p, qms_scope: e.target.value }))}
+                placeholder="Define the scope of your QMS — what products, services, sites, and processes are covered. E.g.: 'The design, manufacture, and supply of precision-engineered steel components from the Johannesburg manufacturing facility, including CNC machining, fabrication, and quality assurance.'"
+                rows={3}
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-sm placeholder-white/25 focus:outline-none focus:border-cyan-500 resize-y"
+              />
+            </div>
+
+            {/* Quality Policy */}
+            <div>
+              <label className="text-sm text-white/70 block mb-2 font-medium">
+                Quality Policy Statement
+                <span className="text-white/40 font-normal ml-2">Used in QMS Manual Section 5 (ISO 9001 Clause 5.2)</span>
+              </label>
+              <textarea
+                value={qmsData.quality_policy}
+                onChange={e => setQmsData(p => ({ ...p, quality_policy: e.target.value }))}
+                placeholder="Your company's quality policy. This should be appropriate to the purpose and context of your organisation. If left blank, a generic policy statement will be used in templates."
+                rows={4}
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-sm placeholder-white/25 focus:outline-none focus:border-cyan-500 resize-y"
+              />
+              <p className="text-xs text-white/30 mt-1">
+                ISO 9001:2015 Clause 5.2 requires the quality policy to include a commitment to satisfy applicable requirements and to continual improvement.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-3 mt-4">
+            <p className="text-xs text-cyan-300">
+              <strong>Template integration:</strong> This content flows into your QMS Manual, procedures, and other ISO documents when you download them from the Template Marketplace. Leave fields blank to use generic placeholder text that you can fill in manually.
+            </p>
+          </div>
+
+          <div className="flex justify-end mt-6">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold rounded-xl transition-all"
+            >
+              {saving ? 'Saving...' : 'Save QMS Content'}
+            </button>
+          </div>
+        </div>
+
+        {/* QMS Completeness */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+          <h3 className="text-sm font-semibold text-white mb-3">QMS Content Readiness</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { label: 'Products & Services', filled: !!qmsData.products_services?.trim() },
+              { label: 'QMS Scope', filled: !!qmsData.qms_scope?.trim() },
+              { label: 'Quality Policy', filled: !!qmsData.quality_policy?.trim() },
+            ].map(item => (
+              <div key={item.label} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${item.filled ? 'bg-green-500/10' : 'bg-white/5'}`}>
+                {item.filled ? (
+                  <svg className="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 text-white/30 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                )}
+                <span className={`text-xs ${item.filled ? 'text-green-300' : 'text-white/40'}`}>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        </>}
 
         {/* POPIA Notice */}
         <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-4">

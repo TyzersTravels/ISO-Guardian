@@ -118,6 +118,25 @@ const Templates = () => {
     } catch (_e) { /* don't block download if logging fails */ }
   }
 
+  // Fetch company personnel & QMS data for template auto-population
+  const fetchCompanyExtras = async () => {
+    try {
+      const companyId = userProfile?.company_id || userProfile?.company?.id
+      if (!companyId) return {}
+      const { data } = await supabase
+        .from('companies')
+        .select('key_personnel, products_services, qms_scope, quality_policy')
+        .eq('id', companyId)
+        .single()
+      return {
+        personnel: data?.key_personnel || {},
+        productsServices: data?.products_services || '',
+        qmsScope: data?.qms_scope || '',
+        qualityPolicy: data?.quality_policy || '',
+      }
+    } catch (_e) { return {} }
+  }
+
   // Dynamically load template content (code-split for IP protection)
   const loadTemplateContent = async (templateId) => {
     const { TEMPLATE_CONTENT } = await import('../lib/templateContent.js')
@@ -151,12 +170,16 @@ const Templates = () => {
       const preparedBy = userProfile.full_name || userProfile.email || 'System'
       const companyLogoUrl = userProfile.company?.logo_url || null
 
+      // Fetch personnel & QMS data for template auto-population
+      const companyExtra = await fetchCompanyExtras()
+
       // 3. Generate PDF with watermark (content merged at download time)
       await generateTemplatePDF({ ...template, content }, {
         companyName,
         companyCode,
         preparedBy,
         companyLogoUrl,
+        ...companyExtra,
       })
 
       // 4. Log the download
@@ -197,7 +220,8 @@ const Templates = () => {
       const companyCode = userProfile.company?.company_code || 'XX'
       const preparedBy = userProfile.full_name || userProfile.email || 'System'
       const companyLogoUrl = userProfile.company?.logo_url || null
-      const options = { companyName, companyCode, preparedBy, companyLogoUrl }
+      const companyExtra = await fetchCompanyExtras()
+      const options = { companyName, companyCode, preparedBy, companyLogoUrl, ...companyExtra }
 
       // 3. Download each template in the bundle
       let downloadCount = 0

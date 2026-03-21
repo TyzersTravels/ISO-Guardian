@@ -88,7 +88,7 @@ function App() {
           {/* <Route path="/ai-copilot" element={<ProtectedRoute><AICopilot /></ProtectedRoute>} /> */}{/* Hidden until launch */}
           <Route path="/audit-connect" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin', 'lead_auditor']}><AuditorInvite /></RoleProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-          <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
+          <Route path="/templates" element={<RoleProtectedRoute allowedRoles={['super_admin']}><Templates /></RoleProtectedRoute>} />
 
           {/* Landing */}
           <Route path="/" element={<LandingPage />} />

@@ -131,7 +131,6 @@ export default function LandingPage() {
             <button onClick={() => scrollTo('standards')} className="hover:text-white transition-colors">Standards</button>
             <button onClick={() => scrollTo('assessment')} className="hover:text-white transition-colors">Assessment</button>
             <button onClick={() => scrollTo('pricing')} className="hover:text-white transition-colors">Pricing</button>
-            <button onClick={() => scrollTo('templates')} className="hover:text-white transition-colors">Templates</button>
             <button onClick={() => scrollTo('contact')} className="hover:text-white transition-colors">Contact</button>
           </div>
 
@@ -171,7 +170,7 @@ export default function LandingPage() {
         {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-slate-900/95 backdrop-blur-xl border-t border-white/10 px-6 py-4 space-y-3">
-            {['features', 'standards', 'assessment', 'pricing', 'templates', 'contact'].map(id => (
+            {['features', 'standards', 'assessment', 'pricing', 'contact'].map(id => (
               <button key={id} onClick={() => scrollTo(id)} className="block w-full text-left text-white/70 hover:text-white py-2 capitalize">
                 {id}
               </button>
@@ -765,8 +764,8 @@ export default function LandingPage() {
 
       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
 
-      {/* ─── K. TEMPLATE MARKETPLACE ─────────────────────────────────── */}
-      <TemplateMarketplace />
+      {/* ─── K. TEMPLATE MARKETPLACE (hidden while being polished) ──── */}
+      {/* <TemplateMarketplace /> */}
 
       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
 
@@ -1160,7 +1159,6 @@ export default function LandingPage() {
                 <li><button onClick={() => scrollTo('features')} className="hover:text-white transition-colors">Features</button></li>
                 <li><button onClick={() => scrollTo('pricing')} className="hover:text-white transition-colors">Pricing</button></li>
                 <li><button onClick={() => scrollTo('assessment')} className="hover:text-white transition-colors">ISO Assessment</button></li>
-                <li><button onClick={() => scrollTo('templates')} className="hover:text-white transition-colors">Templates</button></li>
                 <li><button onClick={() => scrollTo('consultation')} className="hover:text-white transition-colors">Consultation</button></li>
                 <li><button onClick={() => navigate('/login')} className="hover:text-white transition-colors">Login</button></li>
               </ul>
