@@ -9,7 +9,7 @@
 // Deploy: supabase functions deploy rate-limit
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -20,10 +20,11 @@ const MAX_ATTEMPTS = 5;
 const LOCKOUT_SECONDS = 900; // 15 minutes
 const WINDOW_SECONDS = 3600; // 1 hour window for counting attempts
 
+let _cors: Record<string, string> = {};
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ..._cors, "Content-Type": "application/json" },
   });
 }
 
@@ -101,8 +102,9 @@ async function clearAttempts(email: string) {
 }
 
 Deno.serve(async (req: Request) => {
+  _cors = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: _cors });
   }
 
   try {
