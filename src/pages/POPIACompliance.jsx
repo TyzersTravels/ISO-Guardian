@@ -96,10 +96,24 @@ const POPIACompliance = () => {
         </div>
 
         <div className="glass glass-border rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-white mb-4">Third-Party Services</h2>
+          <h2 className="text-xl font-bold text-white mb-4">Cookies & Local Storage</h2>
           <div className="text-white/80 text-sm space-y-2">
-            <p><strong>Supabase (Database & Auth):</strong> EU servers, SOC 2 certified</p>
-            <p><strong>Vercel (Hosting):</strong> Global CDN, ISO 27001 certified</p>
+            <p>ISOGuardian uses local storage (not traditional cookies) for:</p>
+            <p>• <strong>Essential:</strong> Authentication tokens, session management, security preferences (always active)</p>
+            <p>• <strong>Functional:</strong> Notification settings, onboarding state, user preferences</p>
+            <p>• <strong>Analytics:</strong> Anonymous usage data to improve the platform (requires your consent)</p>
+            <p className="mt-2 text-white/60">You can manage your preferences at any time via the cookie consent banner. Your consent choices are stored locally and never transmitted to our servers.</p>
+          </div>
+        </div>
+
+        <div className="glass glass-border rounded-2xl p-6">
+          <h2 className="text-xl font-bold text-white mb-4">Third-Party Services (Sub-Processors)</h2>
+          <div className="text-white/80 text-sm space-y-2">
+            <p><strong>Supabase (Database & Auth):</strong> EU servers (London), SOC 2 Type II certified. Hosts all platform data.</p>
+            <p><strong>Vercel (Hosting):</strong> Global CDN, ISO 27001 certified. Serves the web application.</p>
+            <p><strong>Cloudflare (Security):</strong> Turnstile CAPTCHA for bot protection on login. No personal data stored.</p>
+            <p><strong>Resend (Email Delivery):</strong> Transactional email notifications (audit reminders, NCR alerts). Email address processed for delivery only.</p>
+            <p><strong>Google Analytics (Analytics):</strong> Anonymous page view and conversion tracking. Only active with your analytics consent.</p>
             <p className="mt-3 text-white/60">
               We do not sell, rent, or share your data with third parties for marketing purposes.
             </p>
@@ -117,7 +131,7 @@ const POPIACompliance = () => {
 
         <div className="glass glass-border rounded-2xl p-6">
           <p className="text-white/60 text-xs">
-            Last Updated: February 2026<br />
+            Last Updated: March 2026<br />
             Information Regulator Registration: Pending<br />
             Company Registration: 2026/082362/07
           </p>

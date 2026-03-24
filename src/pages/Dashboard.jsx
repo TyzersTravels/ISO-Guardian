@@ -408,7 +408,7 @@ const Dashboard = () => {
                     return (
                       <div key={standard}>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-white/80 font-medium">{standard}</span>
+                          <span className="text-sm text-white/80 font-medium">{standard.replace('_', ' ')}</span>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-white/40">{compliant}/{total} clauses</span>
                             <span className={`text-sm font-bold ${style.text}`}>{score}%</span>

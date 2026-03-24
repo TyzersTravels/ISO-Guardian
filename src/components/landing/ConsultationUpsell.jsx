@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { throttle } from '../../lib/rateLimiter'
+import { trackConversion } from '../../lib/analytics'
 
 const SUPPORT_EMAIL = 'support@isoguardian.co.za'
 const WHATSAPP_URL = 'https://wa.me/27716060250'
@@ -67,6 +68,7 @@ export default function ConsultationUpsell() {
       }).then(res => { if (res?.error) console.warn('notify-lead error:', res.error) })
         .catch(err => console.warn('notify-lead failed:', err))
 
+      trackConversion('consultation_request')
       setSubmitted(true)
     } catch {
       setError('Something went wrong. Please try emailing us directly.')

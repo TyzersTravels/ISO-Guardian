@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { throttle } from '../../lib/rateLimiter'
+import { trackConversion } from '../../lib/analytics'
 
 const SUPPORT_EMAIL = 'support@isoguardian.co.za'
 
@@ -129,6 +130,7 @@ export default function ReadinessAssessment() {
         console.error('Assessment save failed:', insertError)
         setError('Your score is shown below, but we could not save your submission. Please email us at info@isoguardian.co.za.')
       } else {
+        trackConversion('assessment_complete')
         // Send instant lead notification email
         supabase.functions.invoke('notify-lead', {
           body: {

@@ -8,6 +8,7 @@ import ReadinessAssessment from '../components/landing/ReadinessAssessment'
 import ConsultationUpsell from '../components/landing/ConsultationUpsell'
 import TemplateMarketplace from '../components/landing/TemplateMarketplace'
 import AffiliateProgram from '../components/landing/AffiliateProgram'
+import { trackConversion } from '../lib/analytics'
 
 // Animated counter for hero mockup
 function AnimatedCounter({ target, suffix = '%', duration = 1800 }) {
@@ -81,7 +82,10 @@ export default function LandingPage() {
   const heroParallaxRef = useHeroParallax()
 
   // Navigate to signup page for free trial
-  const startTrial = () => navigate('/signup')
+  const startTrial = () => {
+    trackConversion('trial_start')
+    navigate('/signup')
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white overflow-x-hidden">

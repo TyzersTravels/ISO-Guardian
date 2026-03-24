@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import RoleProtectedRoute from './components/RoleProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import CookieConsent from './components/CookieConsent'
+import { initGA } from './lib/analytics'
 
 // Eagerly loaded (public, first-paint critical)
 import Login from './pages/Login'
@@ -51,6 +52,8 @@ const PageLoader = () => (
 )
 
 function App() {
+  useEffect(() => { initGA() }, [])
+
   return (
     <ErrorBoundary>
     <BrowserRouter>
