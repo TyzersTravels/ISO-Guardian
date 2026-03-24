@@ -7,6 +7,7 @@ import RoleProtectedRoute from './components/RoleProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import CookieConsent from './components/CookieConsent'
 import { initGA } from './lib/analytics'
+import { initSentry } from './lib/sentry'
 
 // Eagerly loaded (public, first-paint critical)
 import Login from './pages/Login'
@@ -52,7 +53,7 @@ const PageLoader = () => (
 )
 
 function App() {
-  useEffect(() => { initGA() }, [])
+  useEffect(() => { initGA(); initSentry() }, [])
 
   return (
     <ErrorBoundary>

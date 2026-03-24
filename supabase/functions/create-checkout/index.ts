@@ -20,6 +20,38 @@ const TIERS: Record<string, { name: string; price: number; maxUsers: number; sto
   growth:  { name: 'Growth',  price: 3700, maxUsers: 20, storageGb: 15 },
 }
 
+// Template pricing (one-time purchases for non-subscribers)
+const TEMPLATE_PRICES: Record<string, { name: string; price: number }> = {
+  // ISO 9001
+  'quality-manual': { name: 'Quality Manual', price: 500 },
+  'quality-policy': { name: 'Quality Policy', price: 250 },
+  'risk-register': { name: 'Risk Register', price: 350 },
+  'internal-audit-procedure': { name: 'Internal Audit Procedure', price: 350 },
+  'corrective-action-procedure': { name: 'Corrective Action Procedure', price: 350 },
+  'document-control-procedure': { name: 'Document Control Procedure', price: 350 },
+  'management-review-agenda': { name: 'Management Review Agenda', price: 250 },
+  // ISO 14001
+  'env-policy': { name: 'Environmental Policy', price: 250 },
+  'env-aspects-register': { name: 'Environmental Aspects Register', price: 400 },
+  'env-legal-register': { name: 'Environmental Legal Register', price: 400 },
+  'waste-management-proc': { name: 'Waste Management Procedure', price: 350 },
+  'emergency-preparedness-env': { name: 'Emergency Preparedness Plan (Env)', price: 350 },
+  'env-objectives-register': { name: 'Environmental Objectives Register', price: 300 },
+  'env-management-proc': { name: 'Environmental Management Procedure', price: 350 },
+  // ISO 45001
+  'ohs-policy': { name: 'OHS Policy', price: 250 },
+  'hazard-identification-proc': { name: 'HIRA Procedure', price: 400 },
+  'incident-investigation-proc': { name: 'Incident Investigation Procedure', price: 350 },
+  'safety-inspection-checklist': { name: 'Safety Inspection Checklist', price: 300 },
+  'emergency-response-ohs': { name: 'Emergency Response Plan (OHS)', price: 350 },
+  'ppe-register': { name: 'PPE Register', price: 300 },
+  'legal-appointments-register': { name: 'Legal Appointments Register', price: 350 },
+  // Starter packs (bundles)
+  'iso-9001-starter': { name: 'ISO 9001 Starter Pack', price: 7500 },
+  'iso-14001-starter': { name: 'ISO 14001 Starter Pack', price: 7500 },
+  'iso-45001-starter': { name: 'ISO 45001 Starter Pack', price: 7500 },
+}
+
 // PHP-compatible urlencode: encodeURIComponent + spaces as +
 // Also encode chars that PHP encodes but JS doesn't: ! * ' ( ) ~
 function phpUrlencode(str: string): string {
@@ -149,7 +181,72 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { tier, email, companyName, firstName, lastName, referralCode, partnerCode } = await req.json()
+    const body = await req.json()
+    const { type = 'subscription', email, firstName, lastName } = body
+
+    // ─── Template one-time purchase ───
+    if (type === 'template') {
+      const { templateId } = body
+      const templateConfig = TEMPLATE_PRICES[templateId]
+      if (!templateConfig) {
+        return new Response(JSON.stringify({ error: 'Invalid template.' }), {
+          status: 400, headers: { ...publicCorsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      const paymentId = crypto.randomUUID()
+
+      const params: Array<[string, string]> = [
+        ['merchant_id', PAYFAST_MERCHANT_ID],
+        ['merchant_key', PAYFAST_MERCHANT_KEY],
+        ['return_url', `${SITE_URL}/?payment=template_success&template=${templateId}`],
+        ['cancel_url', `${SITE_URL}/?payment=cancelled`],
+        ['notify_url', `${SUPABASE_URL}/functions/v1/payfast-webhook`],
+      ]
+
+      if (firstName) params.push(['name_first', firstName])
+      if (lastName) params.push(['name_last', lastName])
+      if (email) params.push(['email_address', email])
+
+      params.push(
+        ['m_payment_id', paymentId],
+        ['amount', templateConfig.price.toFixed(2)],
+        ['item_name', `ISOGuardian Template: ${templateConfig.name}`],
+      )
+
+      // custom_str1 = 'template' (payment type flag)
+      // custom_str2 = template ID
+      // custom_str3 = buyer email (for lead capture, redundant with email_address but ensures we have it)
+      // custom_str5 = internal payment ID
+      params.push(['custom_str1', 'template'])
+      params.push(['custom_str2', templateId])
+      if (email) params.push(['custom_str3', email])
+      params.push(['custom_str5', paymentId])
+
+      const signature = await generateSignature(params, PAYFAST_PASSPHRASE)
+
+      const pfData: Record<string, string> = {}
+      for (const [key, val] of params) {
+        if (val !== '') pfData[key] = val
+      }
+      pfData.signature = signature
+
+      return new Response(JSON.stringify({
+        success: true,
+        type: 'template',
+        pfUrl: PAYFAST_URL,
+        pfData,
+        paymentId,
+        templateId,
+        templateName: templateConfig.name,
+        amount: templateConfig.price,
+      }), {
+        headers: { ...publicCorsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // ─── Subscription checkout (existing flow) ───
+    const { tier, companyName, referralCode, partnerCode } = body
 
     const tierConfig = TIERS[tier?.toLowerCase()]
     if (!tierConfig) {
@@ -211,6 +308,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
+      type: 'subscription',
       pfUrl: PAYFAST_URL,
       pfData,
       paymentId,

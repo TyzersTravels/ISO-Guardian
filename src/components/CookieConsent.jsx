@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { initGA } from '../lib/analytics'
+import { initSentry } from '../lib/sentry'
 
 const COOKIE_CONSENT_KEY = 'isoguardian_cookie_consent'
 
@@ -58,7 +59,7 @@ export default function CookieConsent() {
       version: '1.0',
     }
     localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consent))
-    if (prefs.analytics) initGA()
+    if (prefs.analytics) { initGA(); initSentry() }
     setVisible(false)
   }
 

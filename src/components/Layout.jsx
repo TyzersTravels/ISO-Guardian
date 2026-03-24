@@ -202,11 +202,11 @@ const Layout = ({ children }) => {
         <footer className="border-t border-white/10 mt-auto">
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
             <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-white/50 mb-4">
-              <a href="/docs/ISOGuardian_POPIA_Privacy_Policy_v1.0.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">Privacy Policy</a>
+              <a href="/docs/ISOGuardian_POPIA_Privacy_Policy_v1.1.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">Privacy Policy</a>
               <span className="text-white/20">{'\u2022'}</span>
               <a href="/docs/ISOGuardian_Terms_of_Service_v1.1.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">Terms of Service</a>
               <span className="text-white/20">{'\u2022'}</span>
-              <a href="/docs/ISOGuardian_PAIA_Manual_v1.0.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">PAIA Manual</a>
+              <a href="/docs/ISOGuardian_PAIA_Manual_v1.1.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">PAIA Manual</a>
               <span className="text-white/20">{'\u2022'}</span>
               <a href="/docs/ISOGuardian_Upload_Disclaimer_v1.0.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">Upload Disclaimer</a>
               <span className="text-white/20">{'\u2022'}</span>

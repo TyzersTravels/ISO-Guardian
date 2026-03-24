@@ -1616,4 +1616,1087 @@ All documents are branded with your company name, logo, and document numbering c
       ],
     },
 
+  // ═══════════════════════════════════════════════════════════
+  // ISO 14001 TEMPLATES
+  // ═══════════════════════════════════════════════════════════
+
+  'env-policy': {
+    title: 'Environmental Policy',
+    docNumber: 'IG-{{CODE}}-POL-002',
+    revision: '01',
+    sections: [
+      {
+        heading: '1. Environmental Policy Statement',
+        body: `**{{COMPANY}} — Environmental Policy**
+
+{{COMPANY}} is committed to protecting the environment and preventing pollution in all our operations. We recognise that our activities, products, and services interact with the environment and we accept responsibility for managing these interactions responsibly.
+
+**Our Commitments:**
+
+{{COMPANY}}, through its leadership and all employees, commits to:
+
+1. **Protection of the environment**, including prevention of pollution and reduction of our environmental footprint
+2. **Compliance** with all applicable environmental legislation, regulations, and other requirements, including but not limited to NEMA, NEM:WA, NEM:AQA, and the National Water Act
+3. **Continual improvement** of the Environmental Management System to enhance environmental performance
+4. **Reduction** of waste generation, energy consumption, and water usage through efficient practices
+5. **Awareness and competence** — ensuring all employees understand their environmental responsibilities
+6. **Consultation** with interested parties on environmental matters affecting our operations
+
+**Scope:**
+This policy applies to all operations, sites, employees, contractors, and suppliers of {{COMPANY}}.
+
+**Environmental Management System:**
+This policy is implemented through our Environmental Management System, which conforms to ISO 14001:2015. The EMS is documented in the following procedures:
+- Environmental Aspects & Impacts Procedure ({{REF:env-management-proc}})
+- Waste Management Procedure ({{REF:waste-management-proc}})
+- Emergency Preparedness & Response ({{REF:emergency-preparedness-env}})
+
+**Compliance Score:** {{LIVE:COMPLIANCE_SCORE:ISO_14001}}
+
+| Detail | Value |
+|--------|-------|
+| Document Number | IG-{{CODE}}-POL-002 |
+| Prepared By | {{PREPARED_BY}} |
+| Approved By | {{MD_NAME}}, {{MD_TITLE}} |
+| Environmental Officer | {{EO_NAME}} |
+| Date | {{DATE}} |`
+      },
+      {
+        heading: '2. Communication & Review',
+        body: `**Communication:**
+This policy is:
+- Communicated to all employees during induction and through awareness training
+- Made available to interested parties on request
+- Displayed in common areas at all operational sites
+- Available on the company intranet
+
+**Review:**
+This policy is reviewed at least annually during management review, or when significant changes occur to:
+- Legislation or regulatory requirements
+- The nature, scale, or environmental impacts of our operations
+- The context of the organisation
+
+**Signed:**
+
+Name: {{MD_NAME}}
+Title: {{MD_TITLE}}
+Date: {{DATE}}
+
+___________________________
+Signature`
+      },
+    ],
+  },
+
+  'env-legal-register': {
+    title: 'Environmental Legal Register',
+    docNumber: 'IG-{{CODE}}-REG-003',
+    revision: '01',
+    sections: [
+      {
+        heading: '1. Purpose',
+        body: `This register identifies the environmental legal and other requirements applicable to {{COMPANY}}'s operations, in accordance with ISO 14001:2015 Clause 6.1.3. It is maintained by the Environmental Officer ({{EO_NAME}}) and reviewed at least annually.
+
+**Related Documents:**
+- Environmental Aspects & Impacts Procedure ({{REF:env-management-proc}})
+- Environmental Aspects Register ({{REF:env-aspects-register}})`
+      },
+      {
+        heading: '2. Applicable Environmental Legislation',
+        body: `| Ref | Legislation | Key Requirements | Applicable Sections | Compliance Status | Review Date |
+|-----|------------|-----------------|--------------------|--------------------|-------------|
+| L-001 | **National Environmental Management Act (NEMA) 107 of 1998** | Duty of care, polluter pays, environmental impact assessment | Sections 2, 24, 28 | [EXAMPLE — verify compliance] | {{DATE}} |
+| L-002 | **NEM: Air Quality Act (NEM:AQA) 39 of 2004** | Atmospheric emission licences, listed activities, minimum emission standards | Sections 21, 22, 37 | [EXAMPLE — verify compliance] | {{DATE}} |
+| L-003 | **NEM: Waste Act (NEM:WA) 59 of 2008** | Waste classification, storage, transport, disposal, recycling obligations | Sections 16, 20, 21, 26 | [EXAMPLE — verify compliance] | {{DATE}} |
+| L-004 | **National Water Act (NWA) 36 of 1998** | Water use licences, effluent discharge, protection of water resources | Sections 21, 39 | [EXAMPLE — verify compliance] | {{DATE}} |
+| L-005 | **NEM: Biodiversity Act (NEM:BA) 10 of 2004** | Protected species, alien invasive species management | Sections 57, 65, 71 | [EXAMPLE — verify compliance] | {{DATE}} |
+| L-006 | **Hazardous Substances Act 15 of 1973** | Control of hazardous chemical substances | Groups I-IV | [EXAMPLE — verify compliance] | {{DATE}} |
+| L-007 | **Occupational Health & Safety Act 85 of 1993** | Environmental health in workplace | Sections 8, 13 | [EXAMPLE — verify compliance] | {{DATE}} |
+| L-008 | **Municipal By-laws (Local)** | Noise, waste collection, water discharge, air quality | [Identify applicable municipality] | [EXAMPLE — verify compliance] | {{DATE}} |
+
+> **[ACTION REQUIRED]:** Review each item above. Remove legislation that does not apply to your operations. Add any industry-specific legislation (e.g., mining, manufacturing, agriculture).`
+      },
+      {
+        heading: '3. Other Requirements',
+        body: `| Ref | Requirement | Source | Key Obligations | Status |
+|-----|------------|--------|----------------|--------|
+| O-001 | Environmental permits/licences | Provincial/local authority | Conditions of licence | [Verify] |
+| O-002 | Industry codes of practice | Industry association | Voluntary commitments | [Verify] |
+| O-003 | Client environmental requirements | Contract/SLA | Client-specific obligations | [Verify] |
+| O-004 | ISO 14001:2015 | Certification body | Conformity to standard | Active |
+
+**Evaluation of Compliance:**
+Compliance is evaluated:
+- At least annually during management review
+- After any environmental incident
+- When new legislation is enacted or amended
+- During internal and external audits
+
+**Responsible Person:** {{EO_NAME}} (Environmental Officer)
+**Last Updated:** {{DATE}}`
+      },
+    ],
+  },
+
+  'waste-management-proc': {
+    title: 'Waste Management Procedure',
+    docNumber: 'IG-{{CODE}}-SOP-007',
+    revision: '01',
+    sections: [
+      {
+        heading: '1. Purpose & Scope',
+        body: `This procedure defines the requirements for waste identification, classification, segregation, storage, transport, and disposal at {{COMPANY}}, in accordance with ISO 14001:2015 Clause 8.1 and the National Environmental Management: Waste Act 59 of 2008 (NEM:WA).
+
+**Scope:** All waste generated by {{COMPANY}}'s operations, including hazardous and non-hazardous waste streams.
+
+**Related Documents:**
+- Environmental Aspects Register ({{REF:env-aspects-register}})
+- Environmental Legal Register ({{REF:env-legal-register}})
+- NCR Form ({{REF:ncr-form}})`
+      },
+      {
+        heading: '2. Waste Classification',
+        body: `All waste is classified per the NEM:WA Waste Classification Regulations (GNR 634):
+
+**Waste Categories:**
+| Category | Description | Examples | Storage Requirements |
+|----------|-----------|---------|---------------------|
+| **General Waste** | Non-hazardous, low risk | Paper, cardboard, food waste, wood | Covered bins, recycling stations |
+| **Recyclable Waste** | Materials for recovery | Metals, plastics, glass, e-waste | Segregated bins, clean & dry |
+| **Hazardous Waste** | Toxic, flammable, corrosive, reactive | Used oil, chemicals, batteries, asbestos | Bunded area, locked, labelled, SDS available |
+| **Medical/Biological** | Infectious or pathological | First aid waste, sharps | Sharps containers, licensed removal |
+| **Construction & Demolition** | Building materials | Rubble, soil, steel, timber | Designated skip, sorted on-site |
+
+> **[EXAMPLE — adapt to your operations]:** The above categories are common across industries. Identify the specific waste streams generated by your operations and classify them accordingly.`
+      },
+      {
+        heading: '3. Waste Handling & Segregation',
+        body: `**3.1 Segregation at Source:**
+All waste must be segregated at the point of generation into the appropriate containers:
+
+| Bin Colour | Waste Type | Examples |
+|-----------|-----------|---------|
+| Green | General / organic | Food waste, garden waste |
+| Blue | Paper & cardboard | Office paper, packaging |
+| Yellow | Plastics & cans | Bottles, tins, plastic wrap |
+| Red | Hazardous | Chemicals, contaminated materials |
+| Black | Non-recyclable general | Mixed waste, contaminated packaging |
+
+**3.2 Labelling:**
+All waste containers must be clearly labelled with:
+- Waste type and category
+- Hazard symbols (where applicable)
+- Responsible department
+
+**3.3 Storage:**
+- General waste: stored in designated waste area, collected at least weekly
+- Hazardous waste: stored in bunded, locked, and ventilated area; maximum 90 days on-site
+- Safety Data Sheets (SDS) available for all hazardous waste streams
+- Spill kits available at all hazardous waste storage points`
+      },
+      {
+        heading: '4. Waste Removal & Disposal',
+        body: `**4.1 Licensed Waste Contractors:**
+All waste removal contractors must:
+- Hold a valid waste transport permit
+- Provide safe disposal certificates / waste manifests
+- Be evaluated per {{COMPANY}}'s supplier evaluation process
+
+**4.2 Waste Manifest System:**
+For hazardous waste:
+- Complete a waste manifest for each collection
+- Retain copies for minimum 5 years
+- Verify that the disposal facility holds the correct licence
+
+**4.3 Record Keeping:**
+| Record | Retention Period | Responsible |
+|--------|----------------|-------------|
+| Waste manifests (hazardous) | 5 years | {{EO_NAME}} |
+| Waste collection receipts | 3 years | {{EO_NAME}} |
+| Contractor permits/licences | Current + 1 year | {{EO_NAME}} |
+| Monthly waste volumes | 3 years | {{EO_NAME}} |
+
+**4.4 Waste Reduction Targets:**
+{{COMPANY}} targets a year-on-year reduction in waste to landfill. Current objectives are documented in the Environmental Objectives Register ({{REF:env-objectives-register}}).`
+      },
+      {
+        heading: '5. Spill Response',
+        body: `In the event of a spill:
+
+1. **Contain** — use spill kit to prevent spread to drains, soil, or watercourses
+2. **Report** — notify the Environmental Officer ({{EO_NAME}}) immediately
+3. **Clean** — clean up using appropriate absorbent materials
+4. **Dispose** — contaminated materials treated as hazardous waste
+5. **Record** — complete an environmental incident form and raise an NCR ({{REF:ncr-form}})
+6. **Notify** — if the spill is reportable under NEMA Section 30, notify the authorities within 24 hours
+
+**Spill Kit Locations:**
+[ACTION REQUIRED: List all spill kit locations at your site(s)]
+
+**Emergency Contact:** {{EO_NAME}} | {{SO_NAME}}`
+      },
+    ],
+  },
+
+  'emergency-preparedness-env': {
+    title: 'Environmental Emergency Preparedness & Response',
+    docNumber: 'IG-{{CODE}}-SOP-008',
+    revision: '01',
+    sections: [
+      {
+        heading: '1. Purpose & Scope',
+        body: `This procedure defines the process for identifying potential environmental emergency situations and planning response actions, in accordance with ISO 14001:2015 Clause 8.2.
+
+**Scope:** All operations, sites, and activities of {{COMPANY}} where an emergency could result in environmental harm.
+
+**Related Documents:**
+- Environmental Aspects Register ({{REF:env-aspects-register}})
+- Risk & Opportunity Register ({{REF:risk-register}})`
+      },
+      {
+        heading: '2. Potential Environmental Emergencies',
+        body: `The following potential emergencies have been identified. This list must be reviewed at least annually and after any environmental incident.
+
+| Emergency Scenario | Potential Environmental Impact | Likelihood | Severity | Risk Rating |
+|-------------------|-------------------------------|-----------|---------|-------------|
+| Chemical/fuel spill | Soil and groundwater contamination | [EXAMPLE: 3] | [EXAMPLE: 4] | [EXAMPLE: High] |
+| Fire | Air pollution (smoke, toxic fumes), water contamination (runoff) | [EXAMPLE: 2] | [EXAMPLE: 5] | [EXAMPLE: High] |
+| Uncontrolled emissions | Air quality exceedance, community complaints | [EXAMPLE: 3] | [EXAMPLE: 3] | [EXAMPLE: Medium] |
+| Flooding/stormwater | Contaminated runoff to watercourses | [EXAMPLE: 2] | [EXAMPLE: 4] | [EXAMPLE: Medium] |
+| Equipment failure | Release of hazardous substances | [EXAMPLE: 2] | [EXAMPLE: 3] | [EXAMPLE: Medium] |
+| Waste storage failure | Leakage of hazardous waste | [EXAMPLE: 2] | [EXAMPLE: 4] | [EXAMPLE: Medium] |
+
+> **[ACTION REQUIRED]:** Assess each scenario for your specific operations. Add site-specific emergencies. Score likelihood and severity (1-5 scale).`
+      },
+      {
+        heading: '3. Emergency Response Procedures',
+        body: `**3.1 Chemical/Fuel Spill:**
+1. Raise alarm, evacuate area if vapours present
+2. Don appropriate PPE (chemical gloves, goggles, respirator if needed)
+3. Contain spill using nearest spill kit — prevent entry to drains
+4. Notify Environmental Officer ({{EO_NAME}}) and Safety Officer ({{SO_NAME}})
+5. Clean up contaminated material and dispose as hazardous waste
+6. If spill reaches a watercourse: notify DWS (Department of Water & Sanitation) per NEMA Section 30
+
+**3.2 Fire with Environmental Impact:**
+1. Activate fire alarm, evacuate per evacuation plan
+2. Call emergency services (Fire: 10177 / Ambulance: 10177)
+3. Once safe: contain firewater runoff to prevent contaminated water entering drains/rivers
+4. Notify Environmental Officer for environmental impact assessment
+5. Document all environmental impacts for regulatory reporting
+
+**3.3 Uncontrolled Emissions:**
+1. Shut down source of emission where safe to do
+2. Evacuate downwind personnel
+3. Notify Environmental Officer
+4. Monitor air quality if instrumentation available
+5. Report to Air Quality Officer (local municipality) if emission exceeds licence conditions`
+      },
+      {
+        heading: '4. Emergency Resources & Contacts',
+        body: `**Emergency Equipment:**
+| Resource | Location | Quantity | Inspection Frequency |
+|----------|----------|---------|---------------------|
+| Spill kits (chemical) | [ACTION REQUIRED: specify] | [specify] | Monthly |
+| Spill kits (oil) | [ACTION REQUIRED: specify] | [specify] | Monthly |
+| Fire extinguishers | [ACTION REQUIRED: specify] | [specify] | Monthly visual, annual service |
+| First aid kits | [ACTION REQUIRED: specify] | [specify] | Monthly |
+| Emergency shower/eyewash | [ACTION REQUIRED: specify] | [specify] | Weekly test |
+
+**Emergency Contacts:**
+| Contact | Name | Phone |
+|---------|------|-------|
+| Environmental Officer | {{EO_NAME}} | [Phone] |
+| Safety Officer | {{SO_NAME}} | [Phone] |
+| Managing Director | {{MD_NAME}} | [Phone] |
+| Fire Department | Emergency services | 10177 |
+| Ambulance | Emergency services | 10177 |
+| DWS Pollution Hotline | Department of Water & Sanitation | 0800 200 200 |
+| SAPS | South African Police | 10111 |
+
+**Post-Emergency Actions:**
+1. Conduct environmental impact assessment
+2. Raise NCR for the incident ({{REF:ncr-form}})
+3. Determine root cause and implement corrective action
+4. Regulatory notification within 24 hours if required (NEMA Section 30)
+5. Review and update this procedure if necessary
+6. Brief all affected employees`
+      },
+    ],
+  },
+
+  'env-objectives-register': {
+    title: 'Environmental Objectives & Targets Register',
+    docNumber: 'IG-{{CODE}}-REG-004',
+    revision: '01',
+    sections: [
+      {
+        heading: '1. Purpose',
+        body: `This register documents the environmental objectives and targets established by {{COMPANY}} in accordance with ISO 14001:2015 Clause 6.2. Objectives are set to address significant environmental aspects, compliance obligations, and risks and opportunities.
+
+**Related Documents:**
+- Environmental Policy ({{REF:env-policy}})
+- Environmental Aspects Register ({{REF:env-aspects-register}})
+- Environmental Aspects & Impacts Procedure ({{REF:env-management-proc}})`
+      },
+      {
+        heading: '2. Environmental Objectives & Targets',
+        body: `| Obj ID | Objective | Target | KPI / Measure | Baseline | Deadline | Responsible | Status |
+|--------|-----------|--------|---------------|----------|----------|-------------|--------|
+| EO-001 | Reduce waste to landfill | 15% reduction year-on-year | kg waste to landfill / month | [EXAMPLE: establish baseline] | [End of year] | {{EO_NAME}} | In progress |
+| EO-002 | Reduce electricity consumption | 10% reduction year-on-year | kWh / month | [EXAMPLE: establish baseline] | [End of year] | {{EO_NAME}} | In progress |
+| EO-003 | Reduce water consumption | 10% reduction year-on-year | kL / month | [EXAMPLE: establish baseline] | [End of year] | {{EO_NAME}} | In progress |
+| EO-004 | Increase recycling rate | Achieve 60% diversion from landfill | % waste recycled | [EXAMPLE: establish baseline] | [End of year] | {{EO_NAME}} | In progress |
+| EO-005 | Maintain zero environmental incidents | Zero reportable incidents | Number of incidents | 0 | Ongoing | {{EO_NAME}} | Active |
+| EO-006 | Achieve 100% legal compliance | No non-compliances at audit | Audit findings | N/A | Ongoing | {{EO_NAME}} | Active |
+
+> **[ACTION REQUIRED]:** Replace examples with objectives specific to your operations. Set realistic baselines from your first 3 months of data collection.
+
+**How Objectives Are Set:**
+Objectives consider:
+- Significant environmental aspects (from the Aspects Register)
+- Legal and other requirements (from the Legal Register)
+- Risks and opportunities
+- Technological options and financial feasibility
+- Views of interested parties`
+      },
+      {
+        heading: '3. Action Plans',
+        body: `For each objective, an action plan is documented:
+
+| Action | Responsible | Resources Required | Timeline | Status |
+|--------|-----------|-------------------|----------|--------|
+| Install sub-metering for electricity | Facilities Manager | Electrician, meters (R[budget]) | [Date] | [Status] |
+| Implement paper recycling programme | {{EO_NAME}} | Recycling bins, signage, contractor | [Date] | [Status] |
+| Conduct water audit | {{EO_NAME}} | Plumber inspection | [Date] | [Status] |
+| Environmental awareness training | {{EO_NAME}} + {{HR_NAME}} | Training materials, time allocation | [Date] | [Status] |
+
+> **[ACTION REQUIRED]:** Complete action plans with specific resources, budgets, and timelines for your objectives.
+
+**Review:**
+Environmental objectives are reviewed:
+- Quarterly by the Environmental Officer
+- At each management review meeting
+- After any significant environmental incident or change
+
+**Current Environmental Compliance Score:** {{LIVE:COMPLIANCE_SCORE:ISO_14001}}
+**Open Environmental NCRs:** {{LIVE:NCR_OPEN_COUNT}}`
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // ISO 45001 TEMPLATES
+  // ═══════════════════════════════════════════════════════════
+
+  'ohs-policy': {
+    title: 'Occupational Health & Safety Policy',
+    docNumber: 'IG-{{CODE}}-POL-003',
+    revision: '01',
+    sections: [
+      {
+        heading: '1. OH&S Policy Statement',
+        body: `**{{COMPANY}} — Occupational Health & Safety Policy**
+
+{{COMPANY}} is committed to providing a safe and healthy workplace for all workers, contractors, and visitors. We believe that all injuries, illnesses, and incidents are preventable, and we strive for zero harm in everything we do.
+
+**Our Commitments:**
+
+{{COMPANY}}, through its leadership and all workers, commits to:
+
+1. **Elimination of hazards and reduction of OH&S risks** through the hierarchy of controls
+2. **Safe and healthy working conditions** for the prevention of work-related injury and ill health
+3. **Compliance** with all applicable OH&S legislation, including the Occupational Health and Safety Act 85 of 1993 (OHS Act), COIDA, and associated regulations
+4. **Consultation and participation** of workers and worker representatives in OH&S matters
+5. **Continual improvement** of the OH&S management system
+6. **Competence** — ensuring all workers are trained and competent for their tasks
+7. **Provision of adequate resources** for the effective implementation of the OH&S system
+
+**Scope:**
+This policy applies to all operations, sites, workers, contractors, visitors, and other persons under the control of {{COMPANY}}.
+
+**OH&S Management System:**
+This policy is implemented through our OH&S Management System, which conforms to ISO 45001:2018. Key documents include:
+- HIRA Procedure ({{REF:hazard-identification-proc}})
+- Incident Investigation Procedure ({{REF:incident-investigation-proc}})
+- Emergency Response Plan ({{REF:emergency-response-ohs}})
+- PPE Register ({{REF:ppe-register}})
+- Legal Appointments Register ({{REF:legal-appointments-register}})
+
+**Compliance Score:** {{LIVE:COMPLIANCE_SCORE:ISO_45001}}
+
+| Detail | Value |
+|--------|-------|
+| Document Number | IG-{{CODE}}-POL-003 |
+| Prepared By | {{PREPARED_BY}} |
+| Approved By | {{MD_NAME}}, {{MD_TITLE}} |
+| Safety Officer | {{SO_NAME}} |
+| Date | {{DATE}} |`
+      },
+      {
+        heading: '2. Worker Participation & Communication',
+        body: `**Worker Participation:**
+{{COMPANY}} ensures worker participation in OH&S through:
+- Safety Health & Environment (SHE) Committee meetings (at least quarterly)
+- Safety representative consultations per OHS Act Section 17
+- Toolbox talks and safety briefings
+- Incident reporting without fear of reprisal
+- Hazard identification by all workers
+
+**Communication:**
+This policy is:
+- Communicated to all workers during induction and through ongoing awareness
+- Displayed prominently at all worksites
+- Included in contractor induction packs
+- Available to interested parties on request
+- Communicated in languages understood by the workforce
+
+**Review:**
+This policy is reviewed at least annually during management review, or when:
+- Significant incidents occur
+- Legislation changes
+- The nature of operations changes
+- Worker or SHE Committee feedback warrants review
+
+**Signed:**
+
+Name: {{MD_NAME}}
+Title: {{MD_TITLE}}
+Date: {{DATE}}
+
+___________________________
+Signature`
+      },
+    ],
+  },
+
+  'incident-investigation-proc': {
+    title: 'Incident Investigation Procedure',
+    docNumber: 'IG-{{CODE}}-SOP-009',
+    revision: '01',
+    sections: [
+      {
+        heading: '1. Purpose & Scope',
+        body: `This procedure defines the process for reporting, investigating, and learning from workplace incidents, near-misses, and occupational diseases, in accordance with ISO 45001:2018 Clause 10.2 and the OHS Act Section 24.
+
+**Scope:** All workplace incidents including injuries, illnesses, property damage, near-misses, and environmental releases at {{COMPANY}}.
+
+**Related Documents:**
+- HIRA Procedure ({{REF:hazard-identification-proc}})
+- NCR Form ({{REF:ncr-form}})
+- Corrective Action Procedure ({{REF:corrective-action-proc}})`
+      },
+      {
+        heading: '2. Definitions & Classification',
+        body: `| Term | Definition |
+|------|-----------|
+| **Incident** | Event arising out of or during work that could or does result in injury, ill health, or damage |
+| **Near-miss** | Event that did not result in injury or damage but had the potential to do so |
+| **Lost Time Injury (LTI)** | Injury resulting in the worker being unable to perform their duties for one or more days |
+| **Medical Treatment Case (MTC)** | Injury requiring treatment by a medical professional beyond first aid |
+| **First Aid Case (FAC)** | Minor injury treated on-site with first aid |
+| **Fatal** | Incident resulting in death of a worker |
+| **Dangerous occurrence** | Near-miss or event requiring notification under the OHS Act General Safety Regulation 8 |
+
+**Classification Matrix:**
+| Category | Severity | Investigation Lead | Report To | Timeline |
+|----------|---------|-------------------|-----------|----------|
+| Fatal | Critical | External investigator + {{SO_NAME}} | DOL, SAPS, {{MD_NAME}} | Immediate |
+| LTI | Major | {{SO_NAME}} | DOL (if >3 days), {{MD_NAME}} | Within 24 hours |
+| MTC | Moderate | {{SO_NAME}} | {{MD_NAME}}, SHE Committee | Within 48 hours |
+| FAC | Minor | Supervisor + {{SO_NAME}} | {{SO_NAME}} | Within 48 hours |
+| Near-miss | Variable | Supervisor + {{SO_NAME}} | SHE Committee | Within 72 hours |
+| Property damage | Variable | {{SO_NAME}} | {{MD_NAME}} | Within 48 hours |`
+      },
+      {
+        heading: '3. Incident Reporting',
+        body: `**Immediate Actions (all incidents):**
+1. **Make the area safe** — prevent further injury or damage
+2. **Administer first aid** — attend to injured person(s)
+3. **Call emergency services** if required (Ambulance: 10177)
+4. **Preserve the scene** — do not disturb evidence until investigation begins
+5. **Notify supervisor** immediately
+6. **Notify Safety Officer** ({{SO_NAME}}) within 1 hour
+
+**Statutory Reporting (OHS Act):**
+| Incident Type | Report To | Timeframe | Form |
+|--------------|-----------|-----------|------|
+| Fatal injury | DOL Inspector | Immediately (phone), then WCL.2 within 7 days | WCL.2 |
+| Injury with >3 days absence | DOL Inspector | Within 7 days | WCL.2 |
+| Dangerous occurrence | DOL Inspector | Immediately | Annexure 1 (GSR 8) |
+| Occupational disease | DOL Inspector | When diagnosed | WCL.14 |
+
+> DOL = Department of Labour (now Department of Employment and Labour)`
+      },
+      {
+        heading: '4. Investigation Process',
+        body: `**Step 1: Gather Information (within 24 hours)**
+- Interview the injured person (if possible), witnesses, and supervisors
+- Photograph the scene, equipment, and conditions
+- Collect physical evidence (damaged equipment, substances)
+- Review CCTV footage if available
+- Obtain medical reports
+
+**Step 2: Root Cause Analysis**
+Use the **5 Whys** technique or **Fishbone (Ishikawa) Diagram**:
+
+| Category | Possible Contributing Factors |
+|----------|------------------------------|
+| People | Training, experience, fatigue, behaviour, medical fitness |
+| Equipment | Maintenance, guards, condition, design, suitability |
+| Environment | Lighting, ventilation, noise, housekeeping, weather |
+| Process | Procedures, risk assessment, supervision, communication |
+| Management | Resources, leadership, culture, compliance monitoring |
+
+**Step 3: Determine Corrective Actions**
+Apply the **hierarchy of controls:**
+1. **Elimination** — remove the hazard entirely
+2. **Substitution** — replace with something less hazardous
+3. **Engineering controls** — guards, barriers, ventilation
+4. **Administrative controls** — procedures, training, signage
+5. **PPE** — last resort, personal protective equipment
+
+**Step 4: Record & Follow Up**
+- Complete investigation report
+- Raise NCR in ISOGuardian ({{REF:ncr-form}})
+- Update HIRA if new hazards or changed risk ratings identified
+- Communicate lessons learned to all affected workers
+- Verify corrective action effectiveness within 30 days`
+      },
+      {
+        heading: '5. Incident Register',
+        body: `All incidents are logged in the Incident Register:
+
+| Date | Time | Location | Description | Classification | Injured Person | Root Cause | Corrective Action | NCR No. | Status |
+|------|------|----------|------------|---------------|---------------|-----------|-------------------|---------|--------|
+| [EXAMPLE] | [Time] | Workshop | Worker struck by falling object | MTC | [Name] | Unsecured load on shelf | Secure all stored materials, shelf inspection | NCR-XX-2026-001 | Closed |
+| [EXAMPLE] | [Time] | Yard | Forklift near-miss with pedestrian | Near-miss | N/A | No segregation of traffic routes | Install barriers, paint walkways | NCR-XX-2026-002 | Open |
+
+> **[ACTION REQUIRED]:** Replace examples with actual incidents. All incidents must be logged regardless of severity.
+
+**Current Open NCRs:** {{LIVE:NCR_OPEN_COUNT}}
+**NCR Summary:** {{LIVE:NCR_SUMMARY}}`
+      },
+    ],
+  },
+
+  'safety-inspection-checklist': {
+    title: 'Workplace Safety Inspection Checklist',
+    docNumber: 'IG-{{CODE}}-FRM-005',
+    revision: '01',
+    sections: [
+      {
+        heading: '1. Inspection Details',
+        body: `| Detail | Value |
+|--------|-------|
+| Inspection Date | {{DATE}} |
+| Inspector Name | {{SO_NAME}} |
+| Area / Department | ________________ |
+| Accompanied By | ________________ |
+| Inspection Type | [ ] Routine Monthly  [ ] Ad Hoc  [ ] Follow-Up |
+| Weather Conditions | [ ] Clear  [ ] Rain  [ ] Wind  [ ] Extreme Heat |
+
+**Related Documents:**
+- HIRA Procedure ({{REF:hazard-identification-proc}})
+- PPE Register ({{REF:ppe-register}})
+- NCR Form ({{REF:ncr-form}})`
+      },
+      {
+        heading: '2. Housekeeping & General',
+        body: `| # | Item | C | NC | N/A | Comments |
+|---|------|---|----|----|----------|
+| 1.1 | Work areas clean and tidy | [ ] | [ ] | [ ] | |
+| 1.2 | Walkways and exits clear and unobstructed | [ ] | [ ] | [ ] | |
+| 1.3 | Floor surfaces clean, dry, non-slip | [ ] | [ ] | [ ] | |
+| 1.4 | Waste bins available and not overflowing | [ ] | [ ] | [ ] | |
+| 1.5 | Storage areas organised, materials stacked safely | [ ] | [ ] | [ ] | |
+| 1.6 | Lighting adequate for tasks | [ ] | [ ] | [ ] | |
+| 1.7 | Ventilation adequate | [ ] | [ ] | [ ] | |
+| 1.8 | Temperature within acceptable range | [ ] | [ ] | [ ] | |
+| 1.9 | No trip hazards (cables, materials, uneven surfaces) | [ ] | [ ] | [ ] | |
+| 1.10 | Signage visible and in good condition | [ ] | [ ] | [ ] | |
+
+*C = Compliant, NC = Non-Compliant, N/A = Not Applicable*`
+      },
+      {
+        heading: '3. Fire Safety',
+        body: `| # | Item | C | NC | N/A | Comments |
+|---|------|---|----|----|----------|
+| 2.1 | Fire extinguishers accessible and inspected (tag current) | [ ] | [ ] | [ ] | |
+| 2.2 | Fire hose reels accessible and functional | [ ] | [ ] | [ ] | |
+| 2.3 | Emergency exits clearly marked and illuminated | [ ] | [ ] | [ ] | |
+| 2.4 | Fire escape routes clear and unobstructed | [ ] | [ ] | [ ] | |
+| 2.5 | Fire alarm system tested and functional | [ ] | [ ] | [ ] | |
+| 2.6 | Evacuation plan displayed | [ ] | [ ] | [ ] | |
+| 2.7 | Assembly point clearly marked | [ ] | [ ] | [ ] | |
+| 2.8 | No smoking in prohibited areas | [ ] | [ ] | [ ] | |
+| 2.9 | Flammable materials stored correctly | [ ] | [ ] | [ ] | |
+| 2.10 | Fire marshals appointed and trained | [ ] | [ ] | [ ] | |`
+      },
+      {
+        heading: '4. Electrical Safety',
+        body: `| # | Item | C | NC | N/A | Comments |
+|---|------|---|----|----|----------|
+| 3.1 | Electrical panels accessible, not blocked | [ ] | [ ] | [ ] | |
+| 3.2 | No damaged plugs, sockets, or cables | [ ] | [ ] | [ ] | |
+| 3.3 | Extension leads in good condition, not daisy-chained | [ ] | [ ] | [ ] | |
+| 3.4 | Portable appliances tested (PAT) | [ ] | [ ] | [ ] | |
+| 3.5 | Earth leakage protection functional | [ ] | [ ] | [ ] | |
+| 3.6 | Lockout/tagout procedures in place for maintenance | [ ] | [ ] | [ ] | |
+| 3.7 | No unauthorised electrical work | [ ] | [ ] | [ ] | |`
+      },
+      {
+        heading: '5. PPE & Chemical Safety',
+        body: `| # | Item | C | NC | N/A | Comments |
+|---|------|---|----|----|----------|
+| 4.1 | Workers wearing required PPE for their tasks | [ ] | [ ] | [ ] | |
+| 4.2 | PPE in good condition (no damage, clean) | [ ] | [ ] | [ ] | |
+| 4.3 | Chemicals stored in designated area | [ ] | [ ] | [ ] | |
+| 4.4 | Safety Data Sheets (SDS) accessible | [ ] | [ ] | [ ] | |
+| 4.5 | Chemical containers labelled correctly | [ ] | [ ] | [ ] | |
+| 4.6 | Spill kits available and stocked | [ ] | [ ] | [ ] | |
+| 4.7 | Eye wash stations functional and accessible | [ ] | [ ] | [ ] | |
+| 4.8 | Hazardous waste segregated and labelled | [ ] | [ ] | [ ] | |`
+      },
+      {
+        heading: '6. Machinery & Equipment',
+        body: `| # | Item | C | NC | N/A | Comments |
+|---|------|---|----|----|----------|
+| 5.1 | Machine guards in place and functional | [ ] | [ ] | [ ] | |
+| 5.2 | Emergency stop buttons accessible and working | [ ] | [ ] | [ ] | |
+| 5.3 | Equipment maintenance up to date | [ ] | [ ] | [ ] | |
+| 5.4 | Lifting equipment inspected and certified | [ ] | [ ] | [ ] | |
+| 5.5 | Vehicles in safe operating condition | [ ] | [ ] | [ ] | |
+| 5.6 | Operators trained and authorised | [ ] | [ ] | [ ] | |
+| 5.7 | Noise levels within acceptable limits | [ ] | [ ] | [ ] | |`
+      },
+      {
+        heading: '7. Summary & Actions',
+        body: `**Inspection Summary:**
+| Total Items | Compliant | Non-Compliant | N/A |
+|------------|-----------|---------------|-----|
+| | | | |
+
+**Non-Conformances Identified:**
+| NC # | Item | Finding | Priority | Corrective Action | Responsible | Due Date | NCR Ref |
+|------|------|---------|---------|-------------------|-------------|----------|---------|
+| 1 | | | [ ] High [ ] Medium [ ] Low | | | | |
+| 2 | | | [ ] High [ ] Medium [ ] Low | | | | |
+| 3 | | | [ ] High [ ] Medium [ ] Low | | | | |
+
+**Inspector Sign-Off:**
+Name: {{SO_NAME}}  |  Signature: _______________  |  Date: {{DATE}}
+
+**Area Manager Sign-Off:**
+Name: ________________  |  Signature: _______________  |  Date: ________________
+
+> All High priority non-conformances must be raised as NCRs in ISOGuardian ({{REF:ncr-form}}).`
+      },
+    ],
+  },
+
+  'emergency-response-ohs': {
+    title: 'OH&S Emergency Response Plan',
+    docNumber: 'IG-{{CODE}}-SOP-010',
+    revision: '01',
+    sections: [
+      {
+        heading: '1. Purpose & Scope',
+        body: `This plan defines the emergency response procedures for workplace emergencies at {{COMPANY}}, in accordance with ISO 45001:2018 Clause 8.2 and the OHS Act Sections 8 and 17.
+
+**Scope:** All sites, operations, workers, contractors, and visitors of {{COMPANY}}.
+
+**Related Documents:**
+- HIRA Procedure ({{REF:hazard-identification-proc}})
+- Risk & Opportunity Register ({{REF:risk-register}})
+- Training Record ({{REF:training-record-form}})`
+      },
+      {
+        heading: '2. Emergency Types & Response',
+        body: `**2.1 Fire / Explosion:**
+1. Raise the alarm (break glass / shout "FIRE")
+2. Call emergency services: **10177**
+3. Evacuate via nearest safe exit — do NOT use lifts
+4. Assemble at designated assembly point
+5. Fire marshals conduct headcount
+6. Do NOT re-enter until "all clear" from Emergency Coordinator
+
+**2.2 Medical Emergency / Serious Injury:**
+1. Make the area safe
+2. Call first aider immediately
+3. Administer first aid (do NOT move spinal injury victims)
+4. Call ambulance: **10177** (or company emergency number)
+5. Notify Safety Officer ({{SO_NAME}})
+6. Preserve the scene for investigation
+
+**2.3 Chemical Spill / Hazardous Material Release:**
+1. Evacuate the area if vapours/fumes present
+2. Don PPE (chemical suit, respirator, gloves)
+3. Contain the spill — use spill kit, block drains
+4. Notify Safety Officer and Environmental Officer
+5. Clean up contaminated materials, dispose as hazardous waste
+6. Ventilate area before allowing re-entry
+
+**2.4 Structural Collapse / Confined Space Emergency:**
+1. Evacuate the immediate area
+2. Call emergency services: **10177**
+3. Do NOT attempt rescue without proper training and equipment
+4. Account for all persons in the area
+5. Notify {{MD_NAME}} and {{SO_NAME}}
+
+**2.5 Severe Weather (storm, lightning, flooding):**
+1. Cease outdoor work during lightning (30/30 rule)
+2. Secure loose materials and equipment
+3. Move to safe shelter
+4. Resume work only when conditions are safe
+
+**2.6 Security Threat / Armed Robbery:**
+1. Cooperate with perpetrators — do NOT resist
+2. Observe details for later identification
+3. Call SAPS: **10111** when safe
+4. Do not touch anything at the crime scene
+5. Notify {{MD_NAME}}`
+      },
+      {
+        heading: '3. Emergency Contacts & Resources',
+        body: `**Emergency Contacts:**
+| Contact | Name/Organisation | Phone |
+|---------|------------------|-------|
+| Emergency Coordinator | {{SO_NAME}} | [Phone] |
+| Deputy Coordinator | {{MR_NAME}} | [Phone] |
+| Managing Director | {{MD_NAME}} | [Phone] |
+| Ambulance / Fire | Emergency services | 10177 |
+| SAPS | South African Police | 10111 |
+| Poison Centre | Tygerberg | 0861 555 777 |
+| Hospital / ER | [ACTION REQUIRED: nearest hospital] | [Phone] |
+| Electricity (Eskom) | Eskom emergency | 0860 037 566 |
+| Gas supplier | [ACTION REQUIRED: if applicable] | [Phone] |
+
+**Emergency Equipment:**
+| Equipment | Location | Last Inspected |
+|-----------|----------|---------------|
+| First aid kit(s) | [ACTION REQUIRED] | [Date] |
+| AED (defibrillator) | [ACTION REQUIRED] | [Date] |
+| Fire extinguishers | [ACTION REQUIRED] | [Date] |
+| Spill kits | [ACTION REQUIRED] | [Date] |
+| Stretcher / spine board | [ACTION REQUIRED] | [Date] |
+| Emergency lighting | [ACTION REQUIRED] | [Date] |
+
+**Assembly Points:**
+| Site / Area | Assembly Point | Fire Marshal |
+|------------|---------------|-------------|
+| [ACTION REQUIRED] | [Location] | [Name] |
+
+> **[ACTION REQUIRED]:** Complete all contact details, equipment locations, and assembly points for your specific site(s).`
+      },
+      {
+        heading: '4. Evacuation Plan',
+        body: `**Evacuation Procedure:**
+1. On hearing the alarm, stop all work immediately
+2. Shut down equipment and processes where safe to do so
+3. Leave via the nearest safe exit route
+4. Assist persons with disabilities
+5. Proceed to your designated assembly point
+6. Fire marshals take roll call and report to Emergency Coordinator
+7. Remain at assembly point until "all clear" is given
+
+**Evacuation Roles:**
+| Role | Name | Responsibility |
+|------|------|---------------|
+| Emergency Coordinator | {{SO_NAME}} | Overall emergency management, liaise with services |
+| Fire Marshals | [ACTION REQUIRED: list names] | Floor/area sweep, headcount at assembly |
+| First Aiders | [ACTION REQUIRED: list names] | Medical assistance, triage |
+
+**Drills:**
+- Fire evacuation drills conducted at least **every 6 months**
+- Records kept in the Training Record ({{REF:training-record-form}})
+- Drill results reviewed and emergency plan updated accordingly
+
+**Post-Emergency:**
+1. Investigate the incident per the Incident Investigation Procedure ({{REF:incident-investigation-proc}})
+2. Report to authorities if required (OHS Act Section 24)
+3. Raise NCR for corrective actions ({{REF:ncr-form}})
+4. Communicate lessons learned
+5. Update emergency plan if deficiencies identified`
+      },
+    ],
+  },
+
+  'ppe-register': {
+    title: 'PPE Issue & Compliance Register',
+    docNumber: 'IG-{{CODE}}-REG-005',
+    revision: '01',
+    sections: [
+      {
+        heading: '1. Purpose',
+        body: `This register tracks the issue, condition, and replacement of Personal Protective Equipment (PPE) at {{COMPANY}}, in accordance with ISO 45001:2018 Clause 8.1.2 and the OHS Act General Safety Regulation 2.
+
+PPE is the **last line of defence** in the hierarchy of controls. Elimination, substitution, engineering, and administrative controls must be considered first.
+
+**Related Documents:**
+- HIRA Procedure ({{REF:hazard-identification-proc}})
+- Safety Inspection Checklist ({{REF:safety-inspection-checklist}})`
+      },
+      {
+        heading: '2. PPE Requirements by Job Category',
+        body: `| Job Category | Hard Hat | Safety Glasses | Hearing Protection | Safety Boots | Gloves | High-Vis Vest | Respirator | Fall Harness | Other |
+|-------------|---------|---------------|-------------------|-------------|--------|-------------|-----------|-------------|-------|
+| Office Staff | | | | | | | | | |
+| Workshop / Manufacturing | X | X | X | X | X | X | [If needed] | | |
+| Warehouse / Stores | X | | | X | X | X | | | |
+| Drivers / Yard | X | | | X | | X | | | |
+| Welding | X | X (auto-dark) | X | X | X (leather) | | X | | Welding apron |
+| Working at Heights | X | X | | X | X | X | | X | |
+| Chemical Handling | | X (splash) | | X (chem) | X (chem) | | X | | Chemical suit |
+| Electrical Work | X (Class E) | X | | X (insulated) | X (insulated) | | | | |
+| Visitors | X | X | [If needed] | X | | X | | | |
+
+> **[ACTION REQUIRED]:** Customise the above matrix for your specific operations and job categories. Conduct a PPE risk assessment per the HIRA to determine requirements.`
+      },
+      {
+        heading: '3. PPE Issue Register',
+        body: `| Employee Name | Employee No. | Job Category | PPE Item | Size | Issue Date | Condition | Next Replacement | Signature |
+|-------------|-------------|-------------|---------|------|-----------|-----------|-----------------|-----------|
+| [EXAMPLE: J. Nkosi] | [EMP001] | Workshop | Hard hat | M | [Date] | Good | [+12 months] | _________ |
+| [EXAMPLE: J. Nkosi] | [EMP001] | Workshop | Safety boots | 9 | [Date] | Good | [+6 months] | _________ |
+| [EXAMPLE: J. Nkosi] | [EMP001] | Workshop | Safety glasses | Std | [Date] | Good | [When damaged] | _________ |
+| [EXAMPLE: J. Nkosi] | [EMP001] | Workshop | Hearing protection | Std | [Date] | Good | [+3 months] | _________ |
+| [EXAMPLE: T. van Wyk] | [EMP002] | Welding | Auto-dark helmet | Std | [Date] | Good | [+24 months] | _________ |
+
+> **[ACTION REQUIRED]:** Replace examples with your actual employees and their PPE requirements.
+
+**Active Users:** {{LIVE:USER_LIST}}
+
+**PPE Issue Rules:**
+- PPE issued free of charge to employees (OHS Act GSR 2(1))
+- Employee must sign for receipt
+- Damaged or worn PPE replaced immediately — report to supervisor
+- PPE must not be taken off-site without permission
+- Employee responsible for care and proper use of issued PPE`
+      },
+      {
+        heading: '4. PPE Inspection & Replacement Schedule',
+        body: `| PPE Item | Inspection Frequency | Replacement Criteria | Typical Lifespan |
+|---------|---------------------|---------------------|-----------------|
+| Hard hat | Monthly visual | Cracked, dented, >5 years, after impact | 3-5 years |
+| Safety glasses | Daily before use | Scratched, cracked, loose fit | Replace when damaged |
+| Hearing protection (earmuffs) | Monthly | Worn cushions, broken headband | 6-12 months |
+| Hearing protection (plugs) | Per use (disposable) | N/A | Single use |
+| Safety boots | Monthly | Sole separation, toe cap exposed, worn tread | 6-12 months |
+| Gloves (general) | Before each use | Torn, worn through, chemical breakthrough | Replace when damaged |
+| High-vis vest | Monthly | Faded reflective strips, torn | 6-12 months |
+| Respirator | Before each use + monthly cartridge | Cartridge expiry, damaged seal | Per manufacturer spec |
+| Fall harness | Before each use + 6-monthly formal | Stitching damage, buckle wear, after a fall | After a fall / per manufacturer |
+
+**Responsible Person:** {{SO_NAME}} (Safety Officer)
+**Last Updated:** {{DATE}}`
+      },
+    ],
+  },
+
+  'legal-appointments-register': {
+    title: 'Legal Appointments Register (OHS Act)',
+    docNumber: 'IG-{{CODE}}-REG-006',
+    revision: '01',
+    sections: [
+      {
+        heading: '1. Purpose',
+        body: `This register documents all statutory appointments required under the Occupational Health and Safety Act 85 of 1993 (OHS Act) and related regulations for {{COMPANY}}.
+
+These appointments are a legal requirement. Failure to make and maintain these appointments is an offence under the OHS Act.
+
+**Related Documents:**
+- OH&S Policy ({{REF:ohs-policy}})
+- HIRA Procedure ({{REF:hazard-identification-proc}})`
+      },
+      {
+        heading: '2. Section 16(2) Appointment',
+        body: `**OHS Act Section 16(2):** The CEO/Managing Director must appoint a person to ensure compliance with the OHS Act.
+
+| Detail | Value |
+|--------|-------|
+| **Appointor (CEO/MD)** | {{MD_NAME}} |
+| **Appointee (16(2) Designee)** | ________________ |
+| **Appointment Date** | ________________ |
+| **Scope of Authority** | Full authority over all OHS matters at {{COMPANY}} |
+| **Letter of Appointment** | On file: Yes / No |
+| **Acceptance Signed** | Yes / No |
+
+> **IMPORTANT:** The 16(2) appointee must have the authority and resources to fulfil this role. The appointment does not relieve the CEO of overall accountability.
+
+**Section 16(1) — CEO Accountability:**
+The CEO ({{MD_NAME}}) remains ultimately accountable for the health and safety of all persons at {{COMPANY}} workplaces.`
+      },
+      {
+        heading: '3. Safety Appointments',
+        body: `| # | Appointment | Section/Regulation | Appointee | Qualification/Training | Date Appointed | Letter on File | Review Date |
+|---|-----------|-------------------|-----------|----------------------|---------------|---------------|-------------|
+| 1 | **Safety Officer** | OHSA Sec 17(1) / GSR 6 | {{SO_NAME}} | [SAMTRAC / NEBOSH / equivalent] | [Date] | [ ] Yes [ ] No | [Annual] |
+| 2 | **Safety Representative(s)** | OHSA Sec 17(1) | [ACTION REQUIRED: nominate/elect] | OHS Act training | [Date] | [ ] Yes [ ] No | [2 years] |
+| 3 | **First Aider(s)** | GSR 3 | [ACTION REQUIRED] | Level 1 First Aid (valid) | [Date] | [ ] Yes [ ] No | [3 years] |
+| 4 | **Fire Marshal(s)** | Fire Brigade Services Act | [ACTION REQUIRED] | Fire fighting training | [Date] | [ ] Yes [ ] No | [Annual] |
+| 5 | **Incident Investigator** | OHSA Sec 24 | {{SO_NAME}} | Investigation training | [Date] | [ ] Yes [ ] No | [Annual] |
+
+**Minimum First Aiders Required (GSR 3):**
+| Number of Workers | First Aiders Required |
+|-------------------|----------------------|
+| 1-10 | 1 |
+| 11-50 | 2 |
+| 51-100 | 3 (with one per shift) |
+| 100+ | 1 per 50 workers |
+
+> **[ACTION REQUIRED]:** Complete all appointment details. Ensure each appointee has a signed letter of appointment on file.`
+      },
+      {
+        heading: '4. SHE Committee',
+        body: `**OHS Act Section 19:** Where an employer has two or more safety representatives, a SHE Committee must be established.
+
+| Detail | Value |
+|--------|-------|
+| Committee Established | [ ] Yes [ ] No |
+| Meeting Frequency | At least quarterly (Section 19(4)) |
+| Chairperson | ________________ |
+| Secretary | ________________ |
+
+**SHE Committee Members:**
+| Name | Role | Representing | Term |
+|------|------|-------------|------|
+| {{MD_NAME}} | Chairperson (employer) | Management | Permanent |
+| {{SO_NAME}} | Safety Officer | Management | Permanent |
+| [ACTION REQUIRED] | Safety Representative | Workers | 2 years |
+| [ACTION REQUIRED] | Safety Representative | Workers | 2 years |
+| [ACTION REQUIRED] | Member | [Department] | 2 years |
+
+**Committee Functions (Section 19(5)):**
+- Review health and safety conditions
+- Discuss audit and inspection results
+- Review incident reports and corrective actions
+- Make recommendations to management
+- Review effectiveness of safety measures`
+      },
+      {
+        heading: '5. Specialised Appointments',
+        body: `| # | Appointment | Regulation | Appointee | Qualification | Date | Review |
+|---|-----------|-----------|-----------|-------------|------|--------|
+| 1 | Construction Supervisor | CR 8(1) | [If applicable] | Construction safety training | | [Annual] |
+| 2 | Lifting Machine Operator | DMR 18 | [If applicable] | Crane/forklift certificate | | [2 years] |
+| 3 | Stacking Supervisor | GSR 8A | [If applicable] | Stacking training | | [Annual] |
+| 4 | Electrical Installations | EIR 9 | [If applicable] | Licensed electrician | | [Annual] |
+| 5 | Hazardous Chemical Substances | HCS Reg 5 | [If applicable] | HCS training | | [Annual] |
+| 6 | Confined Space Entry Supervisor | GSR 5 | [If applicable] | Confined space training | | [Annual] |
+
+> **[ACTION REQUIRED]:** Only include appointments relevant to your operations. Delete rows that don't apply.
+
+**Register Maintained By:** {{SO_NAME}} (Safety Officer)
+**Last Updated:** {{DATE}}
+**Next Review Date:** [12 months from {{DATE}}]`
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // STARTER PACKS (14001 & 45001)
+  // ═══════════════════════════════════════════════════════════
+
+  'iso-14001-starter': {
+    title: 'ISO 14001 Complete Starter Pack',
+    docNumber: 'IG-{{CODE}}-BUNDLE-14001',
+    revision: '01',
+    sections: [
+      {
+        heading: 'Package Contents',
+        body: `The **ISO 14001 Complete Starter Pack** contains everything you need to build an Environmental Management System from scratch. All documents are cross-referenced and auto-populated with your company information.
+
+**Included Documents:**
+| # | Document | Doc Number | Clause | Purpose |
+|---|---------|-----------|--------|---------|
+| 1 | Environmental Policy | {{REF:env-policy}} | 5.2 | Top management commitment to the environment |
+| 2 | Environmental Aspects & Impacts Procedure | {{REF:env-management-proc}} | 6.1.2 | Identify and evaluate environmental aspects |
+| 3 | Waste Management Procedure | {{REF:waste-management-proc}} | 8.1 | Operational control for waste streams |
+| 4 | Environmental Emergency Preparedness | {{REF:emergency-preparedness-env}} | 8.2 | Emergency planning and response |
+| 5 | Environmental Aspects Register | {{REF:env-aspects-register}} | 6.1.2 | Log of all aspects, impacts, and controls |
+| 6 | Environmental Legal Register | {{REF:env-legal-register}} | 6.1.3 | Applicable SA environmental legislation |
+| 7 | Environmental Objectives Register | {{REF:env-objectives-register}} | 6.2 | Objectives, targets, and action plans |
+| 8 | Risk & Opportunity Register | {{REF:risk-register}} | 6.1 | Risks and opportunities across the EMS |
+| 9 | NCR Form | {{REF:ncr-form}} | 10.2 | Nonconformity and corrective action tracking |`
+      },
+      {
+        heading: 'Implementation Guide',
+        body: `**Recommended implementation order:**
+
+| Phase | Duration | Documents | Activities |
+|-------|----------|-----------|-----------|
+| **Phase 1: Policy & Context** | Weeks 1-2 | Environmental Policy, Legal Register | Establish policy, identify legal requirements, assign Environmental Officer |
+| **Phase 2: Planning** | Weeks 3-5 | Aspects Procedure, Aspects Register, Risk Register, Objectives Register | Identify aspects, evaluate significance, set objectives |
+| **Phase 3: Operations** | Weeks 6-8 | Waste Management Procedure, Emergency Preparedness | Implement operational controls, test emergency procedures |
+| **Phase 4: Check & Act** | Weeks 9-12 | NCR Form, use existing audit tools | Conduct first internal audit, hold management review |
+
+**Key South African Legislation to Know:**
+- NEMA (National Environmental Management Act)
+- NEM:WA (Waste Act)
+- NEM:AQA (Air Quality Act)
+- NWA (National Water Act)
+
+**Tips for Success:**
+- Start with a thorough aspects identification — this drives everything else
+- Engage with your municipality for local by-law requirements
+- Set measurable objectives from day one (energy, water, waste)
+- Use ISOGuardian to manage your environmental documents and NCRs digitally
+- Consider engaging a consultant for your initial aspects assessment`
+      },
+    ],
+  },
+
+  'iso-45001-starter': {
+    title: 'ISO 45001 Complete Starter Pack',
+    docNumber: 'IG-{{CODE}}-BUNDLE-45001',
+    revision: '01',
+    sections: [
+      {
+        heading: 'Package Contents',
+        body: `The **ISO 45001 Complete Starter Pack** contains everything you need to build an OH&S Management System from scratch. All documents are cross-referenced and auto-populated with your company information.
+
+**Included Documents:**
+| # | Document | Doc Number | Clause | Purpose |
+|---|---------|-----------|--------|---------|
+| 1 | OH&S Policy | {{REF:ohs-policy}} | 5.2 | Top management commitment to worker safety |
+| 2 | HIRA Procedure | {{REF:hazard-identification-proc}} | 6.1.2 | Hazard identification and risk assessment |
+| 3 | Incident Investigation Procedure | {{REF:incident-investigation-proc}} | 10.2 | Incident reporting, investigation, corrective action |
+| 4 | OH&S Emergency Response Plan | {{REF:emergency-response-ohs}} | 8.2 | Emergency procedures for all scenarios |
+| 5 | Safety Inspection Checklist | {{REF:safety-inspection-checklist}} | 9.1.1 | Workplace inspection form |
+| 6 | PPE Issue & Compliance Register | {{REF:ppe-register}} | 8.1.2 | PPE tracking and compliance |
+| 7 | Legal Appointments Register | {{REF:legal-appointments-register}} | 5.3 | OHS Act statutory appointments |
+| 8 | Risk & Opportunity Register | {{REF:risk-register}} | 6.1 | Risks and opportunities across the OHSMS |
+| 9 | NCR Form | {{REF:ncr-form}} | 10.2 | Nonconformity and corrective action tracking |
+| 10 | Training Record | {{REF:training-record-form}} | 7.2 | Training and competence management |`
+      },
+      {
+        heading: 'Implementation Guide',
+        body: `**Recommended implementation order:**
+
+| Phase | Duration | Documents | Activities |
+|-------|----------|-----------|-----------|
+| **Phase 1: Policy & Leadership** | Weeks 1-2 | OH&S Policy, Legal Appointments Register | Establish policy, make statutory appointments, assign Safety Officer |
+| **Phase 2: Planning** | Weeks 3-5 | HIRA Procedure, Risk Register, PPE Register | Identify hazards, assess risks, determine PPE requirements |
+| **Phase 3: Operations** | Weeks 6-8 | Emergency Response Plan, Safety Inspection Checklist, Training Record | Implement controls, train workers, conduct first inspections |
+| **Phase 4: Check & Act** | Weeks 9-12 | Incident Investigation Procedure, NCR Form | Conduct first internal audit, establish incident reporting culture |
+
+**Key South African Legislation to Know:**
+- OHS Act 85 of 1993 + General Safety Regulations
+- COIDA (Compensation for Occupational Injuries and Diseases Act)
+- Construction Regulations (if applicable)
+- Driven Machinery Regulations, Electrical Installation Regulations
+- Hazardous Chemical Substances Regulations (if applicable)
+
+**Tips for Success:**
+- The HIRA is the foundation — invest time in getting it right
+- Make statutory appointments first (Section 16(2), safety reps, first aiders)
+- Involve workers from day one — ISO 45001 requires worker participation
+- Conduct emergency drills within the first month
+- Use ISOGuardian to manage your safety NCRs and inspections digitally
+- Consider engaging a SHEQ consultant for your baseline risk assessment`
+      },
+    ],
+  },
+
 }

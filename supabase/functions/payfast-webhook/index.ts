@@ -12,6 +12,8 @@ const PAYFAST_PASSPHRASE = Deno.env.get('PAYFAST_PASSPHRASE') || ''
 const PAYFAST_SANDBOX = Deno.env.get('PAYFAST_SANDBOX') === 'true'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || ''
+const SITE_URL = 'https://isoguardian.co.za'
 
 const PAYFAST_VALIDATE_URL = PAYFAST_SANDBOX
   ? 'https://sandbox.payfast.co.za/eng/query/validate'
@@ -151,15 +153,120 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
     const paymentStatus = data.payment_status // COMPLETE, FAILED, PENDING, CANCELLED
-    const tier = (data.custom_str1 || 'starter').toLowerCase()
+    const paymentType = data.custom_str1 || 'starter' // 'template' for template purchases, tier name for subscriptions
+    const payfastPaymentId = data.pf_payment_id
+    const amount = parseFloat(data.amount_gross) || 0
+    const billingEmail = data.email_address || ''
+
+    // ─── Handle TEMPLATE one-time purchase ───
+    if (paymentType === 'template' && paymentStatus === 'COMPLETE') {
+      const templateId = data.custom_str2 || ''
+      const buyerEmail = data.custom_str3 || billingEmail
+      const buyerName = `${data.name_first || ''} ${data.name_last || ''}`.trim()
+
+      // Record the purchase with a download token
+      const { data: purchase } = await supabase
+        .from('template_purchases')
+        .insert({
+          email: buyerEmail,
+          template_id: templateId,
+          amount,
+          currency: 'ZAR',
+          payfast_payment_id: payfastPaymentId,
+          buyer_name: buyerName || null,
+        })
+        .select('id, download_token')
+        .single()
+
+      if (purchase) {
+        const downloadUrl = `${SITE_URL}/templates?download=${purchase.download_token}`
+
+        // Send download link via Resend
+        if (RESEND_API_KEY && buyerEmail) {
+          try {
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                from: 'ISOGuardian <noreply@isoguardian.co.za>',
+                to: [buyerEmail],
+                subject: `Your ISOGuardian Template: ${templateId.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}`,
+                html: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0015; color: #fff; border-radius: 12px; overflow: hidden;">
+                    <div style="background: linear-gradient(135deg, #06b6d4, #8b5cf6); padding: 32px; text-align: center;">
+                      <h1 style="margin: 0; font-size: 24px;">Your Template is Ready</h1>
+                    </div>
+                    <div style="padding: 32px;">
+                      <p style="color: #cbd5e1;">Hi ${buyerName || 'there'},</p>
+                      <p style="color: #cbd5e1;">Thank you for your purchase! Your template is ready to download.</p>
+                      <div style="text-align: center; margin: 32px 0;">
+                        <a href="${downloadUrl}" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6); color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+                          Download Template
+                        </a>
+                      </div>
+                      <p style="color: #94a3b8; font-size: 13px;">This link expires in 48 hours. If you need it re-sent, contact us at support@isoguardian.co.za.</p>
+                      <hr style="border: none; border-top: 1px solid #1e293b; margin: 24px 0;" />
+                      <p style="color: #94a3b8; font-size: 13px;">
+                        Want all templates included free? <a href="${SITE_URL}/#pricing" style="color: #06b6d4;">Subscribe to ISOGuardian</a> and get access to every template plus live compliance tracking.
+                      </p>
+                    </div>
+                    <div style="background: #1e1e2e; padding: 16px; text-align: center;">
+                      <p style="color: #64748b; font-size: 11px; margin: 0;">ISOGuardian (Pty) Ltd | Reg: 2026/082362/07 | support@isoguardian.co.za</p>
+                    </div>
+                  </div>
+                `,
+              }),
+            })
+          } catch (emailErr) {
+            console.error('Failed to send template download email:', emailErr)
+          }
+        }
+
+        // Notify admin of template sale (lead capture)
+        if (RESEND_API_KEY) {
+          try {
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                from: 'ISOGuardian System <noreply@isoguardian.co.za>',
+                to: ['support@isoguardian.co.za'],
+                subject: `Template Sale: ${templateId} — R${amount.toFixed(2)}`,
+                html: `
+                  <h2>New Template Purchase</h2>
+                  <p><strong>Template:</strong> ${templateId}</p>
+                  <p><strong>Buyer:</strong> ${buyerName || 'Unknown'} (${buyerEmail})</p>
+                  <p><strong>Amount:</strong> R${amount.toFixed(2)}</p>
+                  <p><strong>PayFast ID:</strong> ${payfastPaymentId}</p>
+                  <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+                  <hr />
+                  <p><em>This is a potential lead for subscription upsell.</em></p>
+                `,
+              }),
+            })
+          } catch {
+            // Non-critical — don't fail the webhook
+          }
+        }
+      }
+
+      console.log('Template purchase processed:', { templateId, buyerEmail, amount })
+      return new Response('OK', { status: 200 })
+    }
+
+    // ─── Subscription payment processing ───
+    const tier = paymentType.toLowerCase()
     const referralCode = data.custom_str2 || null
     const partnerCode = data.custom_str3 || null
     const companyName = data.custom_str4 || null
     const internalPaymentId = data.custom_str5 || null
-    const payfastPaymentId = data.pf_payment_id
     const payfastSubscriptionId = data.token || null // Subscription token for recurring
-    const amount = parseFloat(data.amount_gross) || 0
-    const billingEmail = data.email_address || ''
 
     const tierConfig = TIERS[tier] || TIERS.starter
 

@@ -3,9 +3,11 @@
  *
  * Generates branded legal PDFs with ISOGuardian styling:
  * - Terms of Service v1.1         (public)
- * - POPIA Compliance & Privacy    (public)
+ * - POPIA Compliance & Privacy v1.1 (public)
  * - Company Profile               (public - marketing)
- * - Client Subscription & SLA     (PRIVATE - serious buyers only)
+ * - PAIA Manual v1.1              (public)
+ * - Client Subscription & SLA v1.1 (PRIVATE - serious buyers only)
+ * - Data Processing Agreement v1.0 (PRIVATE - client agreements)
  *
  * Usage: node scripts/generateLegalPDFs.js
  * Output:
@@ -475,9 +477,9 @@ function generateTermsOfService() {
 // ============================================================
 function generatePOPIA() {
   const { doc, pw, ph, m, cw } = createDoc();
-  const pg = makePageManager(doc, pw, ph, m, 'POPIA & Privacy Policy', 'Version 1.0');
+  const pg = makePageManager(doc, pw, ph, m, 'POPIA & Privacy Policy', 'Version 1.1');
 
-  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-POPIA', 'v1.0', 'January 2026', 'February 2026');
+  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-POPIA', 'v1.1', 'January 2026', 'March 2026');
   y = addTitle(doc, 'POPIA Compliance & Data Protection', y, m);
   y = para(doc, 'ISOGuardian is committed to protecting your personal information in accordance with the Protection of Personal Information Act (POPIA), 2013.', y, m, cw);
 
@@ -520,9 +522,32 @@ function generatePOPIA() {
   y = bullet(doc, 'After account closure: 30 days grace period, then permanent deletion', y, m, cw);
 
   y = pg.bp(y);
-  y = heading(doc, 'Third-Party Services', y, m);
-  y = para(doc, 'Supabase (Database & Auth): EU servers, SOC 2 Type II certified', y, m, cw, { bold: true });
-  y = para(doc, 'Vercel (Hosting): Global CDN, ISO 27001 certified', y, m, cw, { bold: true });
+  y = heading(doc, 'Cookies & Local Storage', y, m);
+  y = para(doc, 'ISOGuardian uses local storage (not traditional cookies) for the following purposes:', y, m, cw);
+  y = pg.bp(y, 8);
+  y = para(doc, 'Essential (always active)', y, m, cw, { bold: true, color: ACCENT });
+  y = para(doc, 'Authentication tokens, session management, and security preferences. Required for the platform to function.', y, m, cw, { indent: 4 });
+  y = pg.bp(y, 8);
+  y = para(doc, 'Functional', y, m, cw, { bold: true, color: ACCENT });
+  y = para(doc, 'Notification settings, onboarding state, and user preferences. Enhances your experience.', y, m, cw, { indent: 4 });
+  y = pg.bp(y, 8);
+  y = para(doc, 'Analytics (requires consent)', y, m, cw, { bold: true, color: ACCENT });
+  y = para(doc, 'Anonymous usage data to improve the platform. Only active with your explicit consent via the cookie consent banner.', y, m, cw, { indent: 4 });
+  y = para(doc, 'You can manage your preferences at any time via the cookie consent banner. Your consent choices are stored locally and never transmitted to our servers.', y, m, cw, { size: 7.5, color: SLATE });
+
+  y = pg.bp(y);
+  y = heading(doc, 'Third-Party Services (Sub-Processors)', y, m);
+  for (const [name, desc] of [
+    ['Supabase (Database & Auth)', 'EU servers (London), SOC 2 Type II certified. Hosts all platform data and authentication.'],
+    ['Vercel (Hosting)', 'Global CDN, ISO 27001 certified. Serves the web application.'],
+    ['Cloudflare (Security)', 'Turnstile CAPTCHA for bot protection on login. No personal data stored.'],
+    ['Resend (Email Delivery)', 'Transactional email notifications (audit reminders, NCR alerts). Email address processed for delivery only.'],
+    ['Google Analytics (Analytics)', 'Anonymous page view and conversion tracking. Only active with your explicit analytics consent.'],
+  ]) {
+    y = pg.bp(y, 10);
+    y = para(doc, name, y, m, cw, { bold: true });
+    y = para(doc, desc, y, m, cw, { indent: 4, size: 7.5 });
+  }
   y = para(doc, 'We do not sell, rent, or share your data with third parties for marketing purposes.', y, m, cw, { size: 7.5, color: SLATE });
 
   y = pg.bp(y, 22);
@@ -531,7 +556,7 @@ function generatePOPIA() {
   y = para(doc, `Information Officer: ${COMPANY.director}`, y, m, cw, { bold: true });
   y = para(doc, `Email: ${COMPANY.email}  |  Response Time: Within 30 days as required by POPIA`, y, m, cw);
   y += 3;
-  y = para(doc, `Last Updated: February 2026  |  Information Regulator Registration: Pending  |  ${COMPANY.name}  |  Reg: ${COMPANY.reg}`, y, m, cw, { size: 6, color: SLATE });
+  y = para(doc, `Last Updated: March 2026  |  Information Regulator Registration: Pending  |  ${COMPANY.name}  |  Reg: ${COMPANY.reg}`, y, m, cw, { size: 6, color: SLATE });
 
   pg.finalize();
   return doc;
@@ -542,9 +567,9 @@ function generatePOPIA() {
 // ============================================================
 function generateSLA() {
   const { doc, pw, ph, m, cw } = createDoc();
-  const pg = makePageManager(doc, pw, ph, m, 'Client Subscription & SLA', 'Version 1.0');
+  const pg = makePageManager(doc, pw, ph, m, 'Client Subscription & SLA', 'Version 1.1');
 
-  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-SLA', 'v1.0', 'January 2026', 'February 2026');
+  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-SLA', 'v1.1', 'January 2026', 'March 2026');
   y = addTitle(doc, 'Client Subscription & Service Level Agreement', y, m);
 
   y = heading(doc, 'Parties', y, m, 1);
@@ -913,6 +938,334 @@ function generateCompanyProfile() {
 }
 
 // ============================================================
+// DOCUMENT 5: PAIA Manual v1.1
+// ============================================================
+function generatePAIA() {
+  const { doc, pw, ph, m, cw } = createDoc();
+  const pg = makePageManager(doc, pw, ph, m, 'PAIA Manual', 'Version 1.1');
+
+  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-PAIA', 'v1.1', 'January 2026', 'March 2026');
+  y = addTitle(doc, 'PAIA Manual', y, m);
+  y = para(doc, `Manual prepared in accordance with Section 51 of the Promotion of Access to Information Act No. 2 of 2000 (\u201CPAIA\u201D) as amended.`, y, m, cw);
+
+  // 1. Contact Details
+  y = pg.bp(y);
+  y = heading(doc, 'Contact Details of the Information Officer', y, m, 1);
+  for (const [label, value] of [
+    ['Registered Name', COMPANY.name],
+    ['Registration Number', COMPANY.reg],
+    ['Information Officer', COMPANY.director],
+    ['Postal Address', COMPANY.address],
+    ['Email', COMPANY.email],
+    ['Telephone', COMPANY.phone],
+    ['Website', COMPANY.website],
+  ]) {
+    y = pg.bp(y, 6);
+    y = para(doc, `${label}: ${value}`, y, m, cw, { bold: true, size: 8 });
+  }
+
+  // 2. Guide on PAIA
+  y = pg.bp(y);
+  y = heading(doc, 'Guide on How to Use PAIA', y, m, 2);
+  y = para(doc, 'The South African Human Rights Commission (SAHRC) has compiled a Guide on how to use PAIA. This Guide is available from the SAHRC and may be obtained from:', y, m, cw);
+  y = bullet(doc, 'Website: www.sahrc.org.za', y, m, cw);
+  y = bullet(doc, 'Postal Address: SAHRC, Private Bag 2700, Houghton, 2041', y, m, cw);
+  y = bullet(doc, 'Telephone: +27 11 877 3600', y, m, cw);
+
+  // 3. Applicable Legislation
+  y = pg.bp(y);
+  y = heading(doc, 'Applicable Legislation', y, m, 3);
+  y = para(doc, 'The following legislation applies to ISOGuardian\u2019s operations:', y, m, cw);
+  for (const law of [
+    'Protection of Personal Information Act 4 of 2013 (POPIA)',
+    'Promotion of Access to Information Act 2 of 2000 (PAIA)',
+    'Electronic Communications and Transactions Act 25 of 2002 (ECTA)',
+    'Consumer Protection Act 68 of 2008 (CPA)',
+    'Companies Act 71 of 2008',
+    'Income Tax Act 58 of 1962',
+    'Value-Added Tax Act 89 of 1991',
+    'Basic Conditions of Employment Act 75 of 1997',
+  ]) {
+    y = pg.bp(y, 6);
+    y = bullet(doc, law, y, m, cw);
+  }
+
+  // 4. Description of Business
+  y = pg.bp(y);
+  y = heading(doc, 'Description of the Business', y, m, 4);
+  y = para(doc, 'ISOGuardian (Pty) Ltd is a South African technology company providing a cloud-based ISO compliance management platform. The platform assists businesses in managing compliance with ISO 9001:2015 (Quality Management), ISO 14001:2015 (Environmental Management), and ISO 45001:2018 (Occupational Health & Safety).', y, m, cw);
+  y = para(doc, 'Services include:', y, m, cw);
+  for (const svc of [
+    'Document management with automated numbering and activity trail',
+    'Non-Conformance Report (NCR) lifecycle management',
+    'Audit scheduling and management per ISO 19011:2018',
+    'Management review documentation per ISO 9001:9.3',
+    'Clause-by-clause compliance scoring and reporting',
+    'Branded PDF document exports',
+    'Data export for POPIA right of access',
+  ]) {
+    y = pg.bp(y, 6);
+    y = bullet(doc, svc, y, m, cw);
+  }
+
+  // 5. Records available without request
+  y = pg.bp(y);
+  y = heading(doc, 'Records Available Without a Request', y, m, 5);
+  y = para(doc, 'The following records are publicly available on our website (www.isoguardian.co.za):', y, m, cw);
+  for (const rec of [
+    'Terms of Service (v1.1)',
+    'POPIA Privacy Policy (v1.1)',
+    'Company Profile',
+    'This PAIA Manual (v1.1)',
+  ]) {
+    y = pg.bp(y, 6);
+    y = bullet(doc, rec, y, m, cw);
+  }
+
+  // 6. Records held
+  y = pg.bp(y);
+  y = heading(doc, 'Categories of Records Held', y, m, 6);
+  y = para(doc, 'The following categories of records are held by ISOGuardian:', y, m, cw);
+
+  y = pg.bp(y, 10);
+  y = para(doc, 'Company Records', y, m, cw, { bold: true, color: ACCENT });
+  y = para(doc, 'Registration documents, memorandum of incorporation, director records, financial statements, tax records, VAT records.', y, m, cw, { indent: 4 });
+
+  y = pg.bp(y, 10);
+  y = para(doc, 'Human Resources Records', y, m, cw, { bold: true, color: ACCENT });
+  y = para(doc, 'Employment contracts, salary records, disciplinary records, leave records, PAYE documentation.', y, m, cw, { indent: 4 });
+
+  y = pg.bp(y, 10);
+  y = para(doc, 'Client Records', y, m, cw, { bold: true, color: ACCENT });
+  y = para(doc, 'Client agreements and SLAs, subscription records, payment records, correspondence, compliance data (documents, NCRs, audits, management reviews), activity trail logs.', y, m, cw, { indent: 4 });
+
+  y = pg.bp(y, 10);
+  y = para(doc, 'Technical Records', y, m, cw, { bold: true, color: ACCENT });
+  y = para(doc, 'System architecture documentation, security policies, incident response plans, backup and disaster recovery records, third-party agreements (Supabase, Vercel, Cloudflare, Resend).', y, m, cw, { indent: 4 });
+
+  // 7. Request procedure
+  y = pg.bp(y);
+  y = heading(doc, 'Request Procedure', y, m, 7);
+  y = para(doc, 'Requests for access to records must be made on the prescribed form (Form C) to the Information Officer at the contact details in Section 1. The request must:', y, m, cw);
+  y = bullet(doc, 'Identify the right exercised or to be protected and the record(s) required', y, m, cw);
+  y = bullet(doc, 'Provide sufficient detail to enable identification of the record(s)', y, m, cw);
+  y = bullet(doc, 'Specify the form of access required (e.g., copy, inspection)', y, m, cw);
+  y = bullet(doc, 'Include proof of identity', y, m, cw);
+
+  y = pg.bp(y);
+  y = para(doc, 'A prescribed fee is payable with the request, as gazetted by the Minister from time to time. The Information Officer will respond within 30 days of receipt of the request.', y, m, cw);
+
+  // 8. Grounds for refusal
+  y = pg.bp(y);
+  y = heading(doc, 'Grounds for Refusal', y, m, 8);
+  y = para(doc, 'Access to records may be refused on the following grounds, in accordance with PAIA Chapter 4:', y, m, cw);
+  for (const ground of [
+    'Mandatory protection of the privacy of a third party (Section 63)',
+    'Mandatory protection of commercial information of a third party (Section 64)',
+    'Mandatory protection of confidential information of a third party (Section 65)',
+    'Mandatory protection of safety of individuals and property (Section 66)',
+    'Mandatory protection of records privileged from production in legal proceedings (Section 67)',
+    'Commercial information of the private body (Section 68)',
+    'Protection of research information (Section 69)',
+  ]) {
+    y = pg.bp(y, 6);
+    y = bullet(doc, ground, y, m, cw);
+  }
+
+  // 9. Remedies
+  y = pg.bp(y);
+  y = heading(doc, 'Remedies Available on Refusal', y, m, 9);
+  y = para(doc, 'If a requester is dissatisfied with the Information Officer\u2019s decision, they may within 180 days lodge a complaint with the Information Regulator or apply to a court for appropriate relief.', y, m, cw);
+  y = para(doc, 'Information Regulator contact:', y, m, cw, { bold: true });
+  y = bullet(doc, 'Website: www.justice.gov.za/inforeg/', y, m, cw);
+  y = bullet(doc, 'Email: inforeg@justice.gov.za', y, m, cw);
+
+  // 10. POPIA processing
+  y = pg.bp(y);
+  y = heading(doc, 'Processing of Personal Information (POPIA)', y, m, 10);
+  y = para(doc, 'ISOGuardian processes personal information in accordance with POPIA. Full details of our data protection practices, including purpose of processing, categories of data subjects, security measures, and data subject rights, are contained in our POPIA Privacy Policy (IG-LEGAL-POPIA v1.1), available at www.isoguardian.co.za/popia.', y, m, cw);
+
+  // Contact
+  y = pg.bp(y, 22);
+  y = divider(doc, y, m, cw);
+  y = heading(doc, 'Contact Information Officer', y, m);
+  y = para(doc, `Information Officer: ${COMPANY.director}`, y, m, cw, { bold: true });
+  y = para(doc, `Email: ${COMPANY.email}  |  Phone: ${COMPANY.phone}`, y, m, cw);
+  y += 3;
+  y = para(doc, `Last Updated: March 2026  |  Information Regulator Registration: Pending  |  ${COMPANY.name}  |  Reg: ${COMPANY.reg}`, y, m, cw, { size: 6, color: SLATE });
+
+  pg.finalize();
+  return doc;
+}
+
+// ============================================================
+// DOCUMENT 6: Data Processing Agreement v1.0 (PRIVATE)
+// ============================================================
+function generateDPA() {
+  const { doc, pw, ph, m, cw } = createDoc();
+  const pg = makePageManager(doc, pw, ph, m, 'Data Processing Agreement', 'Version 1.0');
+
+  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-DPA', 'v1.0', 'March 2026', 'March 2026');
+  y = addTitle(doc, 'Data Processing Agreement', y, m);
+  y = para(doc, 'This Data Processing Agreement (\u201CDPA\u201D) forms part of the Client Subscription & Service Level Agreement between ISOGuardian and the Client.', y, m, cw);
+
+  // 1. Parties
+  y = pg.bp(y);
+  y = heading(doc, 'Parties & Definitions', y, m, 1);
+  y = para(doc, `Operator: ${COMPANY.name} (Registration: ${COMPANY.reg}), represented by ${COMPANY.director} (Director), hereinafter \u201CISOGuardian\u201D or \u201Cthe Operator\u201D.`, y, m, cw);
+  y = para(doc, 'Responsible Party: The Client as specified in the signed Client Subscription Agreement, hereinafter \u201Cthe Client\u201D or \u201Cthe Responsible Party\u201D.', y, m, cw);
+  y = para(doc, 'Under the Protection of Personal Information Act 4 of 2013 (POPIA), the Client is the Responsible Party and ISOGuardian is the Operator, processing personal information on behalf of the Client.', y, m, cw);
+
+  // 2. Scope
+  y = pg.bp(y);
+  y = heading(doc, 'Scope of Processing', y, m, 2);
+  y = para(doc, 'ISOGuardian processes personal information solely for the purpose of providing the ISO compliance management platform. The categories of personal information processed include:', y, m, cw);
+  for (const cat of [
+    'User account data: names, email addresses, company affiliation, roles',
+    'Compliance documentation: documents uploaded by the Client which may contain personal information of the Client\u2019s employees, contractors, or stakeholders',
+    'Audit records: audit findings, non-conformance reports, corrective actions which may reference individuals',
+    'Activity trail: user actions within the platform (login times, actions performed)',
+  ]) {
+    y = pg.bp(y, 6);
+    y = bullet(doc, cat, y, m, cw);
+  }
+  y = para(doc, 'Data subjects include the Client\u2019s employees, contractors, auditors, and any individuals whose personal information is contained within documents uploaded to the platform.', y, m, cw, { size: 7.5, color: SLATE });
+
+  // 3. Operator Obligations
+  y = pg.bp(y);
+  y = heading(doc, 'Operator Obligations', y, m, 3);
+  y = para(doc, 'ISOGuardian, as Operator, undertakes to:', y, m, cw);
+  for (const obl of [
+    'Process personal information only on the documented instructions of the Client and only for the purposes of providing the Service',
+    'Ensure that persons authorised to process personal information have committed themselves to confidentiality',
+    'Implement appropriate technical and organisational security measures as described in Section 5',
+    'Assist the Client in fulfilling its obligation to respond to requests from data subjects exercising their rights under POPIA',
+    'Assist the Client in ensuring compliance with breach notification obligations (POPIA Section 22)',
+    'Delete or return all personal information to the Client after termination of the Service, subject to the 30-day data retention period',
+    'Make available to the Client all information necessary to demonstrate compliance with this DPA',
+    'Not engage any sub-processor without prior written authorisation from the Client (general authorisation for the sub-processors listed in Section 4 is given)',
+  ]) {
+    y = pg.bp(y, 8);
+    y = bullet(doc, obl, y, m, cw);
+  }
+
+  // 4. Sub-Processors
+  y = pg.bp(y);
+  y = heading(doc, 'Authorised Sub-Processors', y, m, 4);
+  y = para(doc, 'The Client authorises ISOGuardian to engage the following sub-processors for the purposes described:', y, m, cw);
+  for (const [name, loc, purpose] of [
+    ['Supabase Inc.', 'EU (London)', 'Database hosting, authentication, file storage, Row-Level Security enforcement'],
+    ['Vercel Inc.', 'Global CDN', 'Web application hosting and delivery'],
+    ['Cloudflare Inc.', 'Global', 'Turnstile CAPTCHA bot protection on login. No personal data stored.'],
+    ['Resend Inc.', 'USA', 'Transactional email delivery (audit reminders, NCR notifications). Email addresses processed for delivery only.'],
+  ]) {
+    y = pg.bp(y, 12);
+    y = para(doc, name, y, m, cw, { bold: true });
+    y = para(doc, `Location: ${loc}`, y, m, cw, { indent: 4, size: 7.5 });
+    y = para(doc, `Purpose: ${purpose}`, y, m, cw, { indent: 4, size: 7.5 });
+  }
+  y = para(doc, 'ISOGuardian will inform the Client of any intended changes to sub-processors, giving the Client the opportunity to object.', y, m, cw, { size: 7.5, color: SLATE });
+
+  // 5. Security Measures
+  y = pg.bp(y);
+  y = heading(doc, 'Technical & Organisational Security Measures', y, m, 5);
+  y = para(doc, 'ISOGuardian implements the following security measures to protect personal information:', y, m, cw);
+  for (const measure of [
+    'AES-256 encryption at rest and TLS 1.2+ encryption in transit',
+    'Database-enforced Row-Level Security (RLS) ensuring complete multi-tenant data isolation',
+    'Role-based access controls with company-scoped permissions',
+    'Comprehensive immutable audit trail of all platform actions',
+    'Cloudflare Turnstile CAPTCHA and server-side rate limiting to prevent brute force attacks',
+    'Automatic session timeout after 30 minutes of inactivity',
+    'Concurrent session detection (one active session per user account)',
+    'File upload validation (type whitelist and 25MB size limit)',
+    'Security headers: HSTS, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options',
+    'SOC 2 Type II certified infrastructure (Supabase)',
+  ]) {
+    y = pg.bp(y, 6);
+    y = bullet(doc, measure, y, m, cw);
+  }
+
+  // 6. Breach Notification
+  y = pg.bp(y);
+  y = heading(doc, 'Personal Information Breach Notification', y, m, 6);
+  y = para(doc, 'In the event of a breach of security leading to the accidental or unlawful destruction, loss, alteration, unauthorised disclosure of, or access to personal information, ISOGuardian will:', y, m, cw);
+  y = bullet(doc, 'Notify the Client without undue delay and within 72 hours of becoming aware of the breach, in accordance with POPIA Section 22', y, m, cw);
+  y = bullet(doc, 'Provide sufficient information to enable the Client to meet its own notification obligations to the Information Regulator and affected data subjects', y, m, cw);
+  y = bullet(doc, 'Cooperate with the Client and take reasonable steps to assist in the investigation, mitigation, and remediation of the breach', y, m, cw);
+  y = bullet(doc, 'Document the breach including the facts, its effects, and remedial action taken', y, m, cw);
+
+  // 7. Data Retention & Deletion
+  y = pg.bp(y);
+  y = heading(doc, 'Data Retention & Deletion', y, m, 7);
+  y = para(doc, 'During the subscription term, personal information is retained as necessary to provide the Service.', y, m, cw);
+  y = para(doc, 'Upon termination or expiry of the Client Subscription Agreement:', y, m, cw);
+  y = bullet(doc, 'Client data is retained for 30 days to allow for data export', y, m, cw);
+  y = bullet(doc, 'After 30 days, all Client data is permanently and irrecoverably deleted from the platform, including backups', y, m, cw);
+  y = bullet(doc, 'The Client may request earlier deletion by written notice to the Information Officer', y, m, cw);
+  y = para(doc, 'Records required by law (e.g., invoice records, audit trail entries for compliance) may be retained for the legally mandated period.', y, m, cw, { size: 7.5, color: SLATE });
+
+  // 8. Cross-Border Transfers
+  y = pg.bp(y);
+  y = heading(doc, 'Cross-Border Transfer of Personal Information', y, m, 8);
+  y = para(doc, 'Personal information is hosted on Supabase infrastructure in the European Union (London, United Kingdom). The EU has been recognised as providing an adequate level of protection for personal information under POPIA Section 72.', y, m, cw);
+  y = para(doc, 'Where sub-processors are located outside South Africa and the EU (e.g., Resend in the USA), ISOGuardian ensures that:', y, m, cw);
+  y = bullet(doc, 'The sub-processor is subject to binding agreements containing data protection obligations no less protective than this DPA', y, m, cw);
+  y = bullet(doc, 'The transfer is necessary for the performance of the Service (POPIA Section 72(1)(b))', y, m, cw);
+  y = bullet(doc, 'The data subject (where applicable) has consented to the transfer', y, m, cw);
+
+  // 9. Term
+  y = pg.bp(y);
+  y = heading(doc, 'Term & Termination', y, m, 9);
+  y = para(doc, 'This DPA commences on the date the Client Subscription Agreement is executed and remains in force for the duration of that agreement.', y, m, cw);
+  y = para(doc, 'Obligations relating to data deletion, breach notification, and confidentiality survive termination.', y, m, cw);
+
+  // 10. Governing Law
+  y = pg.bp(y);
+  y = heading(doc, 'Governing Law', y, m, 10);
+  y = para(doc, 'This DPA is governed by the laws of the Republic of South Africa. Any dispute arising from this DPA shall be resolved in accordance with the dispute resolution provisions of the Client Subscription Agreement.', y, m, cw);
+
+  // Signature block
+  y = pg.bp(y, 55);
+  y = divider(doc, y, m, cw);
+  y = heading(doc, 'Signatures', y, m);
+  y += 2;
+
+  const colW = cw / 2 - 5;
+
+  // Operator
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...ACCENT);
+  doc.text('Operator (ISOGuardian)', m, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...DARK);
+  doc.text(COMPANY.name, m, y + 5);
+  doc.text('Signature: ___________________________', m, y + 16);
+  doc.text(`Name: ${COMPANY.director}`, m, y + 23);
+  doc.text('Title: Director', m, y + 28);
+  doc.text('Date: ___________________________', m, y + 33);
+
+  // Client
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...ACCENT);
+  doc.text('Responsible Party (Client)', m + colW + 10, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...DARK);
+  doc.text('Company: ___________________________', m + colW + 10, y + 5);
+  doc.text('Signature: ___________________________', m + colW + 10, y + 16);
+  doc.text('Name: ___________________________', m + colW + 10, y + 23);
+  doc.text('Title: ___________________________', m + colW + 10, y + 28);
+  doc.text('Date: ___________________________', m + colW + 10, y + 33);
+
+  pg.finalize();
+  return doc;
+}
+
+// ============================================================
 // MAIN
 // ============================================================
 async function main() {
@@ -924,9 +1277,11 @@ async function main() {
 
   const documents = [
     { name: 'ISOGuardian_Terms_of_Service_v1.1', gen: generateTermsOfService, public: true },
-    { name: 'ISOGuardian_POPIA_Privacy_Policy_v1.0', gen: generatePOPIA, public: true },
+    { name: 'ISOGuardian_POPIA_Privacy_Policy_v1.1', gen: generatePOPIA, public: true },
     { name: 'ISOGuardian_Company_Profile_2026', gen: generateCompanyProfile, public: true },
-    { name: 'ISOGuardian_Client_Subscription_SLA_v1.0', gen: generateSLA, public: false },
+    { name: 'ISOGuardian_PAIA_Manual_v1.1', gen: generatePAIA, public: true },
+    { name: 'ISOGuardian_Client_Subscription_SLA_v1.1', gen: generateSLA, public: false },
+    { name: 'ISOGuardian_Data_Processing_Agreement_v1.0', gen: generateDPA, public: false },
   ];
 
   for (const { name, gen, public: isPublic } of documents) {
