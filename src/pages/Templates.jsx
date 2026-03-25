@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import Layout from '../components/Layout'
-import { TEMPLATES, TEMPLATE_CATEGORIES } from '../lib/templateData'
+import { TEMPLATES, TEMPLATE_CATEGORIES, CROSS_REFERENCES } from '../lib/templateData'
 import { generateTemplatePDF } from '../lib/templatePDFExport'
 import { fetchLiveData } from '../lib/liveDataFetcher'
 import { supabase } from '../lib/supabase'
@@ -446,6 +446,22 @@ const Templates = () => {
                     </div>
                   )}
 
+                  {/* Cross-references on card */}
+                  {(() => {
+                    const crossRefs = CROSS_REFERENCES[template.id]
+                    if (!crossRefs) return null
+                    const total = crossRefs.references.length + crossRefs.referencedBy.length
+                    if (total === 0) return null
+                    return (
+                      <div className="flex items-center gap-1.5 text-xs text-white/30 mb-3">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        {total} cross-reference{total !== 1 ? 's' : ''} to other documents
+                      </div>
+                    )
+                  })()}
+
                   {/* Bundle contents */}
                   {isBundle && template.bundleTemplateIds && (
                     <div className="mb-4 p-3 bg-white/5 rounded-xl">
@@ -610,6 +626,54 @@ const Templates = () => {
                   </div>
                 </div>
               )}
+
+              {/* Cross-references */}
+              {(() => {
+                const crossRefs = CROSS_REFERENCES[previewTemplate.id]
+                if (!crossRefs) return null
+                const hasRefs = crossRefs.references.length > 0 || crossRefs.referencedBy.length > 0
+                if (!hasRefs) return null
+                return (
+                  <div className="p-4 bg-white/5 rounded-xl space-y-3">
+                    <p className="text-white/60 font-medium text-sm flex items-center gap-2">
+                      <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                      Cross-References
+                    </p>
+                    {crossRefs.references.length > 0 && (
+                      <div>
+                        <p className="text-xs text-white/30 mb-1.5">References:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {crossRefs.references.map(ref => {
+                            const t = TEMPLATES.find(x => x.id === ref)
+                            return (
+                              <span key={ref} className="text-xs px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-cyan-300/70">
+                                {t?.title || ref}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {crossRefs.referencedBy.length > 0 && (
+                      <div>
+                        <p className="text-xs text-white/30 mb-1.5">Referenced by:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {crossRefs.referencedBy.map(ref => {
+                            const t = TEMPLATES.find(x => x.id === ref)
+                            return (
+                              <span key={ref} className="text-xs px-2.5 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-purple-300/70">
+                                {t?.title || ref}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* Content protection notice */}
               <div className="flex items-center gap-3 p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl">
