@@ -14,5 +14,12 @@ export default defineConfig({
         drop_debugger: true
       }
     }
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.js',
+    css: false,
+    include: ['src/**/*.test.{js,jsx}'],
   }
 })

@@ -768,8 +768,8 @@ export default function LandingPage() {
 
       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
 
-      {/* ─── K. TEMPLATE MARKETPLACE (hidden while being polished) ──── */}
-      {/* <TemplateMarketplace /> */}
+      {/* ─── K. TEMPLATE MARKETPLACE ──── */}
+      <TemplateMarketplace />
 
       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mx-8" />
 
