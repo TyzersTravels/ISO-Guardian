@@ -7,7 +7,7 @@ const TermsOfService = () => {
         <div className="glass glass-border rounded-2xl p-6">
           <h1 className="text-3xl font-bold text-white mb-4">Terms of Service</h1>
           <p className="text-cyan-200">ISOGuardian (Pty) Ltd | Registration: 2026/082362/07</p>
-          <p className="text-white/50 text-sm mt-2">Effective Date: January 2026 | Last Updated: February 2026 | Version 1.1</p>
+          <p className="text-white/50 text-sm mt-2">Effective Date: January 2026 | Last Updated: March 2026 | Version 1.2</p>
         </div>
 
         <div className="glass glass-border rounded-2xl p-6">
@@ -31,6 +31,7 @@ const TermsOfService = () => {
               <li>Compliance scoring and reporting across all supported standards, organised by clause</li>
               <li>Activity Trail &mdash; comprehensive audit logging for ISO 7.5.3 traceability</li>
               <li>Branded PDF document exports with company branding and signature blocks</li>
+              <li>Template Marketplace &mdash; professional ISO documentation templates available for one-time purchase or free with subscription (see Clause 8A)</li>
             </ul>
           </div>
         </div>
@@ -103,6 +104,20 @@ const TermsOfService = () => {
             <p><strong>Payment:</strong> Due in advance on the 1st of each month via EFT. Late payment beyond 7 days may restrict access; beyond 14 days, suspension.</p>
             <p><strong>Price Changes:</strong> Once per annum with 30 days&rsquo; notice. Increases capped at 10% or CPI + 2%, whichever is greater.</p>
             <p><strong>Fixed-Term:</strong> Where a 12-month agreement applies, early cancellation is subject to early termination provisions in your Subscription Agreement.</p>
+          </div>
+        </div>
+
+        <div className="glass glass-border rounded-2xl p-6 bg-purple-500/10">
+          <h2 className="text-xl font-bold text-white mb-4">8A. Template Marketplace &amp; One-Time Purchases</h2>
+          <div className="text-white/80 text-sm space-y-2">
+            <p><strong>Scope:</strong> ISOGuardian offers professional ISO documentation templates for one-time purchase via the Template Marketplace. These terms apply to all template purchases, whether by subscribers or non-subscribers.</p>
+            <p><strong>Payment:</strong> Template purchases are processed securely via PayFast (Pty) Ltd, a licensed South African payment service provider. All prices are in ZAR and inclusive of VAT where applicable. Payment must be completed before delivery.</p>
+            <p><strong>Delivery:</strong> Upon successful payment, a download link is sent to the email address provided. Download links are valid for 48 hours. If you do not receive your link, contact support@isoguardian.co.za for redelivery.</p>
+            <p><strong>Digital Goods &mdash; No Refunds:</strong> Templates are digital products delivered electronically. Per CPA Section 44(1), once the download link has been delivered, no refund is available. By completing your purchase, you acknowledge and accept this. If you experience a technical issue preventing download, contact us within 48 hours and we will provide a replacement link.</p>
+            <p><strong>Licence Grant:</strong> Each purchase grants a <strong>single-company, non-exclusive, non-transferable, perpetual licence</strong> to use the template within the purchasing company only. You may not resell, redistribute, sublicence, publish, or share the template with third parties. You may modify the template for internal use within your company.</p>
+            <p><strong>Intellectual Property:</strong> All template content, structure, formatting, and design remain the intellectual property of ISOGuardian (Pty) Ltd. Purchase grants a licence to use, not ownership of the underlying IP.</p>
+            <p><strong>Non-Subscriber Data:</strong> If you purchase a template without an ISOGuardian account, we collect your name and email address solely for payment processing and delivery. This data is retained for 90 days for support purposes, then permanently deleted unless you create an account. See our <a href="/popia" className="text-cyan-400 underline">POPIA Policy</a> for details.</p>
+            <p><strong>Disclaimer:</strong> Templates are professional guidance documents based on ISO standards. They do not guarantee ISO certification or audit success. You remain responsible for adapting templates to your company&rsquo;s specific context and processes.</p>
           </div>
         </div>
 
@@ -193,7 +208,7 @@ const TermsOfService = () => {
         <div className="glass glass-border rounded-2xl p-6">
           <p className="text-white/60 text-xs">
             ISOGuardian (Pty) Ltd | Registration: 2026/082362/07 | VAT: Pending<br />
-            Version 1.1 | Last Updated: 20 February 2026
+            Version 1.2 | Last Updated: 25 March 2026
           </p>
         </div>
       </div>

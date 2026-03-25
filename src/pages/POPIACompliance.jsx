@@ -18,6 +18,12 @@ const POPIACompliance = () => {
             <p><strong>Account Information:</strong> Name, email, company name, role</p>
             <p><strong>Compliance Data:</strong> Documents, NCRs, audit records, compliance scores</p>
             <p><strong>Usage Data:</strong> Login times, feature usage (for service improvement)</p>
+            <p className="mt-3 font-semibold text-white">Non-Subscriber Data (Template Marketplace &amp; Lead Capture)</p>
+            <p><strong>Template Purchases:</strong> If you purchase a template without an ISOGuardian account, we collect your name and email address for payment processing and delivery only.</p>
+            <p><strong>ISO Readiness Assessment:</strong> If you complete the free assessment on our website, we collect your name, email, company name, and assessment responses.</p>
+            <p><strong>Consultation Requests:</strong> Name, email, company name, and enquiry details.</p>
+            <p><strong>Purpose:</strong> To fulfil your request, deliver purchased products, and provide relevant follow-up information about ISOGuardian services. We will not send unsolicited marketing without your explicit consent.</p>
+            <p><strong>Lawful Basis:</strong> Contract fulfilment (POPIA Section 11(1)(b)) for purchases; legitimate interest (POPIA Section 11(1)(f)) for lead capture with opt-out available.</p>
           </div>
         </div>
 
@@ -92,6 +98,8 @@ const POPIACompliance = () => {
             <p>• <strong>Active accounts:</strong> Duration of subscription + 30 days</p>
             <p>• <strong>Compliance records:</strong> As required by ISO standards (typically 3 years)</p>
             <p>• <strong>After account closure:</strong> 30 days grace period, then permanent deletion</p>
+            <p>• <strong>Non-subscriber purchases:</strong> Name and email retained for 90 days post-delivery for support, then permanently deleted</p>
+            <p>• <strong>Lead capture data:</strong> Assessment and consultation data retained for 12 months, then permanently deleted unless you create an account</p>
           </div>
         </div>
 
@@ -113,10 +121,23 @@ const POPIACompliance = () => {
             <p><strong>Vercel (Hosting):</strong> Global CDN, ISO 27001 certified. Serves the web application.</p>
             <p><strong>Cloudflare (Security):</strong> Turnstile CAPTCHA for bot protection on login. No personal data stored.</p>
             <p><strong>Resend (Email Delivery):</strong> Transactional email notifications (audit reminders, NCR alerts). Email address processed for delivery only.</p>
+            <p><strong>PayFast (Payment Processing):</strong> Secure payment processing for subscriptions and template purchases. PayFast is a licensed South African payment service provider. We do not store card details &mdash; all payment data is handled directly by PayFast under their PCI DSS compliance.</p>
+            <p><strong>Anthropic (AI Processing):</strong> AI-powered compliance analysis (when enabled by subscriber). Data is processed in-session only and not retained by Anthropic for training purposes.</p>
             <p><strong>Google Analytics (Analytics):</strong> Anonymous page view and conversion tracking. Only active with your analytics consent.</p>
+            <p><strong>Sentry (Error Monitoring):</strong> Application error tracking to improve platform stability. Only active with your analytics consent. No personal data is intentionally collected.</p>
             <p className="mt-3 text-white/60">
               We do not sell, rent, or share your data with third parties for marketing purposes.
             </p>
+          </div>
+        </div>
+
+        <div className="glass glass-border rounded-2xl p-6">
+          <h2 className="text-xl font-bold text-white mb-4">Data Breach Notification</h2>
+          <div className="text-white/80 text-sm space-y-2">
+            <p>In the event of a data breach that may affect your personal information, we will:</p>
+            <p>• Notify the <strong>Information Regulator</strong> within <strong>72 hours</strong> per POPIA Section 22</p>
+            <p>• Notify affected data subjects as soon as reasonably possible</p>
+            <p>• Provide details of the breach, its likely consequences, and remedial measures taken</p>
           </div>
         </div>
 
@@ -131,7 +152,7 @@ const POPIACompliance = () => {
 
         <div className="glass glass-border rounded-2xl p-6">
           <p className="text-white/60 text-xs">
-            Last Updated: March 2026<br />
+            Last Updated: 25 March 2026<br />
             Information Regulator Registration: Pending<br />
             Company Registration: 2026/082362/07
           </p>
