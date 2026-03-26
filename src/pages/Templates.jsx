@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import Layout from '../components/Layout'
-import { TEMPLATES, TEMPLATE_CATEGORIES, CROSS_REFERENCES } from '../lib/templateData'
+import { TEMPLATES, TEMPLATE_CATEGORIES, CROSS_REFERENCES, TRIAL_DOWNLOAD_LIMIT } from '../lib/templateData'
 import { generateTemplatePDF } from '../lib/templatePDFExport'
 import { fetchLiveData } from '../lib/liveDataFetcher'
 import { supabase } from '../lib/supabase'
@@ -87,9 +87,9 @@ const Templates = () => {
     })
   }, [activeCategory, standardFilter, searchTerm])
 
-  // Verify active subscription before allowing download
+  // Verify subscription and return status: 'active' | 'trial' | false
   const verifySubscription = async () => {
-    if (userProfile?.role === 'super_admin') return true
+    if (userProfile?.role === 'super_admin') return 'active'
     const companyId = userProfile?.company_id || userProfile?.company?.id
     if (!companyId) return false
 
@@ -100,9 +100,34 @@ const Templates = () => {
       .maybeSingle()
 
     if (!sub) return false
-    if (sub.status === 'active') return true
-    if (sub.status === 'trial' && new Date(sub.trial_ends_at) > new Date()) return true
+    if (sub.status === 'active') return 'active'
+    if (sub.status === 'trial' && new Date(sub.trial_ends_at) > new Date()) return 'trial'
     return false
+  }
+
+  // Count how many templates this trial user has already downloaded
+  const getTrialDownloadCount = async () => {
+    const companyId = userProfile?.company_id || userProfile?.company?.id
+    if (!companyId) return 0
+    const { count } = await supabase
+      .from('template_purchases')
+      .select('id', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+    return count || 0
+  }
+
+  // Check if a template can be downloaded by a trial user
+  const checkTrialAccess = async (template) => {
+    if (!template.trialAccess) {
+      toast.error('This template requires a paid subscription. Subscribe to unlock all templates.')
+      return false
+    }
+    const downloadCount = await getTrialDownloadCount()
+    if (downloadCount >= TRIAL_DOWNLOAD_LIMIT) {
+      toast.error(`Trial accounts are limited to ${TRIAL_DOWNLOAD_LIMIT} template downloads. Subscribe to unlock all templates.`)
+      return false
+    }
+    return true
   }
 
   // Log template download for audit trail
@@ -153,10 +178,14 @@ const Templates = () => {
 
     setGenerating(template.id)
     try {
-      const hasAccess = await verifySubscription()
-      if (!hasAccess) {
+      const subStatus = await verifySubscription()
+      if (!subStatus) {
         toast.error('An active subscription is required to download templates.')
         return
+      }
+      if (subStatus === 'trial') {
+        const canDownload = await checkTrialAccess(template)
+        if (!canDownload) return
       }
 
       const content = await loadTemplateContent(template.id)
@@ -201,10 +230,14 @@ const Templates = () => {
     setGenerating(template.id)
     try {
       // 1. Verify subscription
-      const hasAccess = await verifySubscription()
-      if (!hasAccess) {
+      const subStatus = await verifySubscription()
+      if (!subStatus) {
         toast.error('An active subscription is required to download templates.')
         return
+      }
+      if (subStatus === 'trial') {
+        const canDownload = await checkTrialAccess(template)
+        if (!canDownload) return
       }
 
       // 2. Dynamically load content (separate JS chunk — not in main bundle)
@@ -260,10 +293,14 @@ const Templates = () => {
 
     setGenerating(bundle.id)
     try {
-      // 1. Verify subscription
-      const hasAccess = await verifySubscription()
-      if (!hasAccess) {
+      // 1. Verify subscription — bundles are never trial-accessible
+      const subStatus = await verifySubscription()
+      if (!subStatus) {
         toast.error('An active subscription is required to download templates.')
+        return
+      }
+      if (subStatus === 'trial') {
+        toast.error('Starter packs require a paid subscription. Subscribe to unlock all bundles and templates.')
         return
       }
 
@@ -421,6 +458,17 @@ const Templates = () => {
                     {template.isFeatured && (
                       <span className="text-xs px-2 py-1 bg-cyan-500/20 border border-cyan-500/30 rounded-full text-cyan-300 font-medium">
                         Featured
+                      </span>
+                    )}
+                    {template.trialAccess && (
+                      <span className="text-xs px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-green-300 font-medium">
+                        Trial
+                      </span>
+                    )}
+                    {!template.trialAccess && !isBundle && !template.isFeatured && (
+                      <span className="text-xs px-2 py-1 bg-white/5 border border-white/10 rounded-full text-white/30 font-medium flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                        Subscribers
                       </span>
                     )}
                   </div>

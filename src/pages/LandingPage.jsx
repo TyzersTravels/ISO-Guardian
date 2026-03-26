@@ -654,7 +654,7 @@ export default function LandingPage() {
               { q: 'Which ISO standards are supported?', a: 'ISO 9001:2015 (Quality), ISO 14001:2015 (Environmental), and ISO 45001:2018 (Occupational Health & Safety). ISO 27001:2022 is on our roadmap.' },
               { q: 'Is my data safe?', a: 'Yes. AES-256 encryption at rest, TLS 1.2+ in transit, strict row-level data isolation between companies, POPIA-compliant. You can export or delete your data at any time.' },
               { q: 'Can I manage multiple standards at once?', a: 'Absolutely. Documents, NCRs, and audits can all be tagged to specific standards across all three simultaneously.' },
-              { q: 'What happens after my 14-day free trial?', a: 'Choose a plan. No credit card required to start. If you decide not to continue, export your data before deactivation.' },
+              { q: 'What happens after my 14-day free trial?', a: 'Choose a plan. No credit card required to start. During the trial you can download up to 3 starter templates to explore the platform. Full template access and bundles unlock with a paid subscription.' },
               { q: 'Do you support consultants and resellers?', a: 'Yes. Our Reseller Programme lets consultants manage multiple clients from one dashboard with recurring commissions. See our Reseller Programme page for details.' },
               { q: 'Can I buy individual templates without subscribing?', a: 'Yes. Templates are available for one-time purchase starting at R250. Subscribers get all templates free.' },
             ].map((faq, i) => (

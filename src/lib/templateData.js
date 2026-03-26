@@ -32,6 +32,10 @@
 //   {{REF:internal-audit-proc}}  → IG-SH-SOP-002
 //   etc.
 
+// Trial users can download up to TRIAL_DOWNLOAD_LIMIT templates marked with trialAccess: true
+// Only lower-value forms are trial-eligible — procedures, manuals, registers, and bundles require a paid subscription
+export const TRIAL_DOWNLOAD_LIMIT = 3
+
 export const TEMPLATE_CATEGORIES = [
   { id: 'manuals', name: 'Quality Manuals', slug: 'manuals', icon: 'book', sort_order: 1, description: 'Complete management system manuals for ISO certification' },
   { id: 'procedures', name: 'Procedures', slug: 'procedures', icon: 'clipboard', sort_order: 2, description: 'Standard operating procedures required by ISO standards' },
@@ -569,6 +573,7 @@ export const TEMPLATES = [
     docType: 'form',
     pricePublic: 15000,
     priceSubscriber: 0,
+    trialAccess: true,
     version: '1.0',
     previewSections: 3,
     content: null,
@@ -601,6 +606,7 @@ export const TEMPLATES = [
     docType: 'form',
     pricePublic: 15000,
     priceSubscriber: 0,
+    trialAccess: true,
     version: '1.0',
     previewSections: 2,
     content: null,
@@ -780,6 +786,7 @@ export const TEMPLATES = [
     docType: 'form',
     pricePublic: 15000,
     priceSubscriber: 0,
+    trialAccess: true,
     version: '1.0',
     previewSections: 2,
     content: null,
