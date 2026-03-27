@@ -197,7 +197,7 @@ function SectionEditor({ section, index, onUpdate, onToggleComplete, isActive, o
 
   return (
     <div
-      className={`border rounded-2xl transition-all ${
+      className={`border rounded-2xl transition-all overflow-hidden ${
         isActive
           ? 'border-cyan-500/40 bg-white/[0.04] shadow-lg shadow-cyan-900/10'
           : 'border-white/[0.08] bg-white/[0.02] hover:border-white/15'
@@ -296,7 +296,7 @@ function SectionEditor({ section, index, onUpdate, onToggleComplete, isActive, o
       )}
 
       {/* Editor content */}
-      <div className="px-5 py-4 prose-editor">
+      <div className="px-3 sm:px-5 py-4 prose-editor overflow-x-hidden max-w-full">
         <EditorContent editor={editor} />
       </div>
     </div>
@@ -867,7 +867,7 @@ export default function TemplateEditor() {
       </div>
 
       {/* ─── Main content ─── */}
-      <div className="flex gap-6 mt-4 md:mt-6">
+      <div className="flex gap-6 mt-4 md:mt-6 overflow-hidden">
         {/* Desktop sidebar — hidden on mobile */}
         <aside className="hidden md:block w-64 flex-shrink-0">
           <div className="sticky top-32 space-y-4">
@@ -928,7 +928,7 @@ export default function TemplateEditor() {
         </aside>
 
         {/* Editor area — full width on mobile */}
-        <main className="flex-1 min-w-0 space-y-4 pb-20">
+        <main className="flex-1 min-w-0 max-w-full space-y-4 pb-20 overflow-x-hidden">
           {sections.map((section, i) => (
             <div key={i} id={`section-${i}`}>
               <SectionEditor

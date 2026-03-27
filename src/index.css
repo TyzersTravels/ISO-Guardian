@@ -69,6 +69,16 @@ body {
   color: rgba(255, 255, 255, 0.85);
   font-size: 0.875rem;
   line-height: 1.7;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Allow tables to scroll horizontally on mobile */
+.prose-editor .tiptap .tableWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0.75em -0.5em;
+  padding: 0 0.5em;
 }
 
 .prose-editor .tiptap p {
@@ -149,9 +159,21 @@ body {
 .prose-editor .tiptap table {
   border-collapse: collapse;
   width: 100%;
+  min-width: 400px;
   margin: 0.75em 0;
   border-radius: 8px;
   overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .prose-editor .tiptap table {
+    font-size: 0.7rem;
+    min-width: 320px;
+  }
+  .prose-editor .tiptap th,
+  .prose-editor .tiptap td {
+    padding: 0.35em 0.5em;
+  }
 }
 
 .prose-editor .tiptap th,
