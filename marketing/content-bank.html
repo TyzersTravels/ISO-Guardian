@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISOGuardian — Content Bank (89+ Posts)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  body { font-family: 'Inter', sans-serif; background: #0f172a; color: #cbd5e1; line-height: 1.7; }
+
+  .header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #581c87 100%);
+    padding: 60px 40px; text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .header h1 { font-size: 38px; font-weight: 800; margin-bottom: 8px; }
+  .header h1 .iso { color: #06b6d4; }
+  .header h1 .guardian { color: #a855f7; }
+  .header .sub { color: rgba(255,255,255,0.5); font-size: 16px; }
+  .header .stats { display: flex; gap: 32px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
+  .header .stat-item { text-align: center; }
+  .header .stat-num { font-size: 32px; font-weight: 800; color: #06b6d4; }
+  .header .stat-label { font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+
+  .back-link { display: inline-block; margin: 24px 0 0 24px; color: #06b6d4; text-decoration: none; font-size: 14px; }
+  .back-link:hover { text-decoration: underline; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+
+  /* Platform filter tabs */
+  .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; position: sticky; top: 0; background: #0f172a; padding: 12px 0; z-index: 10; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .filter-btn { padding: 8px 16px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #94a3b8; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .filter-btn:hover, .filter-btn.active { background: rgba(6,182,212,0.15); color: #06b6d4; border-color: rgba(6,182,212,0.3); }
+
+  /* Section headers */
+  .platform-section { margin-bottom: 48px; }
+  .platform-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .platform-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .icon-linkedin { background: rgba(10,102,194,0.2); }
+  .icon-twitter { background: rgba(29,155,240,0.2); }
+  .icon-whatsapp { background: rgba(37,211,102,0.2); }
+  .icon-instagram { background: rgba(225,48,108,0.2); }
+  .icon-facebook { background: rgba(24,119,242,0.2); }
+  .platform-name { font-size: 22px; font-weight: 800; color: #fff; }
+  .platform-count { font-size: 13px; color: rgba(255,255,255,0.4); }
+
+  /* Category label */
+  .category { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin: 32px 0 16px; }
+  .cat-edu { color: #06b6d4; }
+  .cat-pain { color: #f59e0b; }
+  .cat-prod { color: #8b5cf6; }
+  .cat-found { color: #22c55e; }
+  .cat-broadcast { color: #06b6d4; }
+  .cat-auto { color: #a855f7; }
+
+  /* Post cards */
+  .post-card {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 24px; margin-bottom: 16px; position: relative;
+    transition: border-color 0.2s;
+  }
+  .post-card:hover { border-color: rgba(6,182,212,0.2); }
+  .post-id { font-size: 11px; font-weight: 700; color: #06b6d4; letter-spacing: 1px; margin-bottom: 8px; }
+  .post-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+  .post-body { font-size: 14px; color: #94a3b8; white-space: pre-line; }
+  .post-body strong { color: #e2e8f0; }
+  .post-hashtags { margin-top: 12px; font-size: 12px; color: #06b6d4; }
+
+  /* Copy button */
+  .copy-btn {
+    position: absolute; top: 16px; right: 16px;
+    background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.2);
+    color: #06b6d4; padding: 6px 12px; border-radius: 8px; font-size: 11px;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .copy-btn:hover { background: rgba(6,182,212,0.25); }
+  .copy-btn.copied { background: rgba(34,197,94,0.15); color: #22c55e; border-color: rgba(34,197,94,0.3); }
+
+  /* Tweet cards (shorter) */
+  .tweet-card {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 20px; margin-bottom: 12px; position: relative;
+    transition: border-color 0.2s;
+  }
+  .tweet-card:hover { border-color: rgba(29,155,240,0.3); }
+  .tweet-card .post-id { color: #1d9bf0; }
+  .tweet-card .post-body { font-size: 15px; color: #e2e8f0; }
+
+  .footer {
+    text-align: center; padding: 40px; color: rgba(255,255,255,0.2);
+    font-size: 13px; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 60px;
+  }
+
+  @media (max-width: 640px) {
+    .header { padding: 40px 20px; }
+    .header h1 { font-size: 28px; }
+    .header .stats { gap: 20px; }
+    .header .stat-num { font-size: 24px; }
+    .container { padding: 24px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-link" href="index.html">&larr; Back to Marketing Hub</a>
+
+<div class="header">
+  <h1><span class="iso">ISO</span><span class="guardian">Guardian</span></h1>
+  <p class="sub">Content Bank — Ready-to-Post Content</p>
+  <div class="stats">
+    <div class="stat-item"><div class="stat-num">30</div><div class="stat-label">LinkedIn</div></div>
+    <div class="stat-item"><div class="stat-num">20</div><div class="stat-label">X / Twitter</div></div>
+    <div class="stat-item"><div class="stat-num">15</div><div class="stat-label">WhatsApp</div></div>
+    <div class="stat-item"><div class="stat-num">10</div><div class="stat-label">Instagram</div></div>
+    <div class="stat-item"><div class="stat-num">10</div><div class="stat-label">Facebook</div></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="showAll()">All (85+)</button>
+    <button class="filter-btn" onclick="filterPlatform('linkedin')">LinkedIn</button>
+    <button class="filter-btn" onclick="filterPlatform('twitter')">X / Twitter</button>
+    <button class="filter-btn" onclick="filterPlatform('whatsapp')">WhatsApp</button>
+    <button class="filter-btn" onclick="filterPlatform('instagram')">Instagram</button>
+    <button class="filter-btn" onclick="filterPlatform('facebook')">Facebook</button>
+  </div>
+
+  <!-- ========== LINKEDIN ========== -->
+  <div class="platform-section" data-platform="linkedin">
+    <div class="platform-header">
+      <div class="platform-icon icon-linkedin">in</div>
+      <div>
+        <div class="platform-name">LinkedIn Posts</div>
+        <div class="platform-count">30 posts — Educational, Pain Point, Product, Founder</div>
+      </div>
+    </div>
+
+    <div class="category cat-edu">Educational Posts (12)</div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-EDU-01</div>
+      <div class="post-title">ISO 9001 in Plain English</div>
+      <div class="post-body">Most people think ISO 9001 is about paperwork. It's not.
+
+It's about having a system that ensures your product or service is consistently good. Every time. For every customer.
+
+In practical terms for SA businesses, ISO 9001 means:
+- You document HOW you do things (so it doesn't live in one person's head)
+- You track WHEN things go wrong (NCRs) and fix the root cause
+- You review your performance regularly (management reviews)
+- You can PROVE all of the above to an auditor
+
+That's it. No mystery. No corporate jargon.
+
+If your business delivers a product or service to customers, ISO 9001 makes you better at it — and gives you proof.
+
+Questions about getting started? Drop them below.</div>
+      <div class="post-hashtags">#ISO9001 #QualityManagement #SouthAfricanBusiness #Compliance</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-EDU-02</div>
+      <div class="post-title">The 3 ISO Standards Every SA Business Should Know</div>
+      <div class="post-body">If you're in manufacturing, construction, or services in South Africa, three ISO standards will come up again and again:
+
+<strong>ISO 9001</strong> — Quality Management
+"Do you deliver consistent quality?"
+
+<strong>ISO 14001</strong> — Environmental Management
+"Do you manage your environmental impact?"
+
+<strong>ISO 45001</strong> — Occupational Health &amp; Safety
+"Are your workers safe?"
+
+Many government tenders now require at least one of these. Some require all three (an Integrated Management System).
+
+The good news: the structure is almost identical across all three. If you've implemented one, adding the others is 60% less work.
+
+Which standards does your business need? Take our free ISO Readiness Assessment to find out → isoguardian.co.za</div>
+      <div class="post-hashtags">#ISO9001 #ISO14001 #ISO45001 #SHEQ #SouthAfrica</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-EDU-03</div>
+      <div class="post-title">What Actually Happens During an ISO Audit</div>
+      <div class="post-body">First-time audit? Here's what to expect (no surprises):
+
+<strong>Stage 1 — Document Review (1-2 days)</strong>
+The auditor reviews your quality manual, procedures, and records. They're checking: "Does this system exist on paper?"
+
+<strong>Stage 2 — Implementation Audit (2-5 days)</strong>
+The auditor walks your floor, interviews staff, checks records. They're asking: "Do people actually follow the system?"
+
+What they're NOT doing:
+- Trying to catch you out
+- Looking for perfection
+- Expecting zero non-conformances
+
+What they ARE doing:
+- Verifying your system works
+- Identifying improvement opportunities
+- Checking you fix problems when they arise
+
+The secret? Auditors WANT you to pass. They're checking for a functioning system, not a flawless one.
+
+Preparing for your first audit? Our free assessment shows you where you stand → isoguardian.co.za</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-EDU-04</div>
+      <div class="post-title">Document Control — The Foundation of ISO Compliance</div>
+      <div class="post-body">If I could give one piece of advice to SA businesses starting their ISO journey:
+
+<strong>Get your document control right first.</strong>
+
+Everything else — NCRs, audits, management reviews — depends on having controlled documents.
+
+What "controlled" means:
+- Every document has a unique number
+- Every document has a version and approval date
+- Only ONE current version exists (old versions are archived)
+- Everyone knows where to find the latest version
+- Changes are tracked and approved
+
+If your team is emailing documents with "v2_final_UPDATED.docx" — you don't have document control. You have document chaos.
+
+This is the single most common non-conformance in ISO audits. And the easiest to fix.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-EDU-05</div>
+      <div class="post-title">Root Cause Analysis — Stop Fixing Symptoms</div>
+      <div class="post-body">Your machine broke down. You fixed it. It broke down again.
+Your customer complained. You apologised. They complained again.
+
+This is what happens when you fix symptoms instead of root causes.
+
+ISO requires corrective action — which means finding WHY something went wrong, not just fixing WHAT went wrong.
+
+<strong>Simple technique: The 5 Whys</strong>
+1. Why did the product fail? → The seal was worn
+2. Why was the seal worn? → It wasn't replaced on schedule
+3. Why wasn't it replaced? → No preventive maintenance schedule exists
+4. Why no schedule? → No one was assigned responsibility
+5. Why no assignment? → We have no equipment management system
+
+Root cause: Missing equipment management system.
+Fix: Implement PM schedule with assigned owners.
+
+That's the difference between a plaster and a permanent fix.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-EDU-06</div>
+      <div class="post-title">Management Reviews — What ISO Actually Requires</div>
+      <div class="post-body">Clause 9.3 of ISO 9001 requires "management review at planned intervals."
+
+In practice, most companies do this quarterly or biannually.
+
+<strong>What must be covered (minimum):</strong>
+- Status of actions from previous reviews
+- Changes in external/internal issues
+- Customer feedback and complaints
+- Process performance and product conformity
+- Audit results
+- Non-conformance trends
+- Opportunities for improvement
+- Resource adequacy
+
+<strong>What most companies get wrong:</strong>
+- No formal minutes or records
+- The MD doesn't attend
+- Actions aren't assigned or followed up
+- It becomes a tick-box exercise
+
+A good management review is your strategic compass. It's where leadership decisions meet operational reality.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-EDU-07</div>
+      <div class="post-title">ISO Compliance for Government Tenders in SA</div>
+      <div class="post-body">If you're bidding on government contracts in South Africa, here's what you need to know:
+
+The PPPFA and related regulations increasingly require:
+- ISO 9001 for quality-related contracts
+- ISO 45001 for construction and industrial contracts
+- ISO 14001 for environmental impact contracts
+
+Even when not mandatory, ISO certification gives you:
+- Higher B-BBEE scores (some scorecards reward it)
+- Competitive advantage in bid evaluation
+- Risk reduction for the procuring entity
+- Proof of operational maturity
+
+The companies winning R10M+ contracts aren't just cheaper. They're more credible. ISO certification is how you prove credibility.
+
+Your next tender deadline is closer than you think. Are you ready?
+
+Free ISO Readiness Assessment → isoguardian.co.za</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-EDU-08</div>
+      <div class="post-title">The Cost of Non-Compliance</div>
+      <div class="post-body">"ISO is too expensive."
+
+Let's compare:
+
+<strong>ISO compliance with ISOGuardian: R2,000/mo = R24,000/year</strong>
+
+Cost of NOT having ISO:
+- Lost tender (avg government contract): R500,000 - R5,000,000+
+- Customer lost due to quality failure: R50,000 - R500,000
+- Workplace injury (COIDA + downtime): R100,000+
+- Environmental fine (NEMA): R50,000 - R10,000,000
+- Failed audit re-certification: R30,000 - R80,000
+
+R24,000/year to protect against millions in lost revenue and liability.
+
+That's not an expense. That's insurance.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-EDU-09</div>
+      <div class="post-title">POPIA and Quality Management</div>
+      <div class="post-body">POPIA and ISO compliance overlap more than you think.
+
+Both require:
+- Documented procedures for handling information
+- Access controls (who can see what)
+- Audit trails (who did what, when)
+- Data retention policies
+- Incident management (breach notification)
+
+If you're building an ISO 9001 system, you're already halfway to POPIA compliance.
+
+ISOGuardian is POPIA-compliant by design: data isolation per company, full audit trails, data export for right-of-access requests, and all data hosted in compliance with SA regulations.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-EDU-10</div>
+      <div class="post-title">Internal Audits — Your Secret Weapon</div>
+      <div class="post-body">External audits happen once a year. Internal audits should happen all year.
+
+ISO requires "planned intervals" for internal audits. Most successful companies audit each department quarterly.
+
+<strong>Why internal audits matter:</strong>
+- Find problems BEFORE the external auditor does
+- Train your team on what "good" looks like
+- Build a culture of continuous improvement
+- Generate evidence of a functioning system
+
+Internal audit tip: Don't audit your own department. Cross-audit. Quality audits production. Production audits warehouse. Fresh eyes find more.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-EDU-11</div>
+      <div class="post-title">What is a Non-Conformance Report (NCR)?</div>
+      <div class="post-body">An NCR is simply: "Something didn't meet our standard."
+
+<strong>Types:</strong>
+- Minor NCR: The system exists but wasn't followed perfectly
+- Major NCR: The system doesn't exist or has completely broken down
+- Observation: Not a failure, but a risk that could become one
+
+<strong>What to include in a good NCR:</strong>
+1. What happened (description)
+2. Where/when it happened
+3. Which clause/requirement was not met
+4. Root cause (use 5 Whys)
+5. Corrective action (fix the root cause)
+6. Preventive action (stop it recurring)
+7. Evidence of closure
+
+NCRs aren't failures — they're your improvement engine.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-EDU-12</div>
+      <div class="post-title">Integrated Management Systems (IMS)</div>
+      <div class="post-body">Running ISO 9001, 14001, and 45001 as separate systems? You're doing triple the work.
+
+An Integrated Management System combines all three into one:
+- One set of procedures
+- One internal audit programme
+- One management review
+- One document control system
+
+The ISO standards are built on the same framework (Annex SL), so integration is natural.
+
+<strong>Benefits:</strong>
+- 40-60% less documentation
+- One audit instead of three
+- Consistent approach across quality, environment, and safety
+- Lower certification costs
+
+ISOGuardian supports all three standards in one platform. Switch between ISO 9001, 14001, and 45001 with one click.</div>
+    </div>
+
+    <div class="category cat-pain">Pain Point Posts (8)</div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PAIN-01</div>
+      <div class="post-title">The Spreadsheet Problem</div>
+      <div class="post-body">Raise your hand if your ISO compliance looks like this:
+
+- Quality manual: Word document on someone's desktop
+- Document register: Excel spreadsheet (last updated... when?)
+- NCR tracking: Another Excel sheet (with broken formulas)
+- Audit schedule: Outlook calendar reminders
+- Evidence: Scattered across email, WhatsApp, and a filing cabinet
+- Audit prep: 3 weeks of panic and late nights
+
+Now imagine:
+- Everything in one place
+- Automatic version control
+- NCRs tracked from open to close
+- Audit reminders sent automatically
+- Full audit trail for every action
+- Audit-ready in 10 minutes, not 3 weeks
+
+That's ISOGuardian. From R2,000/mo.
+
+Stop surviving audits. Start managing compliance. → isoguardian.co.za</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PAIN-02</div>
+      <div class="post-title">The Audit Panic</div>
+      <div class="post-body">It's 2 weeks before your surveillance audit.
+
+Your quality manager is:
+- Frantically searching emails for the latest procedures
+- Printing documents that should have been controlled
+- Discovering NCRs that were opened 6 months ago and never closed
+- Asking "who approved this?" with no answer
+- Working weekends to "get everything in order"
+
+This happens every year. And every year, you tell yourself "next year will be different."
+
+It will be different — if you change the system.
+
+ISOGuardian makes audit prep a non-event because compliance happens daily, not annually.
+
+14-day free trial → isoguardian.co.za</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PAIN-03</div>
+      <div class="post-title">The Knowledge Gap</div>
+      <div class="post-body">Your quality manager resigns. Takes 10 years of ISO knowledge with them.
+
+Where are the procedures? "In my head."
+What's the NCR close-out process? "I just knew."
+Who approved these documents? "It was verbal."
+
+This is the single biggest risk in SA businesses running ISO on tribal knowledge.
+
+A system captures knowledge. A person hoards it (unintentionally).
+
+ISOGuardian ensures your compliance doesn't walk out the door when someone does.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PAIN-04</div>
+      <div class="post-title">The Cost Shock</div>
+      <div class="post-body">"We need ISO compliance software."
+Gets quote: R12,000/month. 12-month contract. Setup fee: R25,000.
+
+This is why most SA SMEs give up and go back to spreadsheets.
+
+Enterprise software at enterprise prices doesn't work for a 50-person manufacturer in Johannesburg.
+
+We built ISOGuardian for YOU:
+- R2,000/mo (Starter)
+- No setup fee
+- No long-term lock-in beyond 12 months
+- 14-day free trial
+- 10-minute onboarding
+
+ISO compliance shouldn't cost more than your certification itself.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PAIN-05</div>
+      <div class="post-title">The Multi-Site Nightmare</div>
+      <div class="post-body">3 branches. 3 different versions of the quality manual. 3 different ways of doing things.
+
+Sound familiar?
+
+Multi-site compliance on paper is nearly impossible. On ISOGuardian, it's one login, one system, one source of truth.
+
+Every branch sees the same controlled documents. Every NCR is tracked centrally. Management has a single dashboard view across all sites.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PAIN-06</div>
+      <div class="post-title">The Email Audit Trail</div>
+      <div class="post-body">Auditor: "Can you show me who approved this document and when?"
+
+You: *Searches 3,000 emails for "approved" from 2024...*
+
+Email is not an audit trail. It's a graveyard of lost approvals, forgotten attachments, and broken context.
+
+ISOGuardian logs every action automatically: who created, who approved, who modified, when, and why.
+
+That's an audit trail. No searching required.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PAIN-07</div>
+      <div class="post-title">The Consultant Dependency</div>
+      <div class="post-body">You paid R150,000 for an ISO consultant to set up your system.
+
+They left. You have 400 pages of documentation that nobody understands or uses.
+
+12 months later, you're back to square one.
+
+Consultants are valuable for the initial setup. But the system needs to live AFTER they leave.
+
+ISOGuardian gives you the platform. Your consultant gives you the strategy. Together, it sticks.
+
+(SHEQ consultants: ask about our reseller programme — 25% recurring commission → isoguardian.co.za)</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PAIN-08</div>
+      <div class="post-title">The "We'll Get To It" Problem</div>
+      <div class="post-body">"We'll implement ISO next quarter."
+"We'll fix those NCRs after the project."
+"We'll do the management review next month."
+
+Meanwhile:
+- A tender worth R2M requires ISO 9001
+- An incident occurs with no investigation procedure
+- A customer complaint goes unresolved
+- Your competitor gets certified and wins the contract
+
+The best time to start was last year. The second best time is today.
+
+Free ISO Readiness Assessment → isoguardian.co.za (takes 3 minutes)</div>
+    </div>
+
+    <div class="category cat-prod">Product Posts (10)</div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PROD-01</div>
+      <div class="post-title">Dashboard Overview</div>
+      <div class="post-body">One dashboard. Complete compliance visibility.
+
+ISOGuardian's dashboard shows you:
+- Total documents and their status
+- Open NCRs (with critical flagged)
+- Upcoming audits
+- Compliance score per ISO standard
+- Recent activity timeline
+- Upcoming deadlines
+
+No more asking "where are we?" — the answer is always one click away.
+
+See it live → isoguardian.co.za (14-day free trial)</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PROD-02</div>
+      <div class="post-title">Compliance Scoring</div>
+      <div class="post-body">"How compliant are we with ISO 9001?"
+
+Before ISOGuardian: "Uh... I think we're mostly compliant? Let me check..."
+
+With ISOGuardian: "We're 73% compliant. Clauses 6, 8, and 10 need attention. Here's the breakdown by requirement."
+
+Real-time compliance scoring. Clause by clause. For ISO 9001, 14001, and 45001.
+
+Know exactly where you stand — and exactly where to improve.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PROD-03</div>
+      <div class="post-title">NCR Lifecycle</div>
+      <div class="post-body">ISOGuardian tracks every NCR from identification to verified closure:
+
+1. Raise NCR (auto-numbered, categorised by severity)
+2. Assign ownership + set due date
+3. Root cause analysis documented
+4. Corrective action planned and implemented
+5. Evidence attached
+6. Verified and closed by authorised person
+7. Full audit trail preserved
+
+No NCR falls through the cracks. No corrective action goes unverified.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PROD-04</div>
+      <div class="post-title">Audit Management</div>
+      <div class="post-body">Schedule audits. Assign auditors. Track findings. Close out with evidence.
+
+ISOGuardian's audit module supports:
+- Internal and external audits
+- ISO 19011 methodology
+- Automatic reminders (7 days + 1 day before)
+- Findings linked to NCRs
+- Close-out with conclusion, evidence, and recommendations
+- Branded PDF audit reports with your company logo
+
+Your audits, organised. Finally.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PROD-05</div>
+      <div class="post-title">Audit Connect (External Auditors)</div>
+      <div class="post-body">New feature: Invite external auditors to a secure workspace.
+
+How it works:
+1. Admin creates an audit session
+2. Generates a secure, time-limited link
+3. External auditor opens link (no account needed)
+4. Auditor reviews documents, submits findings, completes checklist
+5. Findings auto-create NCRs in your system
+
+Seamless. Secure. No account sharing needed.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PROD-06</div>
+      <div class="post-title">Data Export (POPIA)</div>
+      <div class="post-body">POPIA gives individuals the right to access their personal data.
+
+ISOGuardian has a one-click data export:
+- All your company's documents, NCRs, audits, reviews, and compliance data
+- Exported as structured JSON
+- Full metadata included
+- POPIA-compliant right-of-access fulfilled in seconds
+
+Because compliance isn't just about ISO — it's about privacy law too.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PROD-07</div>
+      <div class="post-title">Template Marketplace</div>
+      <div class="post-body">Need ISO documents but don't want to start from scratch?
+
+ISOGuardian's Template Marketplace gives you audit-ready templates for:
+- Quality Manuals
+- Procedures (document control, corrective action, internal audit)
+- Registers (risk, environmental aspects, legal appointments, PPE)
+- Policies (quality, environmental, OHS)
+- Starter Packs (complete ISO 9001, 14001, or 45001 document sets)
+
+Every template is:
+- Pre-populated with your company details
+- Formatted to ISO requirements
+- Downloadable as branded PDF
+- Cross-referenced to the relevant ISO clause
+
+Subscribers get all templates free. Non-subscribers can purchase individually from R250.
+
+Browse templates → isoguardian.co.za/templates</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PROD-08</div>
+      <div class="post-title">Automated Email Nurturing</div>
+      <div class="post-body">We've automated our entire lead follow-up process.
+
+When someone takes our free ISO Readiness Assessment:
+1. They get their score immediately
+2. An automated email sequence starts (5 emails over 14 days)
+3. Each email delivers genuine ISO implementation advice
+4. No sales pressure — just value
+
+When someone books a consultation:
+- Instant confirmation email
+- Automatic follow-up sequence
+- Status tracked in our Marketing dashboard
+
+When a new trial user signs up:
+- 4-email onboarding sequence over 14 days
+- Activation tips, feature guides, conversion offer
+
+All POPIA-compliant with one-click unsubscribe. Built on Resend API + Supabase Edge Functions.
+
+The result? Every lead gets nurtured. Zero manual follow-up needed.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PROD-09</div>
+      <div class="post-title">AI Copilot (Coming Soon)</div>
+      <div class="post-body">We're building an AI compliance assistant directly into ISOGuardian.
+
+Ask it anything:
+- "What does ISO 9001 Clause 8.5 require?"
+- "Draft a corrective action for this NCR"
+- "Analyse gaps in our document set"
+- "Help me prepare for my Stage 2 audit"
+
+It understands your company's data, your compliance status, and your ISO standards.
+
+Smart enough to know when a question needs a detailed answer vs. a quick lookup. Fair usage limits per tier to keep costs sustainable.
+
+Coming soon — built and ready for launch.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-PROD-10</div>
+      <div class="post-title">Google Analytics + Marketing Dashboard</div>
+      <div class="post-body">We practice what we preach: data-driven decisions.
+
+ISOGuardian's internal Marketing Dashboard tracks:
+- Lead pipeline (assessments + consultation requests)
+- Email campaign performance (open rates, send status)
+- Score distribution of assessment leads
+- Consultation status tracking
+- Direct links to Resend, Cloudflare, Vercel, Supabase dashboards
+
+GA4 integrated with POPIA-compliant cookie consent. We only track what users agree to.
+
+If you're building SaaS in SA, this is the level of visibility you need into your funnel.</div>
+    </div>
+
+    <div class="category cat-found">Founder / Personal Posts (4)</div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-FOUND-01</div>
+      <div class="post-title">Why I Built This</div>
+      <div class="post-body">It's 2026. Building a SaaS company in South Africa. No funding. No team. Just a problem I couldn't ignore.
+
+I watched businesses lose tenders because they couldn't prove quality management. I watched quality managers burn out managing compliance on spreadsheets. I watched companies pay R150,000 for consultants who left behind documentation nobody could use.
+
+ISOGuardian is my answer: affordable, simple ISO compliance management built specifically for SA businesses.
+
+We're live at isoguardian.co.za. We're growing. And we're just getting started.
+
+If you know a business struggling with ISO compliance — connect us. I'd love to help.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-FOUND-02</div>
+      <div class="post-title">Building in Public</div>
+      <div class="post-body">Transparent update on ISOGuardian:
+
+<strong>Where we are:</strong>
+- Platform live and stable at isoguardian.co.za
+- 12 Edge Functions deployed (auth, payments, notifications, AI, auditor portal, drip campaigns)
+- ISO 9001, 14001, 45001 fully supported
+- First reseller partner onboarded (Simathemba Holdings)
+- PayFast payments integrated (subscriptions + template purchases)
+- Automated email nurturing live (3 drip campaigns, zero manual follow-up)
+- Template Marketplace with 20+ audit-ready templates
+- Google Analytics tracking active
+- Security hardened (CAPTCHA, rate limiting, session management, POPIA compliance)
+
+<strong>What's next:</strong>
+- Onboarding our first paying clients
+- Building case studies from early adopters
+- Growing the reseller network across SA
+- AI Copilot launch
+
+If you're a SHEQ consultant or quality professional, let's talk. There's a 25% recurring commission reseller programme waiting for you.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-FOUND-03</div>
+      <div class="post-title">Lessons from Bootstrapping</div>
+      <div class="post-body">3 things I've learned building ISOGuardian with R0 budget:
+
+1. <strong>Talk to customers before writing code.</strong> I spent weeks building features nobody asked for. Now I build what solves real problems.
+
+2. <strong>Ship imperfect.</strong> The first version was rough. But real users found real bugs that I could never have found alone.
+
+3. <strong>Your network is your distribution.</strong> Every person I've told about ISOGuardian has connected me to someone who needs it. Ask for introductions.
+
+To fellow SA founders: the ecosystem is small but mighty. Build something real. People will find you.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">L-FOUND-04</div>
+      <div class="post-title">The SA SaaS Opportunity</div>
+      <div class="post-body">South Africa has a massive gap in affordable, locally-built business software.
+
+Most SA companies use tools built for the US market:
+- USD pricing (with exchange rate pain)
+- No POPIA compliance
+- Support in US time zones
+- Features designed for different regulations
+
+There's a real opportunity for SA founders to build:
+- ZAR-priced SaaS
+- POPIA-compliant by default
+- Designed for local business realities
+- Supported in our timezone
+
+That's what we're doing with ISOGuardian. And I think it's just the beginning.
+
+Who else is building SA-first SaaS? Would love to connect.</div>
+    </div>
+  </div>
+
+  <!-- ========== X / TWITTER ========== -->
+  <div class="platform-section" data-platform="twitter">
+    <div class="platform-header">
+      <div class="platform-icon icon-twitter">X</div>
+      <div>
+        <div class="platform-name">X / Twitter Posts</div>
+        <div class="platform-count">20 posts — Short, punchy, shareable</div>
+      </div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-01</div>
+      <div class="post-body">ISO 9001 isn't about paperwork. It's about proving you deliver consistent quality. Most SA businesses don't realise this until they lose a R2M tender.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-02</div>
+      <div class="post-body">Your quality manager manages ISO compliance on 47 Excel spreadsheets and you wonder why audit prep takes 3 weeks.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-03</div>
+      <div class="post-body">Built ISO compliance software for SA businesses. R2,000/mo, not R15,000. Because SMEs deserve quality management tools too.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-04</div>
+      <div class="post-body">The 5 Whys technique will save your ISO compliance. Next time something goes wrong, ask "why?" five times. You'll find the root cause every time.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-05</div>
+      <div class="post-body">Auditors don't want to fail you. They want to see that you have a system and you use it. That's it.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-06</div>
+      <div class="post-body">Your ISO documentation shouldn't live in one person's head. If they leave, your compliance leaves with them.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-07</div>
+      <div class="post-body">Government tenders in SA increasingly require ISO 9001 certification. If you're still "planning to get certified," your competitors already are.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-08</div>
+      <div class="post-body">Hot take: Most ISO consultants build systems that can't survive without them. That's a business model, not a solution.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-09</div>
+      <div class="post-body">NCRs are not punishments. They're improvement opportunities. The best companies I know celebrate finding them.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-10</div>
+      <div class="post-body">"We'll implement ISO next quarter" is the business equivalent of "I'll start the diet on Monday."</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-11</div>
+      <div class="post-body">R2,000/mo for ISO compliance management vs. R500,000+ lost tender. The maths isn't hard.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-12</div>
+      <div class="post-body">If your audit trail is "check my emails," you don't have an audit trail.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-13</div>
+      <div class="post-body">ISOGuardian now supports ISO 9001, 14001, and 45001 in one platform. Switch standards with one click. No more juggling three systems.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-14</div>
+      <div class="post-body">Bootstrapping a SaaS in South Africa. No funding, no team, just a real problem and a laptop. Day by day.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-15</div>
+      <div class="post-body">The best time to get ISO certified was last year. The second best time is now. Free readiness assessment: isoguardian.co.za</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-16</div>
+      <div class="post-body">Your quality manual: 400 pages nobody reads. Your quality system: ISOGuardian, where compliance actually happens daily.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-17</div>
+      <div class="post-body">SHEQ consultants: we built a reseller programme with 25% recurring commission. Your clients get better tools. You get ongoing revenue. Win-win. DM me.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-18</div>
+      <div class="post-body">An integrated management system (ISO 9001 + 14001 + 45001) doesn't mean triple the work. Same framework, same platform, one system.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-19</div>
+      <div class="post-body">POPIA + ISO = two compliance requirements, one platform. ISOGuardian handles both.</div>
+    </div>
+
+    <div class="tweet-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">X-20</div>
+      <div class="post-body">Every SA manufacturer exporting to Europe needs ISO certification. It's not optional — it's market access. Are you ready?</div>
+    </div>
+  </div>
+
+  <!-- ========== WHATSAPP ========== -->
+  <div class="platform-section" data-platform="whatsapp">
+    <div class="platform-header">
+      <div class="platform-icon icon-whatsapp">W</div>
+      <div>
+        <div class="platform-name">WhatsApp Messages</div>
+        <div class="platform-count">15 templates — Broadcast + Auto-Reply</div>
+      </div>
+    </div>
+
+    <div class="category cat-broadcast">Broadcast Messages (5)</div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-01</div>
+      <div class="post-title">Introduction</div>
+      <div class="post-body">Hi! This is Tyreece from ISOGuardian.
+
+We've built a cloud platform that helps SA businesses manage ISO 9001, 14001, and 45001 compliance — all in one place.
+
+If your business needs ISO certification for tenders, clients, or growth, I'd love to show you how we can help.
+
+Take our free 3-minute readiness assessment: https://isoguardian.co.za
+
+Feel free to reply with any questions!</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-02</div>
+      <div class="post-title">Pain Point</div>
+      <div class="post-body">Quick question:
+
+How does your business currently manage ISO compliance?
+A) Paper files and filing cabinets
+B) Excel spreadsheets
+C) Shared drive (Dropbox/Google Drive)
+D) Dedicated software
+
+If you answered A, B, or C — you're spending 10x more time than you need to on audit prep.
+
+ISOGuardian replaces all of that from R2,000/mo.
+
+14-day free trial: https://isoguardian.co.za</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-03</div>
+      <div class="post-title">Feature Highlight</div>
+      <div class="post-body">New from ISOGuardian:
+
+Automatic audit reminders — your team gets notified 7 days and 1 day before every scheduled audit.
+
+No more last-minute scrambles. No more missed deadlines.
+
+Plus: overdue NCR alerts and document review reminders.
+
+Try it free: https://isoguardian.co.za</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-04</div>
+      <div class="post-title">Social Proof</div>
+      <div class="post-body">Did you know?
+
+Over 70,000 SA businesses hold or are pursuing ISO certification.
+
+Companies with ISO 9001 win 3x more government tenders than those without.
+
+ISOGuardian helps you get audit-ready from R2,000/mo.
+
+Where does your business stand? Free assessment: https://isoguardian.co.za</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-05</div>
+      <div class="post-title">Reseller Pitch</div>
+      <div class="post-body">Hi [Name],
+
+I noticed you provide SHEQ/ISO consulting services. I'd like to introduce our reseller programme:
+
+- 25% recurring commission on every client you bring
+- White-label compliance platform for your clients
+- No setup cost or minimum commitment
+- Your clients get ISOGuardian from R2,000/mo
+
+Would you be open to a 15-minute call this week?
+
+More info: https://isoguardian.co.za</div>
+    </div>
+
+    <div class="category cat-auto">Auto-Reply Templates (10)</div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-AUTO-01</div>
+      <div class="post-title">Welcome</div>
+      <div class="post-body">Thanks for reaching out to ISOGuardian!
+
+We help SA businesses manage ISO 9001, 14001, and 45001 compliance in one platform.
+
+How can I help you today?
+1 - I want to learn more about ISOGuardian
+2 - I want to start a free trial
+3 - I'm a consultant interested in reselling
+4 - I have a question about ISO compliance
+
+Just reply with the number!</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-AUTO-02</div>
+      <div class="post-title">Pricing Enquiry</div>
+      <div class="post-body">Great question! Here's our pricing:
+
+<strong>Starter:</strong> R2,000/mo (1-10 users, 5GB storage)
+<strong>Growth:</strong> R3,700/mo (11-20 users, 15GB storage)
+<strong>Enterprise:</strong> Custom pricing (21+ users)
+
+All plans include:
+- ISO 9001, 14001, 45001 support
+- Document management + version control
+- NCR tracking
+- Audit management
+- Compliance scoring
+- Email notifications
+- POPIA-compliant data export
+
+14-day free trial included. No credit card required.
+
+Shall I set up a trial for you?</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-AUTO-03</div>
+      <div class="post-title">Demo Request</div>
+      <div class="post-body">I'd love to show you ISOGuardian in action!
+
+I'm available for a 30-minute demo:
+- Mornings: 9:00 - 12:00
+- Afternoons: 14:00 - 16:00
+- Monday to Friday
+
+What day and time works best for you?
+
+In the meantime, you can explore our platform: https://isoguardian.co.za</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-AUTO-04</div>
+      <div class="post-title">Follow-Up (No Reply)</div>
+      <div class="post-body">Hi [Name],
+
+Just following up on my message about ISOGuardian.
+
+Quick question: Is ISO compliance something your business is working toward in 2026?
+
+If so, our free readiness assessment takes 3 minutes and shows you exactly where you stand: https://isoguardian.co.za
+
+No pressure — just here to help if and when you're ready.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-AUTO-05</div>
+      <div class="post-title">Post-Assessment Follow-Up</div>
+      <div class="post-body">Hi [Name],
+
+Thanks for completing the ISO Readiness Assessment!
+
+Your score shows some areas where ISOGuardian can help you get audit-ready faster.
+
+Would you like me to walk you through your results? I can do a quick 15-minute call this week.
+
+Or if you'd prefer to explore on your own, start your free trial here: https://isoguardian.co.za</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-AUTO-06</div>
+      <div class="post-title">Trial Signup Confirmation</div>
+      <div class="post-body">Welcome to ISOGuardian! Your 14-day free trial is active.
+
+Here's how to get started in 10 minutes:
+1. Upload your first document
+2. Check your compliance score
+3. Log any open NCRs
+
+Need help? Reply here anytime or email support@isoguardian.co.za
+
+Let's get you audit-ready!</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-AUTO-07</div>
+      <div class="post-title">Reseller Interest Response</div>
+      <div class="post-body">Great to hear you're interested in our reseller programme!
+
+Here's the quick overview:
+- 25% recurring commission (lifetime of client subscription)
+- No setup cost or minimum commitment
+- Your own reseller dashboard to manage clients
+- We handle the tech, you handle the relationships
+
+I'd love to schedule a 15-minute call to show you the platform and discuss how it works.
+
+What day works best this week?</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-AUTO-08</div>
+      <div class="post-title">Objection Handler: "Too Expensive"</div>
+      <div class="post-body">I completely understand — every rand counts.
+
+Here's how I think about it:
+
+R2,000/mo = R67/day
+
+Compare that to:
+- One lost tender: R500K+
+- One failed audit re-do: R30K+
+- Quality manager overtime for audit prep: R5K+/month
+
+Most of our clients find it pays for itself within the first month.
+
+Would a 14-day free trial help you evaluate? No credit card required: https://isoguardian.co.za</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-AUTO-09</div>
+      <div class="post-title">Objection Handler: "Not Ready Yet"</div>
+      <div class="post-body">No problem at all!
+
+When you are ready, here are two things that can help in the meantime:
+
+1. Our free ISO Readiness Assessment — takes 3 minutes, gives you a baseline score: https://isoguardian.co.za
+
+2. I share ISO compliance tips on LinkedIn regularly — follow ISOGuardian for practical advice.
+
+Feel free to reach out anytime. I'm here when you need me.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">WA-AUTO-10</div>
+      <div class="post-title">Thank You / Referral Ask</div>
+      <div class="post-body">Thanks for the great conversation!
+
+One quick ask: if you know any business owners or SHEQ professionals who might benefit from ISOGuardian, I'd really appreciate an introduction.
+
+We also have a referral programme — 1 month free for every successful referral.
+
+Have a great day!</div>
+    </div>
+  </div>
+
+  <!-- ========== INSTAGRAM ========== -->
+  <div class="platform-section" data-platform="instagram">
+    <div class="platform-header">
+      <div class="platform-icon icon-instagram">IG</div>
+      <div>
+        <div class="platform-name">Instagram Captions</div>
+        <div class="platform-count">10 posts — Carousel, Reel, Feature, Story</div>
+      </div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">IG-01</div>
+      <div class="post-title">Intro Post</div>
+      <div class="post-body">Meet ISOGuardian — ISO compliance management built for South African businesses.
+
+ISO 9001 | ISO 14001 | ISO 45001
+One platform. From R2,000/mo.
+
+Stop surviving audits. Start managing compliance.
+
+Link in bio for your free ISO readiness assessment.</div>
+      <div class="post-hashtags">#ISOCompliance #ISO9001 #QualityManagement #SHEQ #SouthAfricanBusiness #SaaS #StartupSA #Compliance #AuditReady</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">IG-02</div>
+      <div class="post-title">Carousel — "5 Signs You Need ISO Compliance Software"</div>
+      <div class="post-body">Slide 1: "5 Signs You Need ISO Compliance Software"
+Slide 2: "1. Your documents live in 10 different places"
+Slide 3: "2. Audit prep takes weeks, not minutes"
+Slide 4: "3. NCRs get opened but never closed"
+Slide 5: "4. Nobody knows which document version is current"
+Slide 6: "5. Your quality manager is the only one who knows anything"
+Slide 7: "ISOGuardian fixes all of this. From R2,000/mo. Link in bio."</div>
+      <div class="post-hashtags">#ISOCompliance #QualityManagement #SHEQ #ISO9001</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">IG-03</div>
+      <div class="post-title">Before / After</div>
+      <div class="post-body"><strong>BEFORE ISOGuardian:</strong>
+Filing cabinets | Excel chaos | Audit panic | 3 weeks prep
+
+<strong>AFTER ISOGuardian:</strong>
+One dashboard | Automatic tracking | Always audit-ready | 10 min setup
+
+The difference is a system.
+
+Start your free trial — link in bio</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">IG-04</div>
+      <div class="post-title">Carousel — "ISO 9001 Explained in 5 Slides"</div>
+      <div class="post-body">Slide 1: "ISO 9001 Explained Simply"
+Slide 2: "What: A quality management system standard"
+Slide 3: "Why: Proves you deliver consistent quality"
+Slide 4: "Who needs it: Any business wanting tenders, exports, or credibility"
+Slide 5: "How to start: Take our free readiness assessment"
+Slide 6: "ISOGuardian — audit-ready from R2,000/mo"</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">IG-05</div>
+      <div class="post-title">Stat Post</div>
+      <div class="post-body">70,000+ South African businesses hold or are pursuing ISO certification.
+
+Companies with ISO 9001 win 3x more government tenders.
+
+The question isn't IF you need ISO — it's WHEN.
+
+Free readiness assessment — link in bio</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">IG-06</div>
+      <div class="post-title">Reel Script — "Audit Week Reality"</div>
+      <div class="post-body">[TEXT ON SCREEN]: "POV: Your ISO audit is next week"
+[Show frantic searching through folders, printing, panicking]
+
+[CUT TO]: "Companies using ISOGuardian:"
+[Show calm person clicking through dashboard, sipping coffee]
+
+[END CARD]: "Audit-ready from R2,000/mo | isoguardian.co.za"</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">IG-07</div>
+      <div class="post-title">Feature Post</div>
+      <div class="post-body">Real-time compliance scoring.
+
+Know exactly where you stand with ISO 9001, 14001, and 45001. Clause by clause. Percentage by percentage.
+
+No guessing. No surprises at audit time.
+
+ISOGuardian — link in bio</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">IG-08</div>
+      <div class="post-title">Testimonial Template</div>
+      <div class="post-body">"[Client quote about how ISOGuardian helped them]"
+— [Name], [Title], [Company]
+
+[Replace with actual testimonial when available]</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">IG-09</div>
+      <div class="post-title">Carousel — "30-Day Audit Prep Checklist"</div>
+      <div class="post-body">Slide 1: "30-Day Audit Prep Checklist"
+Slide 2: "Week 1: Review all controlled documents"
+Slide 3: "Week 2: Close open NCRs"
+Slide 4: "Week 3: Conduct internal audit"
+Slide 5: "Week 4: Management review + final prep"
+Slide 6: "Or... use ISOGuardian and be audit-ready every day"</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">IG-10</div>
+      <div class="post-title">Founder Story</div>
+      <div class="post-body">Building ISOGuardian from South Africa.
+
+No funding. No big team. Just a real problem and the determination to solve it.
+
+ISO compliance shouldn't be expensive or complicated. That's why we built this.
+
+More to come. Follow the journey.</div>
+      <div class="post-hashtags">#StartupSA #SaaS #BuildInPublic #ISOCompliance</div>
+    </div>
+  </div>
+
+  <!-- ========== FACEBOOK ========== -->
+  <div class="platform-section" data-platform="facebook">
+    <div class="platform-header">
+      <div class="platform-icon icon-facebook">f</div>
+      <div>
+        <div class="platform-name">Facebook Posts</div>
+        <div class="platform-count">10 posts — Conversational, shareable</div>
+      </div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">FB-01</div>
+      <div class="post-body">ISO compliance on spreadsheets is like navigating with a paper map in 2026. It technically works, but there's a much better way. ISOGuardian — ISO compliance management from R2,000/mo. Built in SA, for SA businesses. Try it free → isoguardian.co.za</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">FB-02</div>
+      <div class="post-body">Question for business owners: If your quality manager resigned today, would your ISO compliance survive? If the answer is "probably not" — you have a system problem, not a people problem. Let's fix that.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">FB-03</div>
+      <div class="post-body">Government tenders in SA increasingly require ISO 9001 certification. If you're a manufacturer, construction company, or service provider bidding on contracts — ISO certification isn't optional anymore. Free readiness assessment → isoguardian.co.za</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">FB-04</div>
+      <div class="post-body">SHEQ professionals — how much time do you spend on audit prep each year?
+
+A) Less than a week
+B) 1-2 weeks
+C) 3+ weeks
+D) It's basically constant
+
+If you answered C or D, there's a better way.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">FB-05</div>
+      <div class="post-body">New: ISOGuardian's Audit Connect feature lets you invite external auditors to a secure workspace. No account sharing. No email chaos. Just a secure link, real-time collaboration, and automatic NCR creation from findings.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">FB-06</div>
+      <div class="post-body">ISO 9001 in one sentence: "Say what you do, do what you say, and prove it." That's it. That's the whole standard. ISOGuardian helps you with the "prove it" part.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">FB-07</div>
+      <div class="post-body">The cost of NOT having ISO certification: Lost tenders, lost customers, safety incidents, environmental fines. The cost of ISOGuardian: R2,000/mo. The maths is simple.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">FB-08</div>
+      <div class="post-body">We're looking for SHEQ consultants and ISO implementers to join our reseller programme. 25% recurring commission on every client. Your clients get a better platform. You get ongoing revenue. DM us or visit isoguardian.co.za</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">FB-09</div>
+      <div class="post-body">Fun Friday fact: The ISO 9001 standard has been revised 5 times since 1987. The current version (2015) focuses on risk-based thinking and leadership engagement — not just documentation. It's more practical than ever.</div>
+    </div>
+
+    <div class="post-card"><button class="copy-btn" onclick="copyPost(this)">Copy</button>
+      <div class="post-id">FB-10</div>
+      <div class="post-body">Behind the scenes: We pushed 15 updates to ISOGuardian this week. Faster load times, better mobile experience, and zero downtime. That's the advantage of a team that cares about quality management... for quality management software.</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  ISOGuardian (Pty) Ltd | Reg: 2026/082362/07 | Confidential — Internal Use Only
+</div>
+
+<script>
+function copyPost(btn) {
+  const card = btn.closest('.post-card') || btn.closest('.tweet-card');
+  const body = card.querySelector('.post-body');
+  const hashtags = card.querySelector('.post-hashtags');
+  let text = body.innerText;
+  if (hashtags) text += '\n\n' + hashtags.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function filterPlatform(platform) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.querySelectorAll('.platform-section').forEach(s => {
+    s.style.display = s.dataset.platform === platform ? 'block' : 'none';
+  });
+}
+
+function showAll() {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.querySelectorAll('.platform-section').forEach(s => s.style.display = 'block');
+}
+</script>
+
+</body>
+</html>
