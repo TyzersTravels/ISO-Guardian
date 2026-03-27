@@ -871,10 +871,34 @@ const FinancialDashboard = () => {
           </div>
         )}
 
+        {/* Google Analytics */}
+        <div className="glass-card p-5 rounded-xl">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-white font-semibold">Google Analytics</h3>
+            <span className="flex items-center gap-1.5 text-xs text-green-400">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              Tracking Active
+            </span>
+          </div>
+          <p className="text-xs text-gray-400 mb-3">GA4 Property: <span className="text-gray-300 font-mono">G-80X4PGCGH1</span> — loads after cookie consent (POPIA-compliant)</p>
+          <a
+            href="https://analytics.google.com/analytics/web/#/p/G-80X4PGCGH1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-white/10 text-white hover:border-cyan-500/50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M22.84 2.998V21c0 1.1-.88 2-1.98 2h-4.04c-1.1 0-1.98-.9-1.98-2V2.998c0-1.1.88-2 1.98-2h4.04c1.1 0 1.98.9 1.98 2zM14.14 12v9c0 1.1-.88 2-1.98 2H8.12c-1.1 0-1.98-.9-1.98-2v-9c0-1.1.88-2 1.98-2h4.04c1.1 0 1.98.9 1.98 2zM5.44 17v4c0 1.1-.88 2-1.98 2H1.98C.88 23 0 22.1 0 21v-4c0-1.1.88-2 1.98-2h1.48c1.1 0 1.98.9 1.98 2z" /></svg>
+            Open GA Dashboard
+          </a>
+        </div>
+
         {/* Quick Links */}
         <div className="glass-card p-5 rounded-xl">
           <h3 className="text-white font-semibold mb-3">Quick Actions</h3>
           <div className="flex flex-wrap gap-2">
+            <a href="https://analytics.google.com/analytics/web/" target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 rounded-lg glass-border text-cyan-400 hover:bg-white/5">
+              Google Analytics
+            </a>
             <a href="https://resend.com/emails" target="_blank" rel="noopener noreferrer" className="text-xs px-3 py-1.5 rounded-lg glass-border text-cyan-400 hover:bg-white/5">
               Resend Dashboard
             </a>
