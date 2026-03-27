@@ -103,15 +103,16 @@ function checkRateLimit(ip: string): boolean {
 Deno.serve(async (req) => {
   const url = new URL(req.url)
 
-  // Minimal test: GET /create-checkout?test=true
-  // Submits a R10 once-off payment to verify signature works
+  // Minimal test: GET /create-checkout?test=true&amount=1
+  // Submits a once-off payment to verify signature works (default R1)
   if (req.method === 'GET' && url.searchParams.get('test') === 'true') {
+    const testAmount = url.searchParams.get('amount') || '1'
     const params: Array<[string, string]> = [
       ['merchant_id', PAYFAST_MERCHANT_ID],
       ['merchant_key', PAYFAST_MERCHANT_KEY],
       ['return_url', `${SITE_URL}/?payment=success`],
       ['cancel_url', `${SITE_URL}/?payment=cancelled`],
-      ['amount', '10.00'],
+      ['amount', `${parseFloat(testAmount).toFixed(2)}`],
       ['item_name', 'ISOGuardian Test Payment'],
     ]
     const signature = await generateSignature(params, PAYFAST_PASSPHRASE)
