@@ -4,6 +4,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { enrollInDrip } from '../_shared/drip.ts'
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req)
@@ -100,6 +101,31 @@ Deno.serve(async (req) => {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+    }
+
+    // Enroll in trial onboarding drip campaign if subscription is trial
+    try {
+      const { data: sub } = await adminClient
+        .from('subscriptions')
+        .select('status')
+        .eq('company_id', company_id)
+        .maybeSingle()
+
+      if (sub?.status === 'trial' || sub?.status === 'trialing') {
+        const trialEnd = new Date()
+        trialEnd.setDate(trialEnd.getDate() + 14)
+        await enrollInDrip(adminClient, {
+          campaignSlug: 'trial-onboarding',
+          email,
+          name: full_name,
+          personalization: {
+            company_name: '',
+            expiry_date: trialEnd.toISOString().split('T')[0],
+          },
+        })
+      }
+    } catch {
+      // Drip enrollment failure should never block user creation
     }
 
     return new Response(JSON.stringify({ user: { id: authData.user.id, email } }), {

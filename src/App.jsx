@@ -44,6 +44,7 @@ const Templates = lazy(() => import('./pages/Templates'))
 const ResellerProgramme = lazy(() => import('./pages/ResellerProgramme'))
 const AffiliateProgramme = lazy(() => import('./pages/AffiliateProgramme'))
 const Consultation = lazy(() => import('./pages/Consultation'))
+const FinancialDashboard = lazy(() => import('./pages/FinancialDashboard'))
 
 // Loading fallback for lazy-loaded routes
 const PageLoader = () => (
@@ -99,6 +100,7 @@ function App() {
           <Route path="/audit-connect" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin', 'lead_auditor']}><AuditorInvite /></RoleProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
           <Route path="/templates" element={<RoleProtectedRoute allowedRoles={['super_admin']}><Templates /></RoleProtectedRoute>} />
+          <Route path="/finance" element={<RoleProtectedRoute allowedRoles={['super_admin']}><FinancialDashboard /></RoleProtectedRoute>} />
 
           {/* Landing */}
           <Route path="/" element={<LandingPage />} />

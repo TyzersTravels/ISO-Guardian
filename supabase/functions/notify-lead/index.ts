@@ -3,10 +3,16 @@
 // Sends an immediate email to the admin so leads aren't missed
 
 import { corsHeaders, getCorsHeaders } from '../_shared/cors.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { enrollInDrip } from '../_shared/drip.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const ADMIN_EMAIL = Deno.env.get('ADMIN_NOTIFICATION_EMAIL') || 'support@isoguardian.co.za'
 const FROM_EMAIL = 'ISOGuardian <notifications@isoguardian.co.za>'
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
@@ -204,7 +210,36 @@ Deno.serve(async (req) => {
       })
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    // Enroll lead in drip campaign (fire-and-forget, don't block response)
+    let dripResult = null
+    try {
+      if (type === 'assessment' && data.email) {
+        dripResult = await enrollInDrip(supabase, {
+          campaignSlug: 'post-assessment',
+          email: data.email,
+          name: data.company_name || data.name || '',
+          personalization: {
+            score: data.score ?? 0,
+            standard: data.standard || 'ISO 9001',
+            company_name: data.company_name || '',
+          },
+        })
+      } else if (type === 'consultation' && data.email) {
+        dripResult = await enrollInDrip(supabase, {
+          campaignSlug: 'post-consultation',
+          email: data.email,
+          name: data.name || '',
+          personalization: {
+            company_name: data.company || '',
+            standard: data.standard || '',
+          },
+        })
+      }
+    } catch {
+      // Drip enrollment failure should never block lead notification
+    }
+
+    return new Response(JSON.stringify({ success: true, drip: dripResult }), {
       headers: { ...cors, 'Content-Type': 'application/json' },
     })
   } catch (err) {
