@@ -92,36 +92,23 @@ const ClientOnboarding = () => {
 
       if (subError) throw subError;
 
-      // 3. Create admin user for the client
+      // 3. Create admin user via Edge Function (uses service role key)
       const array = new Uint8Array(16);
       crypto.getRandomValues(array);
       const tempPassword = `C!${Array.from(array, b => b.toString(36)).join('').substring(0, 14)}`;
-      
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.contact_email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: {
+
+      const { data: createData, error: createError } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: formData.contact_email,
+          password: tempPassword,
           full_name: formData.contact_name,
-          company_id: companyData.id
+          company_id: companyData.id,
+          standards_access: Object.entries(formData.standards).filter(([, v]) => v).map(([k]) => k)
         }
       });
 
-      if (authError) throw authError;
-
-      // 4. Create user record
-      const { error: userError } = await supabase
-        .from('users')
-        .insert([{
-          id: authData.user.id,
-          email: formData.contact_email,
-          full_name: formData.contact_name,
-          role: 'admin',
-          company_id: companyData.id,
-          is_active: true
-        }]);
-
-      if (userError) throw userError;
+      if (createError) throw createError;
+      if (createData?.error) throw new Error(createData.error);
 
       toast.success('Client onboarded successfully! Credentials copied.');
 

@@ -29,28 +29,19 @@ const NCRs = () => {
       const companyId = getEffectiveCompanyId()
       const { data, error } = await supabase
         .from('ncrs')
-        .select('*, assigned_user:users!ncrs_assigned_to_fkey(full_name, email)')
+        .select('id, ncr_number, title, description, standard, clause, clause_name, severity, status, assigned_to, company_id, created_at, updated_at, archived, date_opened, due_date, root_cause, corrective_action, date_closed')
         .eq('company_id', companyId)
 
-      if (error) {
-        // Fallback if foreign key name is different
-        const { data: fallbackData, error: fbErr } = await supabase
-          .from('ncrs')
-          .select('id, ncr_number, title, description, standard, clause, severity, status, assigned_to, company_id, created_at, updated_at, archived, clause_name, date_opened, due_date, root_cause, corrective_action, date_closed')
-          .eq('company_id', companyId)
-        if (fbErr) throw fbErr
-        
-        // Resolve user names manually
-        const userIds = [...new Set((fallbackData || []).map(n => n.assigned_to).filter(Boolean))]
-        let userMap = {}
-        if (userIds.length > 0) {
-          const { data: users } = await supabase.from('users').select('id, full_name, email').in('id', userIds)
-          if (users) users.forEach(u => { userMap[u.id] = u.full_name || u.email })
-        }
-        setNcrs((fallbackData || []).map(n => ({ ...n, assigned_name: userMap[n.assigned_to] || 'Unassigned' })))
-      } else {
-        setNcrs((data || []).map(n => ({ ...n, assigned_name: n.assigned_user?.full_name || n.assigned_user?.email || 'Unassigned' })))
+      if (error) throw error
+
+      // Resolve assigned user names
+      const userIds = [...new Set((data || []).map(n => n.assigned_to).filter(Boolean))]
+      let userMap = {}
+      if (userIds.length > 0) {
+        const { data: users } = await supabase.from('users').select('id, full_name, email').in('id', userIds)
+        if (users) users.forEach(u => { userMap[u.id] = u.full_name || u.email })
       }
+      setNcrs((data || []).map(n => ({ ...n, assigned_name: userMap[n.assigned_to] || 'Unassigned' })))
     } catch (err) {
       console.error('Error fetching NCRs:', err)
     } finally {

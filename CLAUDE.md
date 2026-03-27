@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-**Last updated: 2026-03-15**
+**Last updated: 2026-03-27**
 
 ## Commands
 
@@ -40,7 +40,7 @@ Route access matrix:
 | Route | Guard |
 |-------|-------|
 | `/dashboard`, `/documents`, `/ncrs`, `/compliance`, `/audits`, `/management-reviews`, `/data-export`, `/activity-trail`, `/notifications` | `ProtectedRoute` (any authenticated user) |
-| `/admin`, `/create-company` | `RoleProtectedRoute allowedRoles={['super_admin']}` |
+| `/admin`, `/create-company`, `/finance` | `RoleProtectedRoute allowedRoles={['super_admin']}` |
 | `/analytics`, `/settings`, `/users` | `RoleProtectedRoute allowedRoles={['super_admin', 'admin']}` |
 | `/reseller`, `/client-onboarding` | `RoleProtectedRoute requireReseller` |
 | `/ai-copilot` | `ProtectedRoute` (any authenticated user) |
@@ -119,6 +119,51 @@ Counters are stored on the `companies` row (`doc_counter`, `ncr_counter`, `audit
 
 - `src/lib/brandedPDFExport.js` — client logo as hero image (top, large). ISOGuardian branding subtle (small footer only). Signature blocks on NCR close-outs.
 - `src/lib/auditReportPDF.js` — audit report PDF generation.
+- `src/lib/invoicePDFExport.js` — branded tax invoices (with VAT 15%) + monthly commission statements for resellers.
+
+### Financial Dashboard
+
+`src/pages/FinancialDashboard.jsx` — super_admin only at `/finance`. 8-tab dashboard:
+- **Revenue** — MRR/ARR KPIs, monthly breakdown
+- **Payments** — payment ledger with search/filter
+- **Invoices** — view, mark overdue, download PDF
+- **Commissions** — approve pending, mark paid (with EFT ref), bulk approve, PDF statements
+- **Affiliates** — referral conversion tracking
+- **Template Sales** — revenue, top sellers
+- **Campaigns** — drip campaign stats, enrollment counts, queue status
+- **Marketing** — lead pipeline, GA tracking status, campaign toggles, assessment/consultation tables with clickable contact info, score distribution
+
+### Drip Campaign Engine
+
+Automated email sequences that nurture leads into customers — zero manual effort after setup.
+
+**Architecture:**
+- `drip_campaigns` table — campaign definitions (slug, trigger_type, emails JSONB array)
+- `drip_queue` table — individual scheduled sends (recipient, step, scheduled_at, status)
+- `drip_unsubscribes` table — POPIA-required opt-out tracking (email, token)
+
+**3 active campaigns:**
+- `post-assessment` — 5 emails over 14 days (score-based, triggered after readiness quiz)
+- `post-consultation` — 3 emails (triggered after consultation request)
+- `trial-onboarding` — 4 emails over 14 days (triggered on new trial user creation)
+
+**Edge Functions:**
+- `process-drip-campaigns` — daily queue processor via pg_cron at 07:00 SAST
+- `unsubscribe` — GET `?token=xxx`, branded HTML confirmation, cancels pending emails
+- `notify-lead` — now also enrolls assessment/consultation leads into drip campaigns
+- `create-user` — now also enrolls trial users into onboarding drip
+
+**Enrollment:** `supabase/functions/_shared/drip.ts` — shared `enrollInDrip()` helper. Checks unsubscribe status, prevents duplicates, calculates scheduled_at dates.
+
+**pg_cron auth pattern:** Anon key in `Authorization` header (passes Supabase gateway) + `x-cron-secret` header (passes function auth check). `CRON_SECRET` set as Supabase secret.
+
+### Google Analytics
+
+`src/lib/analytics.js` — GA4 (Measurement ID: `G-80X4PGCGH1`). Uses gtag.js directly (no npm dependency). POPIA-compliant: only loads after cookie consent. Exports: `initGA()`, `trackPageView(path)`, `trackEvent(category, action, label)`, `trackConversion(type)`. Called by `CookieConsent.jsx` on analytics consent.
+
+### Sentry (placeholder)
+
+`src/lib/sentry.js` — safe no-op exports (`initSentry()`, `captureError()`, `setUser()`). Ready to activate when `VITE_SENTRY_DSN` is set.
 
 ### Roles
 
@@ -191,6 +236,10 @@ Two Edge Functions handle email:
 
 **AI/Audit tables**: `ai_usage`, `ai_conversations`, `audit_sessions`, `audit_findings`, `audit_checklist`
 
+**Drip campaign tables**: `drip_campaigns`, `drip_queue`, `drip_unsubscribes`
+
+**Template marketplace**: `template_purchases`
+
 **Security**: `failed_login_attempts` (server-side rate limiting)
 
 ### Database Column Notes
@@ -207,17 +256,20 @@ Two Edge Functions handle email:
 |----------|---------|
 | `ai-copilot` | Claude API proxy for AI Copilot feature |
 | `auditor-portal` | Token-based auditor workspace API |
-| `notify-lead` | Instant lead notification emails |
+| `create-user` | Service role user creation + trial drip enrollment |
+| `notify-lead` | Instant lead notification emails + drip enrollment |
+| `process-drip-campaigns` | Daily drip queue processor (pg_cron 07:00 SAST) |
 | `rate-limit` | Server-side brute force protection |
 | `send-notifications` | Scheduled daily notification emails |
+| `unsubscribe` | POPIA-compliant drip email unsubscribe handler |
 
-## Known Issues (as of 2026-03-15)
+## Known Issues (as of 2026-03-27)
 
 1. **`documents.company_id` is TEXT**, not UUID — mismatch with most other tables. Functional but inconsistent.
-2. **Document numbering race condition** — read-then-write pattern can generate duplicates under concurrent use. Needs atomic PostgreSQL function.
-3. **CreateCompany + ClientOnboarding** — `supabase.auth.admin.createUser()` called from frontend anon key (will fail in production). Needs Edge Function with service role key.
-4. **Document versioning columns missing** — `version` and `version_history` columns don't exist on `documents` table yet. Version upload feature in Documents.jsx will fail. Queries have been fixed to not select these columns, but the feature itself is broken.
-5. **NCRs.jsx uses `select('*')`** as primary query with fallback — should use explicit columns only.
+2. **CreateCompany + ClientOnboarding** — `supabase.auth.admin.createUser()` called from frontend anon key (will fail in production). Needs Edge Function with service role key.
+3. **Document versioning columns missing** — `version` and `version_history` columns don't exist on `documents` table yet. Version upload feature in Documents.jsx will fail. Queries have been fixed to not select these columns, but the feature itself is broken.
+4. **NCRs.jsx uses `select('*')`** as primary query with fallback — should use explicit columns only.
+5. **www.isoguardian.co.za redirect** — needs configuring in Vercel Dashboard → Domains (not vercel.json).
 
 ## Resolved Issues
 
@@ -248,6 +300,11 @@ Two Edge Functions handle email:
 - SEO — meta tags, JSON-LD, robots.txt, sitemap.xml, noindex on protected routes
 - Cookie consent banner — POPIA-compliant 3-category consent
 - Security headers — HSTS, CSP, X-Frame-Options via vercel.json
+- Financial Dashboard — 8-tab super_admin dashboard with commission management + marketing
+- Drip campaign engine — 3 automated email sequences, queue processor, POPIA unsubscribe
+- Google Analytics — GA4 (G-80X4PGCGH1) with POPIA cookie consent gating
+- Template marketplace tables — template_purchases with RLS + indexes
+- Document numbering race condition fixed — atomic PostgreSQL functions deployed
 
 ## Legal Constraints
 
@@ -271,7 +328,14 @@ RESEND_API_KEY          # Resend API key for email notifications
 CRON_SECRET             # Auth secret for Edge Function invocation
 ADMIN_NOTIFICATION_EMAIL  # Email for lead notifications (default: krugerreece@gmail.com)
 ANTHROPIC_API_KEY       # Claude API key for AI Copilot
+CRON_SECRET             # Shared secret for pg_cron → Edge Function auth (value: isoguardian-drip-cron-2026)
 ```
+
+### pg_cron Jobs (active)
+| Job | Schedule | Target |
+|-----|----------|--------|
+| `daily-notifications` | `0 5 * * *` (07:00 SAST) | `send-notifications` Edge Function |
+| `process-drip-campaigns` | `0 5 * * *` (07:00 SAST) | `process-drip-campaigns` Edge Function |
 
 ## Companies Currently Set Up
 - **ISOGuardian HQ**: company_code "HQ" (admin company)
