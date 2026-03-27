@@ -396,7 +396,7 @@ export default function TemplateEditor() {
     let templateContent = null
     try {
       const mod = await import('../lib/templateContent.js')
-      templateContent = mod.default?.[tmplId] || mod[tmplId]
+      templateContent = mod.TEMPLATE_CONTENT?.[tmplId] || mod.default?.[tmplId] || mod[tmplId]
     } catch {
       // Content not available — create empty sections
     }
