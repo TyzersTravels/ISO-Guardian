@@ -586,10 +586,62 @@ export default function TemplateEditor() {
       toast.error('Failed to approve.')
       return
     }
+
+    // Bridge to document control: create or update a controlled document entry
+    try {
+      const templateMeta = TEMPLATES.find(t => t.id === instance.template_id)
+      const nextReview = new Date()
+      nextReview.setMonth(nextReview.getMonth() + 12)
+
+      // Check if a document already exists for this template instance
+      const { data: existingDoc } = await supabase
+        .from('documents')
+        .select('id, version')
+        .eq('source_id', instance.id)
+        .eq('company_id', companyId)
+        .maybeSingle()
+
+      if (existingDoc) {
+        // Update existing document version
+        const newVersion = (parseFloat(existingDoc.version || '1.0') + 1.0).toFixed(1)
+        await supabase.from('documents').update({
+          version: newVersion,
+          status: 'active',
+          change_summary: approvalComment || 'Updated via template editor',
+          uploaded_by: user.id,
+          date_updated: new Date().toISOString().split('T')[0],
+        }).eq('id', existingDoc.id)
+      } else {
+        // Create new controlled document
+        await supabase.from('documents').insert({
+          company_id: companyId,
+          name: instance.title,
+          document_number: instance.doc_number,
+          standard: templateMeta?.standard || instance.standard || 'ISO_9001',
+          clause: templateMeta?.clause || 4,
+          clause_name: templateMeta?.clauseName || null,
+          type: 'Policy',
+          version: '1.0',
+          status: 'active',
+          source_type: 'template',
+          source_id: instance.id,
+          owner_id: user.id,
+          review_frequency_months: 12,
+          next_review_date: nextReview.toISOString().split('T')[0],
+          requires_acknowledgement: true,
+          uploaded_by: user.id,
+          date_updated: new Date().toISOString().split('T')[0],
+        })
+      }
+    } catch (bridgeErr) {
+      // Non-critical: don't block approval if bridge fails
+      console.error('Document control bridge failed:', bridgeErr)
+    }
+
     setInstance(prev => ({ ...prev, status: 'approved', approved_by: user.id, approved_at: new Date().toISOString() }))
     setApprovalComment('')
     setShowApprovalPanel(false)
-    toast.success('Document approved.')
+    toast.success('Document approved and added to document register.')
   }
 
   const handleReject = async () => {

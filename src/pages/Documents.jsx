@@ -6,6 +6,8 @@ import { logActivity } from '../lib/auditLogger'
 import { exportDocumentPDF } from '../lib/brandedPDFExport'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
+import DocumentRegister from '../components/DocumentRegister'
+import DocumentControlPanel from '../components/DocumentControlPanel'
 
 const Documents = () => {
   const { userProfile, getEffectiveCompanyId } = useAuth()
@@ -20,27 +22,39 @@ const Documents = () => {
   const [confirmAction, setConfirmAction] = useState(null)
   const [versionUploadDoc, setVersionUploadDoc] = useState(null)
   const [versionHistoryDoc, setVersionHistoryDoc] = useState(null)
-  
+
+  // Document control state
+  const [viewMode, setViewMode] = useState('cards') // 'cards' | 'register'
+  const [controlPanelDoc, setControlPanelDoc] = useState(null)
+  const [companyUsers, setCompanyUsers] = useState([])
+  const [acknowledgementCounts, setAcknowledgementCounts] = useState({})
+  const [userAcknowledgements, setUserAcknowledgements] = useState({})
+
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
   const [standardFilter, setStandardFilter] = useState('all')
   const [clauseFilter, setClauseFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [overdueOnly, setOverdueOnly] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 20
 
   useEffect(() => {
-    if (userProfile) fetchDocuments()
+    if (userProfile) {
+      fetchDocuments()
+      fetchCompanyUsers()
+    }
   }, [userProfile])
 
   const fetchDocuments = async () => {
     try {
       setLoading(true)
-      
+
       const companyId = getEffectiveCompanyId()
       let query = supabase
         .from('documents')
-        .select('id, name, standard, clause, type, version, status, company_id, created_at, updated_at, file_path, archived, next_review_date')
+        .select('id, name, standard, clause, clause_name, type, version, version_history, status, company_id, created_at, updated_at, file_path, archived, next_review_date, document_number, owner_id, review_frequency_months, last_reviewed_at, last_reviewed_by, requires_acknowledgement, change_summary, source_type, source_id, uploaded_by, superseded_by, supersedes')
         .eq('company_id', companyId)
 
       const { data, error: fetchError } = await query
@@ -48,18 +62,91 @@ const Documents = () => {
       if (fetchError) throw fetchError
 
       // Filter by user's standards access
-      const filteredDocs = data.filter(doc => 
+      const filteredDocs = data.filter(doc =>
         (userProfile?.standards_access || []).includes(doc.standard)
       )
 
       setDocuments(filteredDocs)
       setError(null)
+
+      // Fetch acknowledgement data
+      fetchAcknowledgementData(companyId)
     } catch (err) {
       console.error('Error fetching documents:', err)
       setError('Failed to load documents. Please try again.')
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchCompanyUsers = async () => {
+    const companyId = getEffectiveCompanyId()
+    if (!companyId) return
+    const { data } = await supabase
+      .from('users')
+      .select('id, full_name, email, role')
+      .eq('company_id', companyId)
+    setCompanyUsers(data || [])
+  }
+
+  const fetchAcknowledgementData = async (companyId) => {
+    const { data } = await supabase
+      .from('document_acknowledgements')
+      .select('document_id, user_id, version_acknowledged')
+      .eq('company_id', companyId)
+
+    if (!data) return
+
+    // Count acknowledgements per document
+    const counts = {}
+    const userAcks = {}
+    data.forEach(a => {
+      if (!counts[a.document_id]) counts[a.document_id] = new Set()
+      counts[a.document_id].add(a.user_id)
+      if (a.user_id === userProfile?.id) userAcks[a.document_id] = true
+    })
+
+    const totalUsers = companyUsers.length || 1
+    const countMap = {}
+    Object.entries(counts).forEach(([docId, users]) => {
+      countMap[docId] = { done: users.size, total: totalUsers }
+    })
+    setAcknowledgementCounts(countMap)
+    setUserAcknowledgements(userAcks)
+  }
+
+  const handleAcknowledge = async (doc) => {
+    const companyId = getEffectiveCompanyId()
+    const { error } = await supabase
+      .from('document_acknowledgements')
+      .insert({
+        document_id: doc.id,
+        company_id: companyId,
+        user_id: userProfile.id,
+        version_acknowledged: doc.version || '1.0',
+      })
+
+    if (error) {
+      if (error.code === '23505') {
+        toast.info('You have already acknowledged this document.')
+      } else {
+        toast.error('Failed to acknowledge document.')
+      }
+      return
+    }
+
+    await logActivity({
+      companyId,
+      userId: userProfile.id,
+      action: 'acknowledged',
+      entityType: 'document',
+      entityId: doc.id,
+      changes: { version: doc.version },
+    })
+
+    toast.success('Document acknowledged.')
+    setUserAcknowledgements(prev => ({ ...prev, [doc.id]: true }))
+    fetchAcknowledgementData(companyId)
   }
 
   const requestDeleteDocument = (docId, permanent = false) => {
@@ -307,9 +394,11 @@ ${htmlContent}
     }
   }
 
-  const handleVersionUpload = async (doc, file) => {
+  const handleVersionUpload = async (doc, file, changeSummary = '') => {
     try {
-      // Save current version to history
+      const companyId = getEffectiveCompanyId()
+
+      // Save current version to JSONB history (backward compat)
       const history = doc.version_history || []
       history.push({
         version: doc.version,
@@ -318,9 +407,20 @@ ${htmlContent}
         uploaded_at: doc.updated_at || doc.created_at,
       })
 
+      // Also insert into document_versions table
+      await supabase.from('document_versions').insert({
+        document_id: doc.id,
+        company_id: companyId,
+        version_number: doc.version || '1.0',
+        file_path: doc.file_path,
+        file_size: doc.file_size || null,
+        change_summary: changeSummary || null,
+        created_by: userProfile.id,
+      })
+
       // Upload new file
       const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-      const filePath = `${getEffectiveCompanyId()}/${fileName}`
+      const filePath = `${companyId}/${fileName}`
 
       const { error: uploadError } = await supabase.storage
         .from('documents')
@@ -341,18 +441,19 @@ ${htmlContent}
           uploaded_by: userProfile.id,
           date_updated: new Date().toISOString().split('T')[0],
           version_history: history,
+          change_summary: changeSummary || null,
         })
         .eq('id', doc.id)
 
       if (dbError) throw dbError
 
       await logActivity({
-        companyId: getEffectiveCompanyId(),
+        companyId,
         userId: userProfile.id,
         action: 'updated',
         entityType: 'document',
         entityId: doc.id,
-        changes: { name: doc.name, old_version: doc.version, new_version: newVersion },
+        changes: { name: doc.name, old_version: doc.version, new_version: newVersion, change_summary: changeSummary },
       })
 
       toast.success(`${doc.name} updated to version ${newVersion}`)
@@ -364,7 +465,7 @@ ${htmlContent}
     }
   }
 
-  // Apply filters - now with archived support
+  // Apply filters - now with archived support + document control filters
   const filteredDocuments = documents.filter(doc => {
     // Archive filter
     if (showArchived) return doc.archived === true
@@ -374,8 +475,10 @@ ${htmlContent}
     const matchesStandard = standardFilter === 'all' || doc.standard === standardFilter
     const matchesClause = clauseFilter === 'all' || doc.clause === parseInt(clauseFilter)
     const matchesType = typeFilter === 'all' || doc.type === typeFilter
+    const matchesStatus = statusFilter === 'all' || doc.status === statusFilter
+    const matchesOverdue = !overdueOnly || (doc.next_review_date && new Date(doc.next_review_date) < new Date())
 
-    return matchesSearch && matchesStandard && matchesClause && matchesType
+    return matchesSearch && matchesStandard && matchesClause && matchesType && matchesStatus && matchesOverdue
   })
 
   // Pagination
@@ -397,8 +500,12 @@ ${htmlContent}
     setStandardFilter('all')
     setClauseFilter('all')
     setTypeFilter('all')
+    setStatusFilter('all')
+    setOverdueOnly(false)
     setCurrentPage(1)
   }
+
+  const overdueCount = documents.filter(d => !d.archived && d.next_review_date && new Date(d.next_review_date) < new Date()).length
 
   if (loading) {
     return (
@@ -432,12 +539,48 @@ ${htmlContent}
         <div>
           <h2 className="text-xl md:text-2xl font-bold text-white">Document Management</h2>
           <p className="text-cyan-200 text-sm">
-            {showArchived 
-              ? `${archivedCount} archived documents` 
+            {showArchived
+              ? `${archivedCount} archived documents`
               : `${filteredDocuments.length} of ${documents.filter(d => !d.archived).length} documents`}
+            {overdueCount > 0 && !showArchived && (
+              <span className="text-red-400 ml-2">({overdueCount} overdue review{overdueCount !== 1 ? 's' : ''})</span>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {/* View toggle */}
+          <div className="flex rounded-xl overflow-hidden border border-white/20">
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-2 text-xs font-semibold transition-colors ${viewMode === 'cards' ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/70'}`}
+              title="Card View"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('register')}
+              className={`px-3 py-2 text-xs font-semibold transition-colors ${viewMode === 'register' ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/70'}`}
+              title="Register View"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+          {overdueCount > 0 && !showArchived && (
+            <button
+              onClick={() => setOverdueOnly(!overdueOnly)}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold ${
+                overdueOnly
+                  ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                  : 'glass glass-border text-red-400 hover:bg-red-500/10'
+              }`}
+            >
+              Overdue ({overdueCount})
+            </button>
+          )}
           <button
             onClick={() => setShowArchived(!showArchived)}
             className={`px-3 md:px-4 py-2 rounded-xl text-sm font-semibold ${
@@ -446,7 +589,7 @@ ${htmlContent}
                 : 'glass glass-border text-white/70 hover:bg-white/10'
             }`}
           >
-            {showArchived ? `📦 Archived (${archivedCount})` : `📦 Archive${archivedCount > 0 ? ` (${archivedCount})` : ''}`}
+            {showArchived ? `Archived (${archivedCount})` : `Archive${archivedCount > 0 ? ` (${archivedCount})` : ''}`}
           </button>
           <button
             onClick={() => setShowUploadForm(true)}
@@ -474,13 +617,13 @@ ${htmlContent}
       {/* Search & Filters */}
       {!showArchived && (
         <div className="glass glass-border rounded-2xl p-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <input
               type="text"
               placeholder="Search documents..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="px-4 py-2 glass glass-border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              className="col-span-2 md:col-span-1 px-4 py-2 glass glass-border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-400"
             />
 
             <select
@@ -520,6 +663,20 @@ ${htmlContent}
               <option value="Record" className="bg-slate-800">Record</option>
             </select>
 
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="px-4 py-2 glass glass-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-transparent"
+            >
+              <option value="all" className="bg-slate-800">All Statuses</option>
+              <option value="draft" className="bg-slate-800">Draft</option>
+              <option value="in_review" className="bg-slate-800">In Review</option>
+              <option value="active" className="bg-slate-800">Active</option>
+              <option value="Approved" className="bg-slate-800">Approved</option>
+              <option value="under_revision" className="bg-slate-800">Under Revision</option>
+              <option value="obsolete" className="bg-slate-800">Obsolete</option>
+            </select>
+
             <button
               onClick={clearFilters}
               className="px-4 py-2 glass glass-border rounded-xl text-white hover:bg-white/10 transition-colors"
@@ -530,8 +687,53 @@ ${htmlContent}
         </div>
       )}
 
-      {/* Documents by Standard & Clause */}
-      {Object.keys(groupedDocs).length === 0 ? (
+      {/* Register View */}
+      {viewMode === 'register' && !showArchived && (
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-white/30">Click any row to open document control panel</p>
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                const { exportRegisterPDF } = await import('../lib/documentRegisterExport.js')
+                exportRegisterPDF(filteredDocuments, {
+                  companyName: userProfile?.company?.name,
+                  companyCode: userProfile?.company?.company_code,
+                  exportedBy: userProfile?.full_name || userProfile?.email,
+                  logoUrl: userProfile?.company?.logo_url,
+                })
+                toast.success('Register PDF exported.')
+              }}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-white/20 text-white/60 hover:text-white hover:bg-white/10 transition-all"
+            >
+              Export PDF
+            </button>
+            <button
+              onClick={async () => {
+                const { exportRegisterCSV } = await import('../lib/documentRegisterExport.js')
+                exportRegisterCSV(filteredDocuments)
+                toast.success('Register CSV exported.')
+              }}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-white/20 text-white/60 hover:text-white hover:bg-white/10 transition-all"
+            >
+              Export CSV
+            </button>
+          </div>
+        </div>
+      )}
+      {viewMode === 'register' && !showArchived && (
+        <DocumentRegister
+          documents={filteredDocuments}
+          users={companyUsers}
+          acknowledgementCounts={acknowledgementCounts}
+          userAcknowledgements={userAcknowledgements}
+          onDocumentClick={(doc) => setControlPanelDoc(doc)}
+          onAcknowledge={handleAcknowledge}
+          currentUserId={userProfile?.id}
+        />
+      )}
+
+      {/* Card View: Documents by Standard & Clause */}
+      {(viewMode === 'cards' || showArchived) && Object.keys(groupedDocs).length === 0 ? (
         <div className="glass glass-border rounded-2xl p-12 text-center">
           <svg className="w-16 h-16 text-white/20 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -882,7 +1084,7 @@ ${htmlContent}
         <VersionUploadModal
           doc={versionUploadDoc}
           onClose={() => setVersionUploadDoc(null)}
-          onUpload={(file) => handleVersionUpload(versionUploadDoc, file)}
+          onUpload={(file, changeSummary) => handleVersionUpload(versionUploadDoc, file, changeSummary)}
         />
       )}
 
@@ -893,6 +1095,21 @@ ${htmlContent}
           onClose={() => setVersionHistoryDoc(null)}
           onDownload={handleDownload}
           userProfile={userProfile}
+        />
+      )}
+
+      {/* Document Control Panel */}
+      {controlPanelDoc && (
+        <DocumentControlPanel
+          doc={controlPanelDoc}
+          userProfile={userProfile}
+          companyId={getEffectiveCompanyId()}
+          users={companyUsers}
+          onClose={() => setControlPanelDoc(null)}
+          onUpdate={() => { fetchDocuments(); setControlPanelDoc(null) }}
+          onDownload={handleDownload}
+          onVersionUpload={(doc) => { setControlPanelDoc(null); setVersionUploadDoc(doc) }}
+          toast={toast}
         />
       )}
 
@@ -1333,13 +1550,14 @@ const BulkUploadForm = ({ userProfile, onClose, onUploaded }) => {
 
 const VersionUploadModal = ({ doc, onClose, onUpload }) => {
   const [file, setFile] = useState(null)
+  const [changeSummary, setChangeSummary] = useState('')
   const [uploading, setUploading] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!file) return
     setUploading(true)
-    await onUpload(file)
+    await onUpload(file, changeSummary)
     setUploading(false)
   }
 
@@ -1357,6 +1575,16 @@ const VersionUploadModal = ({ doc, onClose, onUpload }) => {
               type="file"
               onChange={(e) => setFile(e.target.files[0])}
               className="w-full text-white text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-cyan-500/20 file:text-cyan-300 hover:file:bg-cyan-500/30"
+            />
+          </div>
+          <div>
+            <label className="block text-white/70 text-sm mb-1">What changed? (optional)</label>
+            <textarea
+              value={changeSummary}
+              onChange={(e) => setChangeSummary(e.target.value)}
+              placeholder="e.g., Updated risk matrix, added new control measures..."
+              rows={2}
+              className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-cyan-500/50"
             />
           </div>
           <div className="flex gap-3 justify-end">
