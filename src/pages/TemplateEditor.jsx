@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import Layout from '../components/Layout'
 import { TEMPLATES, DOC_NUMBER_MAP, resolveAllPlaceholders } from '../lib/templateData'
+import { TEMPLATE_CONTENT } from '../lib/templateContent'
 
 // ─── Debounce hook ───
 function useDebounce(callback, delay) {
@@ -392,14 +393,8 @@ export default function TemplateEditor() {
       return
     }
 
-    // Load template content dynamically
-    let templateContent = null
-    try {
-      const mod = await import('../lib/templateContent.js')
-      templateContent = mod.TEMPLATE_CONTENT?.[tmplId] || mod.default?.[tmplId] || mod[tmplId]
-    } catch {
-      // Content not available — create empty sections
-    }
+    // Load template content (already bundled with this lazy-loaded chunk)
+    const templateContent = TEMPLATE_CONTENT[tmplId] || null
 
     // Fetch company data for placeholder resolution
     let companyData = {
