@@ -190,11 +190,11 @@ const Layout = ({ children }) => {
       </aside>
 
       {/* Main Content */}
-      <div className="lg:ml-[250px] flex flex-col min-h-screen">
+      <div className="lg:ml-[250px] flex flex-col min-h-screen overflow-x-hidden">
         {/* Reseller Client Selector */}
         <ClientSelector />
 
-        <main className="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+        <main className="max-w-7xl mx-auto px-4 py-6 flex-1 w-full overflow-x-hidden">
           <div className="animate-slide-in">
             {children}
           </div>
