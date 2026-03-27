@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import Layout from '../components/Layout'
@@ -65,15 +66,36 @@ function formatPrice(cents) {
 }
 
 const Templates = () => {
-  const { userProfile } = useAuth()
+  const { userProfile, user, getEffectiveCompanyId } = useAuth()
   const toast = useToast()
+  const navigate = useNavigate()
   const [activeCategory, setActiveCategory] = useState('all')
   const [standardFilter, setStandardFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [previewTemplate, setPreviewTemplate] = useState(null)
   const [generating, setGenerating] = useState(null)
+  const [showMyDocs, setShowMyDocs] = useState(false)
+  const [myDocuments, setMyDocuments] = useState([])
+  const [loadingDocs, setLoadingDocs] = useState(false)
 
   const isSubscriber = !!userProfile
+
+  // Load user's in-progress template documents
+  useEffect(() => {
+    if (!userProfile || !showMyDocs) return
+    const loadMyDocs = async () => {
+      setLoadingDocs(true)
+      const companyId = getEffectiveCompanyId()
+      const { data } = await supabase
+        .from('template_instances')
+        .select('id, template_id, title, doc_number, status, completion_percent, updated_at, created_at')
+        .eq('company_id', companyId)
+        .order('updated_at', { ascending: false })
+      setMyDocuments(data || [])
+      setLoadingDocs(false)
+    }
+    loadMyDocs()
+  }, [userProfile, showMyDocs])
 
   const filteredTemplates = useMemo(() => {
     return TEMPLATES.filter(t => {
@@ -394,9 +416,9 @@ const Templates = () => {
         {/* Category tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1">
           <button
-            onClick={() => setActiveCategory('all')}
+            onClick={() => { setActiveCategory('all'); setShowMyDocs(false) }}
             className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-              activeCategory === 'all'
+              activeCategory === 'all' && !showMyDocs
                 ? 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white'
                 : 'glass glass-border text-white/60 hover:text-white'
             }`}
@@ -408,9 +430,9 @@ const Templates = () => {
             return (
               <button
                 key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => { setActiveCategory(cat.id); setShowMyDocs(false) }}
                 className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${
-                  activeCategory === cat.id
+                  activeCategory === cat.id && !showMyDocs
                     ? 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white'
                     : 'glass glass-border text-white/60 hover:text-white'
                 }`}
@@ -420,7 +442,90 @@ const Templates = () => {
               </button>
             )
           })}
+          {/* My Documents tab */}
+          <button
+            onClick={() => setShowMyDocs(!showMyDocs)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${
+              showMyDocs
+                ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white'
+                : 'glass glass-border text-emerald-400/60 hover:text-emerald-300'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            My Documents
+          </button>
         </div>
+
+        {/* ─── My Documents panel ─── */}
+        {showMyDocs && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">Your In-Progress Documents</h3>
+              <span className="text-xs text-white/40">{myDocuments.length} document{myDocuments.length !== 1 ? 's' : ''}</span>
+            </div>
+
+            {loadingDocs ? (
+              <div className="text-center py-12">
+                <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-white/40 text-sm">Loading documents...</p>
+              </div>
+            ) : myDocuments.length === 0 ? (
+              <div className="text-center py-12 glass-card rounded-2xl">
+                <svg className="w-12 h-12 text-white/15 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                <p className="text-white/40 mb-2">No documents yet</p>
+                <p className="text-white/25 text-sm">Click "Edit in App" on any template to start building your document.</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {myDocuments.map(doc => {
+                  const tmpl = TEMPLATES.find(t => t.id === doc.template_id)
+                  const statusColors = {
+                    draft: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
+                    in_review: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                    approved: 'bg-green-500/20 text-green-300 border-green-500/30',
+                    archived: 'bg-white/10 text-white/40 border-white/20',
+                  }
+                  return (
+                    <button
+                      key={doc.id}
+                      onClick={() => navigate(`/editor/${doc.id}`)}
+                      className="glass-card rounded-2xl p-5 text-left hover:border-white/20 transition-all group"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-white text-sm truncate group-hover:text-cyan-300 transition-colors">{doc.title}</h4>
+                          {doc.doc_number && <p className="text-xs text-white/40 font-mono mt-0.5">{doc.doc_number}</p>}
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold flex-shrink-0 ml-2 ${statusColors[doc.status] || statusColors.draft}`}>
+                          {doc.status?.replace('_', ' ').toUpperCase() || 'DRAFT'}
+                        </span>
+                      </div>
+
+                      {/* Progress bar */}
+                      <div className="mb-3">
+                        <div className="flex justify-between text-[10px] text-white/30 mb-1">
+                          <span>Progress</span>
+                          <span>{doc.completion_percent || 0}%</span>
+                        </div>
+                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${doc.completion_percent === 100 ? 'bg-green-500' : 'bg-cyan-500'}`}
+                            style={{ width: `${doc.completion_percent || 0}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[10px] text-white/30">
+                        <span>{tmpl?.standard ? STANDARD_LABELS[tmpl.standard] : ''}</span>
+                        <span>Updated {new Date(doc.updated_at).toLocaleDateString('en-ZA')}</span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Template grid */}
         {filteredTemplates.length === 0 ? (
@@ -553,13 +658,24 @@ const Templates = () => {
                       )}
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <button
                         onClick={() => setPreviewTemplate(template)}
                         className="px-3 py-2 glass glass-border rounded-xl text-white/60 hover:text-white text-sm transition-all"
                       >
                         Preview
                       </button>
+                      {/* Edit in app — opens TipTap editor */}
+                      {!isBundle && isSubscriber && (
+                        <button
+                          onClick={() => navigate(`/editor/new?template=${template.id}`)}
+                          className="px-3 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-300 hover:bg-emerald-500/30 text-sm font-semibold transition-all flex items-center gap-1.5"
+                          title="Edit this template in the app with autosave"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                          Edit in App
+                        </button>
+                      )}
                       {/* Dual-mode for form templates: Blank + Live Data */}
                       {template.docType === 'form' && isSubscriber && (
                         <button

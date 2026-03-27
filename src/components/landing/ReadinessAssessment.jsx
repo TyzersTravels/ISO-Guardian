@@ -347,18 +347,52 @@ export default function ReadinessAssessment() {
               </h3>
               <p className="text-white/60 mb-8 max-w-md mx-auto">{readinessLevel.desc}</p>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
-                <h4 className="font-bold text-white mb-2">Want a detailed gap analysis?</h4>
-                <p className="text-white/50 text-sm mb-4">
-                  Our ISO consultants can provide a comprehensive review of your management system
-                  and a step-by-step roadmap to certification.
-                </p>
-                <a
-                  href={`mailto:${SUPPORT_EMAIL}?subject=Gap%20Analysis%20Request%20%E2%80%94%20${encodeURIComponent(contactInfo.company_name)}%20(${contactInfo.standard})&body=Hi%2C%0A%0AWe%20scored%20${score}%25%20on%20the%20${encodeURIComponent(contactInfo.standard)}%20readiness%20assessment%20and%20would%20like%20to%20discuss%20a%20detailed%20gap%20analysis.%0A%0ACompany%3A%20${encodeURIComponent(contactInfo.company_name)}%0AEmail%3A%20${encodeURIComponent(contactInfo.email)}%0APhone%3A%20${encodeURIComponent(contactInfo.phone || 'Not provided')}%0A%0AThank%20you.`}
-                  className="inline-block px-8 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-xl transition-all"
-                >
-                  Get in Touch
-                </a>
+              {/* Next steps based on score */}
+              <div className="space-y-4 mb-6">
+                {/* Primary CTA — Start trial */}
+                <div className="bg-gradient-to-br from-cyan-500/10 to-purple-500/10 border border-cyan-500/20 rounded-2xl p-6">
+                  <h4 className="font-bold text-white mb-2">Start managing your compliance today</h4>
+                  <p className="text-white/50 text-sm mb-4">
+                    {score <= 60
+                      ? 'ISOGuardian helps you close gaps fast with document templates, NCR tracking, and audit management — all in one platform.'
+                      : 'Keep your compliance current with automated tracking, audit scheduling, and real-time dashboards.'}
+                  </p>
+                  <a
+                    href="/signup"
+                    className="inline-block px-8 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-xl transition-all"
+                  >
+                    Start 14-Day Free Trial
+                  </a>
+                  <p className="text-white/30 text-xs mt-2">No credit card required</p>
+                </div>
+
+                {/* Secondary — Templates + Consultation */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+                    <h5 className="font-semibold text-white text-sm mb-1">Need templates?</h5>
+                    <p className="text-white/40 text-xs mb-3">
+                      Get {contactInfo.standard} document templates to kickstart your system.
+                    </p>
+                    <button
+                      onClick={() => document.getElementById('templates')?.scrollIntoView({ behavior: 'smooth' })}
+                      className="text-cyan-400 text-sm font-semibold hover:text-cyan-300 transition-colors"
+                    >
+                      View Templates &rarr;
+                    </button>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+                    <h5 className="font-semibold text-white text-sm mb-1">Want expert help?</h5>
+                    <p className="text-white/40 text-xs mb-3">
+                      Book a consultation for a full gap analysis and certification roadmap.
+                    </p>
+                    <a
+                      href={`mailto:${SUPPORT_EMAIL}?subject=Gap%20Analysis%20Request%20%E2%80%94%20${encodeURIComponent(contactInfo.company_name)}%20(${contactInfo.standard})&body=Hi%2C%0A%0AWe%20scored%20${score}%25%20on%20the%20${encodeURIComponent(contactInfo.standard)}%20readiness%20assessment.%0A%0ACompany%3A%20${encodeURIComponent(contactInfo.company_name)}%0AEmail%3A%20${encodeURIComponent(contactInfo.email)}%0A%0AThank%20you.`}
+                      className="text-purple-400 text-sm font-semibold hover:text-purple-300 transition-colors"
+                    >
+                      Get in Touch &rarr;
+                    </a>
+                  </div>
+                </div>
               </div>
 
               <button

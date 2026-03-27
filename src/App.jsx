@@ -45,6 +45,7 @@ const ResellerProgramme = lazy(() => import('./pages/ResellerProgramme'))
 const AffiliateProgramme = lazy(() => import('./pages/AffiliateProgramme'))
 const Consultation = lazy(() => import('./pages/Consultation'))
 const FinancialDashboard = lazy(() => import('./pages/FinancialDashboard'))
+const TemplateEditor = lazy(() => import('./pages/TemplateEditor'))
 
 // Loading fallback for lazy-loaded routes
 const PageLoader = () => (
@@ -99,7 +100,9 @@ function App() {
           {/* <Route path="/ai-copilot" element={<ProtectedRoute><AICopilot /></ProtectedRoute>} /> */}{/* Hidden until launch */}
           <Route path="/audit-connect" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin', 'lead_auditor']}><AuditorInvite /></RoleProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-          <Route path="/templates" element={<RoleProtectedRoute allowedRoles={['super_admin']}><Templates /></RoleProtectedRoute>} />
+          <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
+          <Route path="/editor/new" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
+          <Route path="/editor/:instanceId" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
           <Route path="/finance" element={<RoleProtectedRoute allowedRoles={['super_admin']}><FinancialDashboard /></RoleProtectedRoute>} />
 
           {/* Landing */}
