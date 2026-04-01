@@ -441,6 +441,21 @@ export default function TemplateEditor() {
       ? DOC_NUMBER_MAP[tmplId].replace(/\{\{CODE\}\}/g, companyData.companyCode)
       : null
 
+    // Check for existing instance — reuse instead of creating duplicates
+    const { data: existing } = await supabase
+      .from('template_instances')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('template_id', tmplId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existing) {
+      navigate(`/templates/edit/${existing.id}`, { replace: true })
+      return
+    }
+
     // Insert into DB
     const { data: newInstance, error } = await supabase
       .from('template_instances')

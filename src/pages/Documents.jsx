@@ -255,7 +255,7 @@ const Documents = () => {
           document.body.removeChild(a)
         }, 100)
       } else {
-        toast.warning('This document does not have an uploaded file')
+        toast.info('Upload a file to this document to enable viewing and downloads')
       }
     } catch (err) {
       console.error('Error downloading document:', err)
@@ -296,7 +296,7 @@ const Documents = () => {
           await handleDownload(doc)
         }
       } else {
-        toast.warning('This document does not have an uploaded file')
+        toast.info('Upload a file to this document to enable viewing and downloads')
       }
     } catch (err) {
       console.error('Error viewing document:', err)
@@ -307,7 +307,7 @@ const Documents = () => {
   const exportDocumentAsWord = async (doc) => {
     try {
       if (!doc.file_path) {
-        toast.warning('This document does not have an uploaded file')
+        toast.info('Upload a file to this document to enable viewing and downloads')
         return
       }
 

@@ -189,12 +189,12 @@ export default function LandingPage() {
           1. HERO — Full viewport, one message, parallax
       ═══════════════════════════════════════════════════════════════════ */}
       <section ref={heroParallaxRef} className="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden" style={{ transform: 'translateY(var(--parallax-y, 0px))', opacity: 'var(--parallax-opacity, 1)' }}>
-        {/* Ambient orbs */}
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/3 right-1/4 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px]" />
+        {/* Ambient orbs — hidden on mobile for performance */}
+        <div className="hidden md:block absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[80px]" />
+        <div className="hidden md:block absolute bottom-1/3 right-1/4 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[60px]" />
 
-        {/* SVG grid pattern */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
+        {/* SVG grid pattern — desktop only */}
+        <svg className="hidden md:block absolute inset-0 w-full h-full pointer-events-none opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="hero-grid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
               <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="0.5" />
@@ -203,20 +203,20 @@ export default function LandingPage() {
           <rect width="100%" height="100%" fill="url(#hero-grid)" />
         </svg>
 
-        {/* Floating geometric shapes */}
-        <svg className="absolute top-20 right-[10%] w-24 h-24 text-cyan-400/10 animate-float-slow" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Floating geometric shapes — desktop only */}
+        <svg className="hidden lg:block absolute top-20 right-[10%] w-24 h-24 text-cyan-400/10 animate-float-slow" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
           <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" stroke="currentColor" strokeWidth="1.5" />
           <polygon points="50,20 80,35 80,65 50,80 20,65 20,35" stroke="currentColor" strokeWidth="0.8" />
         </svg>
-        <svg className="absolute bottom-32 left-[8%] w-16 h-16 text-purple-400/10 animate-float-slow" style={{ animationDelay: '2s' }} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg className="hidden lg:block absolute bottom-32 left-[8%] w-16 h-16 text-purple-400/10 animate-float-slow" style={{ animationDelay: '2s' }} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="15" y="15" width="70" height="70" rx="8" stroke="currentColor" strokeWidth="1.5" transform="rotate(45 50 50)" />
         </svg>
-        <svg className="absolute top-1/3 left-[5%] w-10 h-10 text-cyan-300/8 animate-float-slow" style={{ animationDelay: '4s' }} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg className="hidden lg:block absolute top-1/3 left-[5%] w-10 h-10 text-cyan-300/8 animate-float-slow" style={{ animationDelay: '4s' }} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="1.5" />
           <circle cx="50" cy="50" r="20" stroke="currentColor" strokeWidth="0.8" />
         </svg>
 
-        {/* Dot constellation — top right */}
+        {/* Dot constellation — desktop only */}
         <svg className="absolute top-16 right-16 w-48 h-48 text-white/[0.04] hidden lg:block" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
           <circle cx="20" cy="20" r="2" fill="currentColor" /><circle cx="60" cy="30" r="1.5" fill="currentColor" /><circle cx="100" cy="15" r="2" fill="currentColor" /><circle cx="140" cy="40" r="1.5" fill="currentColor" /><circle cx="180" cy="20" r="2" fill="currentColor" />
           <circle cx="40" cy="70" r="1.5" fill="currentColor" /><circle cx="80" cy="80" r="2" fill="currentColor" /><circle cx="120" cy="60" r="1.5" fill="currentColor" /><circle cx="160" cy="90" r="2" fill="currentColor" />

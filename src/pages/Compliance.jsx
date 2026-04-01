@@ -245,10 +245,10 @@ const Compliance = () => {
           })}
         </div>
 
-        {requirements.length === 0 && (
+        {requirements.length === 0 && !loading && (
           <div className="glass glass-border rounded-xl p-8 text-center">
-            <p className="text-white/60 mb-4">No requirements loaded for this standard</p>
-            <p className="text-white/40 text-sm">Run the seed SQL scripts to load ISO requirements</p>
+            <p className="text-white/60 mb-4">No compliance requirements found for this standard</p>
+            <p className="text-white/40 text-sm">Contact your administrator to set up compliance tracking for your organisation</p>
           </div>
         )}
       </div>

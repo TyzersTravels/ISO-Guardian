@@ -6,18 +6,17 @@ export function useFadeIn() {
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    el.style.opacity = '0'
-    el.style.transform = 'translateY(24px)'
-    el.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out'
+    // Use CSS classes instead of inline styles for better mobile perf
+    el.classList.add('anim-fade-init')
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          el.style.opacity = '1'
-          el.style.transform = 'translateY(0)'
+          el.classList.remove('anim-fade-init')
+          el.classList.add('anim-fade-in')
           observer.disconnect()
         }
       },
-      { threshold: 0.12 }
+      { threshold: 0.08 }
     )
     observer.observe(el)
     return () => observer.disconnect()
@@ -33,17 +32,15 @@ export function useStaggerFadeIn(staggerDelay = 120) {
     if (!container) return
     const children = container.querySelectorAll('[data-stagger]')
     children.forEach(child => {
-      child.style.opacity = '0'
-      child.style.transform = 'translateY(20px)'
-      child.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out'
+      child.classList.add('anim-fade-init')
     })
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           children.forEach((child, i) => {
             setTimeout(() => {
-              child.style.opacity = '1'
-              child.style.transform = 'translateY(0)'
+              child.classList.remove('anim-fade-init')
+              child.classList.add('anim-fade-in')
             }, i * staggerDelay)
           })
           observer.disconnect()

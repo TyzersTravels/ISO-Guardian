@@ -16,6 +16,23 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Scroll-triggered animation classes (GPU-accelerated) ── */
+.anim-fade-init {
+  opacity: 0;
+  transform: translateY(20px);
+  will-change: opacity, transform;
+}
+.anim-fade-in {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-init { opacity: 1; transform: none; }
+  .anim-fade-in { transition: none; }
+}
+
 @layer components {
   /* ── Glass Morphism ── */
   .glass {
