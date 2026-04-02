@@ -282,7 +282,7 @@ const Dashboard = () => {
   return (
     <Layout>
       {showOnboarding && (
-        <OnboardingWelcome onComplete={completeOnboarding} />
+        <OnboardingWelcome onComplete={completeOnboarding} companyId={getEffectiveCompanyId()} />
       )}
       <div className="space-y-4 md:space-y-6">
         {/* Welcome Header */}

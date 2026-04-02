@@ -1,14 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { supabase } from '../lib/supabase'
 
 const ONBOARDING_KEY = 'isoguardian_onboarding_complete'
 
+const INDUSTRIES = [
+  'Manufacturing', 'Construction', 'Mining', 'Engineering',
+  'Healthcare', 'Logistics', 'Professional Services',
+  'Information Technology', 'Food & Beverage', 'Energy',
+  'Agriculture', 'Automotive', 'Pharmaceuticals', 'Other',
+]
+
 const TOUR_STEPS = [
   {
-    target: null, // Welcome modal — no spotlight
+    id: 'welcome',
+    target: null,
     title: 'Welcome to ISOGuardian',
     subtitle: 'Your ISO Compliance Management Platform',
-    body: 'Let us show you around. This quick tour highlights the key features you\'ll use to manage your Integrated Management System.',
-    tip: 'You can revisit this tour anytime from your Profile page.',
+    body: 'Let\'s get you set up. First, we\'ll complete your company profile, then give you a quick tour of the platform.',
+    tip: 'This takes about 2 minutes. You can revisit the tour anytime from your Profile page.',
     icon: (
       <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -16,6 +25,20 @@ const TOUR_STEPS = [
     ),
   },
   {
+    id: 'profile',
+    target: null,
+    title: 'Complete Your Profile',
+    subtitle: 'Tell us about your organisation',
+    body: null, // Rendered as custom form
+    isProfileStep: true,
+    icon: (
+      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+    ),
+  },
+  {
+    id: 'dashboard',
     target: '[data-tour="dashboard"]',
     title: 'Dashboard',
     body: 'Your command centre. See open NCRs, upcoming audits, document review dates, and compliance scores at a glance.',
@@ -27,6 +50,7 @@ const TOUR_STEPS = [
     ),
   },
   {
+    id: 'documents',
     target: '[data-tour="documents"]',
     title: 'Document Control',
     subtitle: 'ISO 9001:7.5',
@@ -40,6 +64,7 @@ const TOUR_STEPS = [
     ),
   },
   {
+    id: 'ncrs',
     target: '[data-tour="ncrs"]',
     title: 'NCR Management',
     subtitle: 'ISO 9001:10.2',
@@ -53,6 +78,7 @@ const TOUR_STEPS = [
     ),
   },
   {
+    id: 'compliance',
     target: '[data-tour="compliance"]',
     title: 'Compliance Scoring',
     subtitle: 'Clauses 4-10',
@@ -65,6 +91,7 @@ const TOUR_STEPS = [
     ),
   },
   {
+    id: 'audits',
     target: '[data-tour="audits"]',
     title: 'Audit Management',
     subtitle: 'ISO 19011',
@@ -78,6 +105,7 @@ const TOUR_STEPS = [
     ),
   },
   {
+    id: 'reviews',
     target: '[data-tour="management-reviews"]',
     title: 'Management Reviews',
     subtitle: 'ISO 9001:9.3',
@@ -90,6 +118,7 @@ const TOUR_STEPS = [
     ),
   },
   {
+    id: 'templates',
     target: '[data-tour="templates"]',
     title: 'Template Marketplace',
     body: 'Pre-built ISO document templates with your company details auto-filled. Edit in-app and export as branded PDFs.',
@@ -101,7 +130,8 @@ const TOUR_STEPS = [
     ),
   },
   {
-    target: null, // Final step — checklist modal
+    id: 'done',
+    target: null,
     title: 'You\'re All Set!',
     subtitle: 'Here\'s your quick-start checklist',
     body: 'Complete these steps to get your compliance system up and running:',
@@ -121,6 +151,125 @@ const TOUR_STEPS = [
   },
 ]
 
+/* ─── Profile Form (step 1) ───────────────────────────────────────── */
+function ProfileForm({ companyId, onSaved, onSkip }) {
+  const [form, setForm] = useState({ name: '', industry: '', company_code: '' })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!companyId) return
+    supabase.from('companies').select('name, industry, company_code').eq('id', companyId).maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setForm({
+            name: data.name || '',
+            industry: data.industry || '',
+            company_code: data.company_code || '',
+          })
+        }
+      })
+  }, [companyId])
+
+  const handleSave = async () => {
+    if (!form.name.trim()) { setError('Company name is required'); return }
+    if (!form.industry) { setError('Please select an industry'); return }
+    if (!form.company_code.trim()) { setError('Company code is required (2-4 letters)'); return }
+
+    const code = form.company_code.trim().toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4)
+    if (code.length < 2) { setError('Company code must be at least 2 letters'); return }
+
+    setSaving(true)
+    setError('')
+
+    const { error: updateError } = await supabase
+      .from('companies')
+      .update({
+        name: form.name.trim(),
+        industry: form.industry,
+        company_code: code,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', companyId)
+
+    setSaving(false)
+    if (updateError) {
+      setError('Failed to save. Please try again.')
+      return
+    }
+    onSaved()
+  }
+
+  const isPlaceholder = !form.name || form.name.includes("'s Company") || form.name === 'New Company'
+
+  return (
+    <div className="space-y-4">
+      {isPlaceholder && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+          <p className="text-xs text-amber-300">We created a placeholder name from your payment details. Please update it below.</p>
+        </div>
+      )}
+
+      <div>
+        <label className="text-xs text-white/50 block mb-1">Company Name *</label>
+        <input
+          type="text"
+          value={form.name}
+          onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+          placeholder="e.g. Apex Manufacturing (Pty) Ltd"
+          className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white text-sm placeholder-white/30 focus:outline-none focus:border-cyan-500 transition-colors"
+          autoFocus
+        />
+      </div>
+
+      <div>
+        <label className="text-xs text-white/50 block mb-1">Industry *</label>
+        <select
+          value={form.industry}
+          onChange={e => setForm(p => ({ ...p, industry: e.target.value }))}
+          className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-500 transition-colors"
+        >
+          <option value="" className="bg-slate-800">Select your industry</option>
+          {INDUSTRIES.map(ind => (
+            <option key={ind} value={ind} className="bg-slate-800">{ind}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="text-xs text-white/50 block mb-1">Company Code * <span className="text-white/30">(2-4 letters, used in document numbers)</span></label>
+        <input
+          type="text"
+          value={form.company_code}
+          onChange={e => setForm(p => ({ ...p, company_code: e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4) }))}
+          placeholder="e.g. AM"
+          maxLength={4}
+          className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white text-sm placeholder-white/30 focus:outline-none focus:border-cyan-500 transition-colors uppercase tracking-wider"
+        />
+        {form.company_code && (
+          <p className="text-[10px] text-white/30 mt-1">Documents will be numbered: IG-{form.company_code || 'XX'}-DOC-001</p>
+        )}
+      </div>
+
+      {error && <p className="text-xs text-red-400">{error}</p>}
+
+      <div className="flex gap-2 pt-1">
+        <button onClick={onSkip} className="px-3 py-2 text-xs text-white/40 hover:text-white/70 transition-colors">
+          I'll do this later
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex-1 px-4 py-2.5 text-sm font-semibold bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-xl hover:from-cyan-400 hover:to-purple-400 transition-all disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : 'Save & Continue'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Spotlight Overlay ───────────────────────────────────────────── */
 function SpotlightOverlay({ targetRect, onClick }) {
   if (!targetRect) {
     return (
@@ -151,7 +300,8 @@ function SpotlightOverlay({ targetRect, onClick }) {
   )
 }
 
-function Tooltip({ step, targetRect, currentStep, totalSteps, onNext, onBack, onSkip }) {
+/* ─── Tooltip ─────────────────────────────────────────────────────── */
+function Tooltip({ step, targetRect, currentStep, totalSteps, onNext, onBack, onSkip, companyId, onProfileSaved }) {
   const tooltipRef = useRef(null)
   const [pos, setPos] = useState({ top: 0, left: 0 })
 
@@ -160,7 +310,6 @@ function Tooltip({ step, targetRect, currentStep, totalSteps, onNext, onBack, on
     const tt = tooltipRef.current.getBoundingClientRect()
 
     if (!targetRect) {
-      // Centred modal
       setPos({
         top: Math.max(20, (window.innerHeight - tt.height) / 2),
         left: Math.max(16, (window.innerWidth - tt.width) / 2),
@@ -171,24 +320,21 @@ function Tooltip({ step, targetRect, currentStep, totalSteps, onNext, onBack, on
     const gap = 12
     let top, left
 
-    // Try positioning to the right
     if (step.position === 'right' || !step.position) {
       left = targetRect.right + gap
       top = targetRect.top + (targetRect.height / 2) - (tt.height / 2)
 
-      // If it overflows right, position below
       if (left + tt.width > window.innerWidth - 16) {
         left = Math.max(16, targetRect.left)
         top = targetRect.bottom + gap
       }
     }
 
-    // Clamp to viewport
     top = Math.max(16, Math.min(top, window.innerHeight - tt.height - 16))
     left = Math.max(16, Math.min(left, window.innerWidth - tt.width - 16))
 
     setPos({ top, left })
-  }, [targetRect, step])
+  }, [targetRect, step, currentStep])
 
   const isFirst = currentStep === 0
   const isLast = currentStep === totalSteps - 1
@@ -196,7 +342,7 @@ function Tooltip({ step, targetRect, currentStep, totalSteps, onNext, onBack, on
   return (
     <div
       ref={tooltipRef}
-      className="fixed z-[999] w-[340px] max-w-[calc(100vw-32px)] animate-fade-in"
+      className="fixed z-[999] w-[360px] max-w-[calc(100vw-32px)] animate-fade-in"
       style={{ top: pos.top, left: pos.left }}
     >
       <div className="bg-slate-900/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden">
@@ -221,61 +367,67 @@ function Tooltip({ step, targetRect, currentStep, totalSteps, onNext, onBack, on
             <span className="text-[10px] text-white/30 ml-auto flex-shrink-0">{currentStep + 1}/{totalSteps}</span>
           </div>
 
-          {/* Body */}
-          <p className="text-sm text-white/70 leading-relaxed mb-3">{step.body}</p>
+          {/* Profile form step */}
+          {step.isProfileStep ? (
+            <ProfileForm
+              companyId={companyId}
+              onSaved={() => { onProfileSaved(); onNext() }}
+              onSkip={onNext}
+            />
+          ) : (
+            <>
+              {/* Body */}
+              {step.body && <p className="text-sm text-white/70 leading-relaxed mb-3">{step.body}</p>}
 
-          {/* Tip */}
-          {step.tip && (
-            <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-3 py-2 mb-3">
-              <p className="text-xs text-cyan-300">
-                <span className="font-semibold">Tip:</span> {step.tip}
-              </p>
-            </div>
-          )}
-
-          {/* Checklist */}
-          {step.checklist && (
-            <div className="bg-white/5 border border-white/10 rounded-lg p-3 mb-3 space-y-2">
-              {step.checklist.map((item, i) => (
-                <div key={i} className="flex items-center gap-2.5">
-                  <div className="w-4 h-4 rounded border border-white/30 flex-shrink-0" />
-                  <span className="text-xs text-white/60">{item}</span>
+              {/* Tip */}
+              {step.tip && (
+                <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-3 py-2 mb-3">
+                  <p className="text-xs text-cyan-300">
+                    <span className="font-semibold">Tip:</span> {step.tip}
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
+              )}
 
-          {/* Navigation */}
-          <div className="flex items-center gap-2 mt-4">
-            {isFirst ? (
-              <button
-                onClick={onSkip}
-                className="px-3 py-2 text-xs text-white/40 hover:text-white/70 transition-colors"
-              >
-                Skip tour
-              </button>
-            ) : (
-              <button
-                onClick={onBack}
-                className="px-3 py-2 text-xs bg-white/10 border border-white/15 text-white/70 rounded-lg hover:bg-white/15 transition-all"
-              >
-                Back
-              </button>
-            )}
-            <button
-              onClick={onNext}
-              className="flex-1 px-4 py-2 text-sm font-semibold bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-400 hover:to-purple-400 transition-all"
-            >
-              {isLast ? 'Get Started' : 'Next'}
-            </button>
-          </div>
+              {/* Checklist */}
+              {step.checklist && (
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3 mb-3 space-y-2">
+                  {step.checklist.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2.5">
+                      <div className="w-4 h-4 rounded border border-white/30 flex-shrink-0" />
+                      <span className="text-xs text-white/60">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Navigation */}
+              <div className="flex items-center gap-2 mt-4">
+                {isFirst ? (
+                  <button onClick={onSkip} className="px-3 py-2 text-xs text-white/40 hover:text-white/70 transition-colors">
+                    Skip tour
+                  </button>
+                ) : (
+                  <button onClick={onBack} className="px-3 py-2 text-xs bg-white/10 border border-white/15 text-white/70 rounded-lg hover:bg-white/15 transition-all">
+                    Back
+                  </button>
+                )}
+                <button
+                  onClick={onNext}
+                  className="flex-1 px-4 py-2 text-sm font-semibold bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-400 hover:to-purple-400 transition-all"
+                >
+                  {isLast ? 'Get Started' : 'Next'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
   )
 }
 
-const OnboardingTour = ({ onComplete }) => {
+/* ─── Main Tour Component ─────────────────────────────────────────── */
+const OnboardingTour = ({ onComplete, companyId }) => {
   const [currentStep, setCurrentStep] = useState(0)
   const [targetRect, setTargetRect] = useState(null)
   const step = TOUR_STEPS[currentStep]
@@ -289,10 +441,8 @@ const OnboardingTour = ({ onComplete }) => {
     if (el) {
       const rect = el.getBoundingClientRect()
       setTargetRect(rect)
-      // Scroll into view if needed
       if (rect.top < 0 || rect.bottom > window.innerHeight) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        // Re-read after scroll
         setTimeout(() => setTargetRect(el.getBoundingClientRect()), 400)
       }
     } else {
@@ -310,7 +460,6 @@ const OnboardingTour = ({ onComplete }) => {
     }
   }, [updateTargetRect])
 
-  // Lock body scroll during tour
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
@@ -328,6 +477,11 @@ const OnboardingTour = ({ onComplete }) => {
     if (currentStep > 0) setCurrentStep(prev => prev - 1)
   }
 
+  const handleProfileSaved = () => {
+    // Reload the page data after profile update so sidebar shows new company name
+    window.dispatchEvent(new Event('profile-updated'))
+  }
+
   return (
     <>
       <SpotlightOverlay targetRect={targetRect} onClick={() => {}} />
@@ -339,6 +493,8 @@ const OnboardingTour = ({ onComplete }) => {
         onNext={handleNext}
         onBack={handleBack}
         onSkip={onComplete}
+        companyId={companyId}
+        onProfileSaved={handleProfileSaved}
       />
     </>
   )
