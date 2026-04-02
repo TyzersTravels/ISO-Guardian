@@ -336,7 +336,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           2. PROBLEM — Before & After
       ═══════════════════════════════════════════════════════════════════ */}
-      <section id="features" ref={problemRef} className="py-24 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
+      <section id="features" ref={problemRef} className="py-24">
         <div className="max-w-5xl mx-auto px-4 md:px-6">
           <h2 className="text-2xl md:text-4xl font-extrabold text-center mb-16 leading-tight">
             Manual compliance is costing you{' '}
@@ -366,7 +366,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           3. FEATURES — Bento Grid
       ═══════════════════════════════════════════════════════════════════ */}
-      <section ref={featuresRef} className="relative py-24 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
+      <section ref={featuresRef} className="relative py-24">
         {/* SVG circuit lines */}
         <svg className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-[0.025]" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
           <defs>
@@ -414,7 +414,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           4. STANDARDS — ISO 9001, 14001, 45001
       ═══════════════════════════════════════════════════════════════════ */}
-      <section id="standards" ref={standardsRef} className="relative py-24 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
+      <section id="standards" ref={standardsRef} className="relative py-24">
         {/* Shield SVG watermark */}
         <svg className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] text-white/[0.015] pointer-events-none" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M100 15 L170 50 V110 C170 150 140 180 100 195 C60 180 30 150 30 110 V50 Z" stroke="currentColor" strokeWidth="1" />
@@ -489,7 +489,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           7. PRICING
       ═══════════════════════════════════════════════════════════════════ */}
-      <section id="pricing" ref={pricingRef} className="relative py-24 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
+      <section id="pricing" ref={pricingRef} className="relative py-24">
         {/* Radial dot pattern */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.02]" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -644,7 +644,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           11. TESTIMONIALS
       ═══════════════════════════════════════════════════════════════════ */}
-      <section ref={testimonialsRef} className="py-24 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
+      <section ref={testimonialsRef} className="py-24">
         <div className="max-w-5xl mx-auto px-4 md:px-6">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-full text-xs font-semibold text-purple-300 mb-6">
@@ -699,7 +699,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           12. FAQ
       ═══════════════════════════════════════════════════════════════════ */}
-      <section id="faq" ref={faqRef} className="py-24 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
+      <section id="faq" ref={faqRef} className="py-24">
         <div className="max-w-2xl mx-auto px-4 md:px-6">
           <h2 className="text-2xl md:text-3xl font-extrabold text-center mb-10">
             Frequently Asked <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Questions</span>
@@ -733,7 +733,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           12. FINAL CTA
       ═══════════════════════════════════════════════════════════════════ */}
-      <section id="contact" ref={ctaRef} className="py-24 transition-all duration-700" style={{ opacity: 0, transform: 'translateY(30px)' }}>
+      <section id="contact" ref={ctaRef} className="py-24">
         <div className="max-w-3xl mx-auto px-4 md:px-6">
           <div className="relative bg-gradient-to-br from-purple-900/40 to-slate-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-10 md:p-14 text-center shadow-2xl overflow-hidden">
             {/* Background glow */}
