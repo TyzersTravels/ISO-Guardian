@@ -4,10 +4,12 @@ import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 import { useToast } from '../contexts/ToastContext'
+import { useOnboarding } from '../components/OnboardingWelcome'
 
 const UserProfile = () => {
   const { user, userProfile } = useAuth()
   const toast = useToast()
+  const { resetOnboarding } = useOnboarding()
   const [saving, setSaving] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
   const [profileData, setProfileData] = useState({
@@ -196,6 +198,21 @@ const UserProfile = () => {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Restart Tour */}
+      <div className="glass glass-border rounded-xl p-6">
+        <h2 className="text-lg font-semibold text-white mb-2">Platform Tour</h2>
+        <p className="text-sm text-white/50 mb-4">Revisit the guided tour to learn about ISOGuardian's features.</p>
+        <button
+          onClick={() => {
+            resetOnboarding()
+            window.location.href = '/dashboard'
+          }}
+          className="px-4 py-2 bg-white/10 border border-white/20 text-white/80 rounded-xl hover:bg-white/20 transition-all text-sm"
+        >
+          Restart Tour
+        </button>
       </div>
     </Layout>
   )

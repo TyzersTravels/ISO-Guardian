@@ -282,10 +282,7 @@ const Dashboard = () => {
   return (
     <Layout>
       {showOnboarding && (
-        <OnboardingWelcome
-          userName={userProfile?.full_name}
-          onComplete={completeOnboarding}
-        />
+        <OnboardingWelcome onComplete={completeOnboarding} />
       )}
       <div className="space-y-4 md:space-y-6">
         {/* Welcome Header */}

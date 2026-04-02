@@ -114,6 +114,7 @@ const Layout = ({ children }) => {
               {group.items.map(item => (
                 <button
                   key={item.path}
+                  data-tour={item.path.replace('/', '')}
                   onClick={() => handleNav(item.path)}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                     isActive(item.path)
