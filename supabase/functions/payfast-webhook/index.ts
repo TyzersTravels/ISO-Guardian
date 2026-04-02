@@ -6,6 +6,7 @@
 // See: https://developers.payfast.co.za/docs#step-4-confirm-payment
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { enrollInDrip } from '../_shared/drip.ts'
 
 const PAYFAST_MERCHANT_ID = Deno.env.get('PAYFAST_MERCHANT_ID')!
 const PAYFAST_PASSPHRASE = Deno.env.get('PAYFAST_PASSPHRASE') || ''
@@ -27,6 +28,116 @@ const TIERS: Record<string, { maxUsers: number; storageGb: number; price: number
 
 // Reseller commission rate
 const RESELLER_COMMISSION_RATE = 0.25 // 25%
+
+// Generate company code from name (first letters of each word, max 4)
+function generateCompanyCode(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(w => w.length > 0)
+    .map(w => w[0].toUpperCase())
+    .join('')
+    .slice(0, 4) || 'CO'
+}
+
+// Generate a secure temporary password (user will reset via email link)
+function generateTempPassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*'
+  const array = new Uint8Array(16)
+  crypto.getRandomValues(array)
+  return Array.from(array, b => chars[b % chars.length]).join('')
+}
+
+// Send welcome email with password reset link
+async function sendWelcomeEmail(email: string, name: string, tier: string): Promise<void> {
+  if (!RESEND_API_KEY) return
+  try {
+    // Generate a password reset link via Supabase Auth
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    const { data: linkData } = await supabase.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo: `${SITE_URL}/reset-password` },
+    })
+
+    const resetUrl = linkData?.properties?.action_link || `${SITE_URL}/password-recovery`
+
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'ISOGuardian <noreply@isoguardian.co.za>',
+        to: [email],
+        subject: 'Welcome to ISOGuardian — Your Account is Ready',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0015; color: #fff; border-radius: 12px; overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #06b6d4, #8b5cf6); padding: 32px; text-align: center;">
+              <h1 style="margin: 0; font-size: 24px;">Welcome to ISOGuardian</h1>
+              <p style="margin: 8px 0 0; opacity: 0.9;">Your payment has been confirmed</p>
+            </div>
+            <div style="padding: 32px;">
+              <p style="color: #cbd5e1;">Hi ${name || 'there'},</p>
+              <p style="color: #cbd5e1;">Thank you for subscribing to the <strong>${tier}</strong> plan! Your account has been automatically created and is ready to use.</p>
+              <p style="color: #cbd5e1;">To get started, please set your password by clicking the button below:</p>
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${resetUrl}" style="background: linear-gradient(135deg, #06b6d4, #8b5cf6); color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+                  Set Your Password
+                </a>
+              </div>
+              <p style="color: #94a3b8; font-size: 13px;">This link expires in 24 hours. If it expires, you can request a new one at <a href="${SITE_URL}/password-recovery" style="color: #06b6d4;">isoguardian.co.za/password-recovery</a>.</p>
+              <hr style="border: none; border-top: 1px solid #1e293b; margin: 24px 0;" />
+              <p style="color: #94a3b8; font-size: 13px;">
+                <strong>What's next?</strong><br/>
+                1. Set your password above<br/>
+                2. Sign in at <a href="${SITE_URL}/login" style="color: #06b6d4;">isoguardian.co.za/login</a><br/>
+                3. Start managing your ISO compliance
+              </p>
+            </div>
+            <div style="background: #1e1e2e; padding: 16px; text-align: center;">
+              <p style="color: #64748b; font-size: 11px; margin: 0;">ISOGuardian (Pty) Ltd | Reg: 2026/082362/07 | support@isoguardian.co.za</p>
+            </div>
+          </div>
+        `,
+      }),
+    })
+  } catch (err) {
+    console.error('Failed to send welcome email:', err)
+  }
+}
+
+// Notify admin of auto-provisioned account
+async function notifyAdminNewAccount(email: string, name: string, companyName: string, tier: string, amount: number): Promise<void> {
+  if (!RESEND_API_KEY) return
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'ISOGuardian System <noreply@isoguardian.co.za>',
+        to: ['support@isoguardian.co.za'],
+        subject: `New Auto-Provisioned Account: ${companyName || email}`,
+        html: `
+          <h2>New Account Auto-Created from Payment</h2>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Name:</strong> ${name || 'Not provided'}</p>
+          <p><strong>Company:</strong> ${companyName || 'Not provided'}</p>
+          <p><strong>Plan:</strong> ${tier}</p>
+          <p><strong>Amount:</strong> R${amount.toFixed(2)}</p>
+          <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+          <hr />
+          <p><em>Account was auto-created because payment was received before signup. User will receive a password reset email.</em></p>
+        `,
+      }),
+    })
+  } catch {
+    // Non-critical
+  }
+}
 
 // MD5 for PayFast signature verification
 function md5(input: string): string {
@@ -313,6 +424,118 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ─── Auto-provision user if payment is COMPLETE but no user/company found ───
+    let autoProvisioned = false
+    if (paymentStatus === 'COMPLETE' && !companyId && billingEmail) {
+      console.log('PayFast ITN: Auto-provisioning new account for', billingEmail)
+
+      const buyerName = `${data.name_first || ''} ${data.name_last || ''}`.trim()
+      const buyerCompanyName = companyName || `${buyerName || billingEmail.split('@')[0]}'s Company`
+
+      // Check for duplicate email in auth (edge case: auth user exists but no users row)
+      const { data: existingAuth } = await supabase.auth.admin.listUsers()
+      const existingAuthUser = existingAuth?.users?.find(u => u.email === billingEmail.toLowerCase())
+
+      if (!existingAuthUser) {
+        // 1. Generate unique company code
+        let code = generateCompanyCode(buyerCompanyName)
+        const { data: existingCodes } = await supabase
+          .from('companies')
+          .select('company_code')
+          .like('company_code', `${code}%`)
+
+        if (existingCodes?.some(c => c.company_code === code)) {
+          let suffix = 1
+          while (existingCodes.some(c => c.company_code === `${code}${suffix}`)) suffix++
+          code = `${code}${suffix}`
+        }
+
+        // 2. Create company
+        const { data: newCompany, error: companyErr } = await supabase
+          .from('companies')
+          .insert({
+            name: buyerCompanyName,
+            company_code: code,
+          })
+          .select('id, company_code')
+          .single()
+
+        if (companyErr || !newCompany) {
+          console.error('PayFast ITN: Failed to auto-create company:', companyErr?.message)
+        } else {
+          // 3. Create auth user (temp password — user will reset via email)
+          const tempPassword = generateTempPassword()
+          const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
+            email: billingEmail.toLowerCase(),
+            password: tempPassword,
+            email_confirm: true, // Auto-confirm — they proved ownership by paying
+            user_metadata: { full_name: buyerName, company_id: newCompany.id },
+          })
+
+          if (authErr || !authData?.user) {
+            console.error('PayFast ITN: Failed to create auth user:', authErr?.message)
+            // Rollback company
+            await supabase.from('companies').delete().eq('id', newCompany.id)
+          } else {
+            // 4. Create user profile
+            const { error: userErr } = await supabase
+              .from('users')
+              .insert({
+                id: authData.user.id,
+                email: billingEmail.toLowerCase(),
+                full_name: buyerName || billingEmail.split('@')[0],
+                role: 'admin',
+                company_id: newCompany.id,
+                is_active: true,
+                standards_access: ['ISO_9001'],
+              })
+
+            if (userErr) {
+              console.error('PayFast ITN: Failed to create user record:', userErr.message)
+              // Rollback auth user + company
+              await supabase.auth.admin.deleteUser(authData.user.id)
+              await supabase.from('companies').delete().eq('id', newCompany.id)
+            } else {
+              companyId = newCompany.id
+              autoProvisioned = true
+              console.log('PayFast ITN: Auto-provisioned account', { email: billingEmail, companyId, code })
+
+              // Send welcome email with password reset link (non-blocking)
+              const tierLabel = tierConfig === TIERS.growth ? 'Growth' : 'Starter'
+              sendWelcomeEmail(billingEmail, buyerName, tierLabel)
+              notifyAdminNewAccount(billingEmail, buyerName, buyerCompanyName, tierLabel, amount)
+
+              // Enroll in trial onboarding drip (non-blocking)
+              try {
+                await enrollInDrip(supabase, {
+                  campaignSlug: 'trial-onboarding',
+                  email: billingEmail.toLowerCase(),
+                  name: buyerName || billingEmail.split('@')[0],
+                  personalization: {
+                    company_name: buyerCompanyName,
+                    expiry_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                  },
+                })
+              } catch {
+                // Drip enrollment failure should never block payment processing
+              }
+            }
+          }
+        }
+      } else {
+        // Auth user exists but no users row — find or create the link
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('company_id')
+          .eq('id', existingAuthUser.id)
+          .maybeSingle()
+
+        if (existingUser) {
+          companyId = existingUser.company_id
+        }
+      }
+    }
+
     // ─── Handle COMPLETE payment ───
     if (paymentStatus === 'COMPLETE') {
 
@@ -478,6 +701,10 @@ Deno.serve(async (req) => {
             .eq('referral_code', partnerCode)
             .maybeSingle()
 
+          if (!resellerUser) {
+            console.warn('PayFast ITN: Partner code not found, commission skipped:', partnerCode)
+          }
+
           if (resellerUser) {
             // Check if reseller relationship exists
             const { data: resellerRecord } = await supabase
@@ -545,6 +772,7 @@ Deno.serve(async (req) => {
               tier: tier,
               referral: referralCode || null,
               partner: partnerCode || null,
+              auto_provisioned: autoProvisioned || false,
             },
           })
       }

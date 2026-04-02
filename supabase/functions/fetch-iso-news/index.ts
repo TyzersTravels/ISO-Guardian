@@ -65,10 +65,7 @@ Deno.serve(async (req: Request) => {
   // 3. Super admin JWT (manual trigger from dashboard)
   if (!isAuthorized && authHeader.startsWith("Bearer ")) {
     const token = authHeader.replace("Bearer ", "");
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "", {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: { user } } = await userClient.auth.getUser(token);
+    const { data: { user } } = await supabaseAdmin.auth.getUser(token);
     if (user) {
       const { data: profile } = await supabaseAdmin
         .from("users")

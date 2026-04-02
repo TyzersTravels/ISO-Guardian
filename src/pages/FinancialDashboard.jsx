@@ -950,14 +950,8 @@ const FinancialDashboard = () => {
   const triggerNewsFetch = async () => {
     setNewsFetching(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-iso-news`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ autoPublish: false }),
+      await supabase.functions.invoke('fetch-iso-news', {
+        body: { autoPublish: false },
       })
       await fetchNewsData()
     } catch {}
