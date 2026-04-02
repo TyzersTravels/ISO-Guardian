@@ -194,53 +194,70 @@ Deno.serve(async (req: Request) => {
             continue;
           }
 
-          // ── Call Claude Haiku for AI processing ──
+          // ── AI processing (with graceful fallback if API unavailable) ──
           try {
-            const articleContent = `Title: ${article.title}\n\nContent: ${truncateText(article.description, 2000)}`;
+            let processed: ProcessedArticle | null = null;
+            let tokensUsed = 0;
 
-            const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
-              method: "POST",
-              headers: {
-                "x-api-key": ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                model: HAIKU_MODEL,
-                max_tokens: 500,
-                system: CLAUDE_SYSTEM_PROMPT,
-                messages: [{ role: "user", content: articleContent }],
-              }),
-            });
+            // Try Claude Haiku for AI summarisation
+            if (ANTHROPIC_API_KEY) {
+              try {
+                const articleContent = `Title: ${article.title}\n\nContent: ${truncateText(article.description, 2000)}`;
 
-            if (!claudeRes.ok) {
-              const errText = await claudeRes.text();
-              throw new Error(`Claude API ${claudeRes.status}: ${errText.slice(0, 200)}`);
-            }
+                const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+                  method: "POST",
+                  headers: {
+                    "x-api-key": ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    model: HAIKU_MODEL,
+                    max_tokens: 500,
+                    system: CLAUDE_SYSTEM_PROMPT,
+                    messages: [{ role: "user", content: articleContent }],
+                  }),
+                });
 
-            const claudeData = await claudeRes.json();
-            const rawText = claudeData.content?.[0]?.text || "";
-            const tokensUsed = (claudeData.usage?.input_tokens || 0) + (claudeData.usage?.output_tokens || 0);
+                if (!claudeRes.ok) {
+                  const errText = await claudeRes.text();
+                  // If credit/billing error, log once and fall through to fallback
+                  if (claudeRes.status === 400 || claudeRes.status === 402) {
+                    if (results.errors.length === 0 || !results.errors.some(e => e.includes("Claude API credits"))) {
+                      results.errors.push(`Claude API credits unavailable — storing articles without AI summaries`);
+                    }
+                  } else {
+                    results.errors.push(`Claude API ${claudeRes.status} for "${article.title.slice(0, 40)}": ${errText.slice(0, 80)}`);
+                  }
+                } else {
+                  const claudeData = await claudeRes.json();
+                  const rawText = claudeData.content?.[0]?.text || "";
+                  tokensUsed = (claudeData.usage?.input_tokens || 0) + (claudeData.usage?.output_tokens || 0);
 
-            // Parse Claude's JSON response
-            let processed: ProcessedArticle;
-            try {
-              processed = JSON.parse(rawText);
-            } catch {
-              // Try extracting JSON from markdown code block
-              const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
-                processed = JSON.parse(jsonMatch[0]);
-              } else {
-                throw new Error("Could not parse Claude response as JSON");
+                  try {
+                    processed = JSON.parse(rawText);
+                  } catch {
+                    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                      processed = JSON.parse(jsonMatch[0]);
+                    }
+                  }
+                }
+              } catch {
+                // Network error calling Claude — fall through to fallback
               }
             }
 
-            // Determine publish status
-            const status = autoPublish && (processed.relevance_score >= 60) ? "published" : "draft";
+            // Fallback: store article with source-level metadata (no AI summary)
+            const summary = processed?.summary || (article.description ? truncateText(article.description, 500) : "Summary pending AI processing.");
+            const aiInsight = processed?.ai_insight || null;
+            const standards = processed?.standards || source.standards || [];
+            const categories = processed?.categories || [];
+            const relevanceScore = processed?.relevance_score ?? 50;
+
+            const status = autoPublish && (relevanceScore >= 60 || !processed) ? "published" : "draft";
             const slug = generateSlug(article.title);
 
-            // Insert article
             const { error: insertErr } = await supabaseAdmin
               .from("iso_news_articles")
               .insert({
@@ -248,19 +265,18 @@ Deno.serve(async (req: Request) => {
                 source_name: source.name,
                 source_url: article.link,
                 title: article.title,
-                summary: processed.summary || "No summary available.",
-                ai_insight: processed.ai_insight || null,
-                standards: processed.standards || source.standards || [],
-                categories: processed.categories || [],
+                summary,
+                ai_insight: aiInsight,
+                standards,
+                categories,
                 published_at: article.pubDate ? new Date(article.pubDate).toISOString() : new Date().toISOString(),
                 status,
                 slug,
-                relevance_score: Math.max(0, Math.min(100, processed.relevance_score || 50)),
+                relevance_score: Math.max(0, Math.min(100, relevanceScore)),
                 tokens_used: tokensUsed,
               });
 
             if (insertErr) {
-              // Handle slug conflict by appending random suffix
               if (insertErr.message?.includes("idx_news_articles_source_url") || insertErr.message?.includes("duplicate")) {
                 articlesSkipped++;
                 results.articles_skipped++;
@@ -274,7 +290,7 @@ Deno.serve(async (req: Request) => {
             }
           } catch (aiErr) {
             results.articles_failed++;
-            results.errors.push(`AI processing failed for "${article.title}": ${String(aiErr).slice(0, 100)}`);
+            results.errors.push(`Failed "${article.title.slice(0, 50)}": ${String(aiErr).slice(0, 100)}`);
           }
         }
 

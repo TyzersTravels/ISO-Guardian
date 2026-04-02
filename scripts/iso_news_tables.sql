@@ -119,7 +119,11 @@ CREATE POLICY "service_role_news_subscribers" ON news_subscribers
 INSERT INTO news_sources (name, url, source_type, standards) VALUES
   ('Advisera ISO 9001 Blog', 'https://advisera.com/9001academy/blog/feed/', 'rss', ARRAY['ISO 9001']),
   ('Advisera ISO 14001 Blog', 'https://advisera.com/14001academy/blog/feed/', 'rss', ARRAY['ISO 14001']),
-  ('Advisera ISO 45001 Blog', 'https://advisera.com/45001academy/blog/feed/', 'rss', ARRAY['ISO 45001']),
-  ('ISO.org News', 'https://www.iso.org/cms/render/live/en/sites/isoorg/home/news.html', 'html_scrape', ARRAY['ISO 9001', 'ISO 14001', 'ISO 45001']),
-  ('Quality Magazine ISO', 'https://www.qualitymag.com/rss/topic/2642-iso', 'rss', ARRAY['ISO 9001', 'ISO 14001', 'ISO 45001'])
+  ('Advisera ISO 45001 Blog', 'https://advisera.com/45001academy/blog/feed/', 'rss', ARRAY['ISO 45001'])
 ON CONFLICT (url) DO NOTHING;
+
+-- Deactivate dead sources (404)
+UPDATE news_sources SET is_active = false WHERE url IN (
+  'https://www.iso.org/cms/render/live/en/sites/isoorg/home/news.html',
+  'https://www.qualitymag.com/rss/topic/2642-iso'
+);
