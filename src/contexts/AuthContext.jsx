@@ -32,6 +32,8 @@ export const AuthProvider = ({ children }) => {
       }
     })
 
+    const publicPaths = ['/', '/login', '/signup', '/popia', '/terms', '/privacy', '/password-recovery', '/reset-password', '/auditor']
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null)
       if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
@@ -41,7 +43,9 @@ export const AuthProvider = ({ children }) => {
         setIsReseller(false)
         setResellerClients([])
         setLoading(false)
-        window.location.href = '/login'
+        if (!publicPaths.includes(window.location.pathname)) {
+          window.location.href = '/login'
+        }
       } else if (session?.user) {
         fetchUserProfile(session.user.id)
       } else {
@@ -50,7 +54,6 @@ export const AuthProvider = ({ children }) => {
       }
     })
 
-    const publicPaths = ['/', '/login', '/signup', '/popia', '/terms', '/privacy', '/password-recovery', '/reset-password', '/auditor']
     const sessionCheck = setInterval(async () => {
       if (publicPaths.includes(window.location.pathname)) return
       const { data: { session }, error } = await supabase.auth.getSession()
