@@ -14,6 +14,7 @@ const TABS = [
   { id: 'templates', label: 'Template Sales' },
   { id: 'campaigns', label: 'Campaigns' },
   { id: 'marketing', label: 'Marketing' },
+  { id: 'news', label: 'News' },
 ]
 
 function formatCurrency(amountCents) {
@@ -917,6 +918,204 @@ const FinancialDashboard = () => {
     )
   }
 
+  // ─── News Tab ───────────────────────────────────────────────────────
+  const [newsArticles, setNewsArticles] = useState([])
+  const [newsSources, setNewsSources] = useState([])
+  const [newsLogs, setNewsLogs] = useState([])
+  const [newsFetching, setNewsFetching] = useState(false)
+  const [newsStats, setNewsStats] = useState({ total: 0, published: 0, draft: 0, rejected: 0 })
+
+  useEffect(() => {
+    if (activeTab === 'news') fetchNewsData()
+  }, [activeTab])
+
+  const fetchNewsData = async () => {
+    const [articlesRes, sourcesRes, logsRes] = await Promise.all([
+      supabase.from('iso_news_articles').select('id, title, source_name, standards, status, relevance_score, published_at, created_at').order('created_at', { ascending: false }).limit(50),
+      supabase.from('news_sources').select('id, name, url, source_type, standards, is_active, last_fetched_at').order('name'),
+      supabase.from('news_fetch_logs').select('id, source_name, status, articles_found, articles_new, error_message, duration_ms, created_at').order('created_at', { ascending: false }).limit(10),
+    ])
+    const articles = articlesRes.data || []
+    setNewsArticles(articles)
+    setNewsSources(sourcesRes.data || [])
+    setNewsLogs(logsRes.data || [])
+    setNewsStats({
+      total: articles.length,
+      published: articles.filter(a => a.status === 'published').length,
+      draft: articles.filter(a => a.status === 'draft').length,
+      rejected: articles.filter(a => a.status === 'rejected').length,
+    })
+  }
+
+  const triggerNewsFetch = async () => {
+    setNewsFetching(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-iso-news`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ autoPublish: false }),
+      })
+      await fetchNewsData()
+    } catch {}
+    setNewsFetching(false)
+  }
+
+  const updateArticleStatus = async (id, status) => {
+    await supabase.from('iso_news_articles').update({
+      status,
+      ...(status === 'published' ? { published_at: new Date().toISOString() } : {}),
+    }).eq('id', id)
+    setNewsArticles(prev => prev.map(a => a.id === id ? { ...a, status } : a))
+    setNewsStats(prev => {
+      const updated = { ...prev }
+      const old = newsArticles.find(a => a.id === id)
+      if (old) updated[old.status]--
+      updated[status]++
+      return updated
+    })
+  }
+
+  const renderNews = () => {
+    return (
+      <div className="space-y-6">
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Total Articles', value: newsStats.total, color: 'text-white' },
+            { label: 'Published', value: newsStats.published, color: 'text-green-400' },
+            { label: 'Drafts', value: newsStats.draft, color: 'text-amber-400' },
+            { label: 'Rejected', value: newsStats.rejected, color: 'text-red-400' },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="glass glass-border rounded-xl p-4">
+              <p className="text-xs text-white/50">{label}</p>
+              <p className={`text-2xl font-bold ${color}`}>{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={triggerNewsFetch}
+            disabled={newsFetching}
+            className="btn-primary text-sm px-4 py-2 rounded-lg disabled:opacity-50"
+          >
+            {newsFetching ? 'Fetching...' : 'Fetch Now'}
+          </button>
+          <a href="/standards" target="_blank" rel="noopener noreferrer" className="text-xs px-4 py-2 rounded-lg glass-border text-cyan-400 hover:bg-white/5 flex items-center gap-1">
+            View Public Page
+          </a>
+        </div>
+
+        {/* Articles Table */}
+        <div className="glass glass-border rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-white/10">
+            <h3 className="text-sm font-semibold text-white">Articles</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-white/50 text-xs">
+                  <th className="text-left p-3">Title</th>
+                  <th className="text-left p-3 hidden md:table-cell">Source</th>
+                  <th className="text-left p-3 hidden md:table-cell">Standards</th>
+                  <th className="text-center p-3">Score</th>
+                  <th className="text-center p-3">Status</th>
+                  <th className="text-right p-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {newsArticles.map(article => (
+                  <tr key={article.id} className="border-b border-white/5 hover:bg-white/5">
+                    <td className="p-3 text-white max-w-[200px] truncate">{article.title}</td>
+                    <td className="p-3 text-white/50 hidden md:table-cell">{article.source_name}</td>
+                    <td className="p-3 hidden md:table-cell">
+                      <div className="flex gap-1">
+                        {article.standards?.map(s => (
+                          <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300">{s.replace('ISO ', '')}</span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="p-3 text-center text-white/70">{article.relevance_score}</td>
+                    <td className="p-3 text-center">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                        article.status === 'published' ? 'bg-green-500/20 text-green-300' :
+                        article.status === 'draft' ? 'bg-amber-500/20 text-amber-300' :
+                        'bg-red-500/20 text-red-300'
+                      }`}>{article.status}</span>
+                    </td>
+                    <td className="p-3 text-right">
+                      <div className="flex gap-1 justify-end">
+                        {article.status !== 'published' && (
+                          <button onClick={() => updateArticleStatus(article.id, 'published')} className="text-[10px] px-2 py-1 rounded bg-green-500/20 text-green-300 hover:bg-green-500/30">Publish</button>
+                        )}
+                        {article.status !== 'rejected' && (
+                          <button onClick={() => updateArticleStatus(article.id, 'rejected')} className="text-[10px] px-2 py-1 rounded bg-red-500/20 text-red-300 hover:bg-red-500/30">Reject</button>
+                        )}
+                        {article.status === 'published' && (
+                          <button onClick={() => updateArticleStatus(article.id, 'draft')} className="text-[10px] px-2 py-1 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30">Unpublish</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {newsArticles.length === 0 && (
+                  <tr><td colSpan={6} className="p-6 text-center text-white/30">No articles yet. Click "Fetch Now" to scrape news sources.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Sources */}
+        <div className="glass glass-border rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-white mb-3">News Sources</h3>
+          <div className="space-y-2">
+            {newsSources.map(src => (
+              <div key={src.id} className="flex items-center justify-between text-xs py-2 border-b border-white/5 last:border-0">
+                <div>
+                  <span className="text-white font-medium">{src.name}</span>
+                  <span className="text-white/30 ml-2">({src.source_type})</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-white/30">{src.last_fetched_at ? new Date(src.last_fetched_at).toLocaleDateString('en-ZA') : 'Never'}</span>
+                  <span className={`w-2 h-2 rounded-full ${src.is_active ? 'bg-green-400' : 'bg-red-400'}`} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Fetch Logs */}
+        <div className="glass glass-border rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-white mb-3">Recent Fetch Logs</h3>
+          <div className="space-y-2">
+            {newsLogs.map(log => (
+              <div key={log.id} className="flex items-center justify-between text-xs py-2 border-b border-white/5 last:border-0">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${log.status === 'success' ? 'bg-green-400' : log.status === 'partial' ? 'bg-amber-400' : 'bg-red-400'}`} />
+                  <span className="text-white/70">{log.source_name}</span>
+                </div>
+                <div className="flex items-center gap-3 text-white/30">
+                  <span>{log.articles_new} new / {log.articles_found} found</span>
+                  <span>{log.duration_ms}ms</span>
+                  <span>{new Date(log.created_at).toLocaleString('en-ZA')}</span>
+                </div>
+              </div>
+            ))}
+            {newsLogs.length === 0 && (
+              <p className="text-white/30 text-xs">No fetch logs yet.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const tabRenderers = {
     revenue: renderRevenue,
     payments: renderPayments,
@@ -926,6 +1125,7 @@ const FinancialDashboard = () => {
     templates: renderTemplateSales,
     campaigns: renderCampaigns,
     marketing: renderMarketing,
+    news: renderNews,
   }
 
   return (

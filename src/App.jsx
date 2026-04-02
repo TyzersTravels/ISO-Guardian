@@ -46,6 +46,7 @@ const AffiliateProgramme = lazy(() => import('./pages/AffiliateProgramme'))
 const Consultation = lazy(() => import('./pages/Consultation'))
 const FinancialDashboard = lazy(() => import('./pages/FinancialDashboard'))
 const TemplateEditor = lazy(() => import('./pages/TemplateEditor'))
+const StandardsNews = lazy(() => import('./pages/StandardsNews'))
 
 // Loading fallback for lazy-loaded routes
 const PageLoader = () => (
@@ -79,6 +80,10 @@ function App() {
           <Route path="/reseller-programme" element={<ResellerProgramme />} />
           <Route path="/affiliate" element={<AffiliateProgramme />} />
           <Route path="/consultation" element={<Consultation />} />
+          <Route path="/standards" element={<StandardsNews />} />
+          <Route path="/standards/iso-9001" element={<StandardsNews standard="ISO 9001" />} />
+          <Route path="/standards/iso-14001" element={<StandardsNews standard="ISO 14001" />} />
+          <Route path="/standards/iso-45001" element={<StandardsNews standard="ISO 45001" />} />
 
           {/* Protected routes */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
