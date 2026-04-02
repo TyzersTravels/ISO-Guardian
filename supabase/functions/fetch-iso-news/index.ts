@@ -87,9 +87,11 @@ Deno.serve(async (req: Request) => {
 
   // ── Parse request body ──
   let autoPublish = true;
+  let forceRefetch = false;
   try {
     const body = await req.json();
     if (typeof body.autoPublish === "boolean") autoPublish = body.autoPublish;
+    if (typeof body.force === "boolean") forceRefetch = body.force;
   } catch {
     // Default to autoPublish: true (for pg_cron)
   }
@@ -121,8 +123,8 @@ Deno.serve(async (req: Request) => {
     let totalNewArticles = 0;
 
     for (const source of sources) {
-      // Skip if fetched too recently
-      if (source.last_fetched_at) {
+      // Skip if fetched too recently (unless force=true from dashboard)
+      if (!forceRefetch && source.last_fetched_at) {
         const hoursSinceLastFetch = (Date.now() - new Date(source.last_fetched_at).getTime()) / (1000 * 60 * 60);
         if (hoursSinceLastFetch < (source.fetch_interval_hours || 24)) {
           continue;

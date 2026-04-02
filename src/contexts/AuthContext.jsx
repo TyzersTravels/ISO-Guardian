@@ -21,18 +21,19 @@ export const AuthProvider = ({ children }) => {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null) // { allowed, reason, daysRemaining, tier, status }
 
   useEffect(() => {
+    const publicPaths = ['/', '/login', '/signup', '/popia', '/terms', '/privacy', '/password-recovery', '/reset-password', '/auditor', '/standards', '/standards/iso-9001', '/standards/iso-14001', '/standards/iso-45001', '/reseller-programme', '/affiliate', '/consultation']
+    const isPublicPath = publicPaths.includes(window.location.pathname)
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) {
-        // Re-stamp session token on page load/refresh so existing session survives
-        stampSession(session.user.id)
+        // Only stamp session on protected pages — public pages must NOT overwrite the token
+        if (!isPublicPath) stampSession(session.user.id)
         fetchUserProfile(session.user.id)
       } else {
         setLoading(false)
       }
     })
-
-    const publicPaths = ['/', '/login', '/signup', '/popia', '/terms', '/privacy', '/password-recovery', '/reset-password', '/auditor']
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null)

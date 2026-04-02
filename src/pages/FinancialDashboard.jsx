@@ -947,14 +947,24 @@ const FinancialDashboard = () => {
     })
   }
 
+  const [newsFetchResult, setNewsFetchResult] = useState(null)
+
   const triggerNewsFetch = async () => {
     setNewsFetching(true)
+    setNewsFetchResult(null)
     try {
-      await supabase.functions.invoke('fetch-iso-news', {
-        body: { autoPublish: false },
+      const { data, error } = await supabase.functions.invoke('fetch-iso-news', {
+        body: { autoPublish: false, force: true },
       })
+      if (error) {
+        setNewsFetchResult({ success: false, message: error.message || 'Edge Function error' })
+      } else {
+        setNewsFetchResult(data)
+      }
       await fetchNewsData()
-    } catch {}
+    } catch (err) {
+      setNewsFetchResult({ success: false, message: String(err) })
+    }
     setNewsFetching(false)
   }
 
@@ -1004,6 +1014,25 @@ const FinancialDashboard = () => {
             View Public Page
           </a>
         </div>
+
+        {/* Fetch Result */}
+        {newsFetchResult && (
+          <div className={`p-4 rounded-xl text-sm ${newsFetchResult.success === false ? 'bg-red-500/10 border border-red-500/20 text-red-300' : 'bg-green-500/10 border border-green-500/20 text-green-300'}`}>
+            {newsFetchResult.success === false ? (
+              <p>Fetch failed: {newsFetchResult.message}</p>
+            ) : (
+              <div className="space-y-1">
+                <p>Sources checked: {newsFetchResult.sources_checked} | Articles found: {newsFetchResult.articles_found} | New: {newsFetchResult.articles_new} | Skipped: {newsFetchResult.articles_skipped} | Failed: {newsFetchResult.articles_failed}</p>
+                {newsFetchResult.errors?.length > 0 && (
+                  <div className="text-amber-300 text-xs mt-2">
+                    {newsFetchResult.errors.map((e, i) => <p key={i}>{e}</p>)}
+                  </div>
+                )}
+                <p className="text-xs text-white/40">Duration: {newsFetchResult.duration_ms}ms</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Articles Table */}
         <div className="glass glass-border rounded-xl overflow-hidden">
