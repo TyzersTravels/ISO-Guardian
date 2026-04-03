@@ -10,7 +10,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { parseRSS, generateSlug, truncateText, stripHTML } from "../_shared/news.ts";
+import { parseRSS, generateSlug, truncateText, stripHTML, fetchArticleContent } from "../_shared/news.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -194,6 +194,17 @@ Deno.serve(async (req: Request) => {
             continue;
           }
 
+          // ── Fetch full article content from source page ──
+          let fullContent = "";
+          try {
+            fullContent = await fetchArticleContent(article.link);
+          } catch {
+            // Non-blocking — fall back to RSS description
+          }
+
+          // Use best available content
+          const articleBody = fullContent || article.description || "";
+
           // ── AI processing (with graceful fallback if API unavailable) ──
           try {
             let processed: ProcessedArticle | null = null;
@@ -202,7 +213,7 @@ Deno.serve(async (req: Request) => {
             // Try Claude Haiku for AI summarisation
             if (ANTHROPIC_API_KEY) {
               try {
-                const articleContent = `Title: ${article.title}\n\nContent: ${truncateText(article.description, 2000)}`;
+                const articleContent = `Title: ${article.title}\n\nContent: ${truncateText(articleBody, 3000)}`;
 
                 const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
                   method: "POST",
@@ -221,10 +232,9 @@ Deno.serve(async (req: Request) => {
 
                 if (!claudeRes.ok) {
                   const errText = await claudeRes.text();
-                  // If credit/billing error, log once and fall through to fallback
                   if (claudeRes.status === 400 || claudeRes.status === 402) {
                     if (results.errors.length === 0 || !results.errors.some(e => e.includes("Claude API credits"))) {
-                      results.errors.push(`Claude API credits unavailable — storing articles without AI summaries`);
+                      results.errors.push(`Claude API credits unavailable — storing articles with scraped content`);
                     }
                   } else {
                     results.errors.push(`Claude API ${claudeRes.status} for "${article.title.slice(0, 40)}": ${errText.slice(0, 80)}`);
@@ -248,8 +258,8 @@ Deno.serve(async (req: Request) => {
               }
             }
 
-            // Fallback: store article with source-level metadata (no AI summary)
-            const summary = processed?.summary || (article.description ? truncateText(article.description, 500) : "Summary pending AI processing.");
+            // Fallback: use full scraped content (or RSS description if scrape failed)
+            const summary = processed?.summary || (articleBody ? truncateText(articleBody, 2000) : "Summary pending AI processing.");
             const aiInsight = processed?.ai_insight || null;
             const standards = processed?.standards || source.standards || [];
             const categories = processed?.categories || [];

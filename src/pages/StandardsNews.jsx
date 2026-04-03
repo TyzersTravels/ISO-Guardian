@@ -6,6 +6,13 @@ import { STANDARDS_INFO, ALL_STANDARDS, getStandardColor } from '../lib/standard
 import PublicLayout from '../components/PublicLayout'
 import { trackPageView } from '../lib/analytics'
 
+function decodeEntities(text) {
+  if (!text) return text
+  const el = typeof document !== 'undefined' ? document.createElement('textarea') : null
+  if (el) { el.innerHTML = text; return el.value }
+  return text.replace(/&#(\d+);/g, (_, c) => String.fromCharCode(parseInt(c, 10))).replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/&amp;/g, '&')
+}
+
 const ARTICLES_PER_PAGE = 12
 
 export default function StandardsNews({ standard }) {
@@ -334,12 +341,12 @@ function ArticleCard({ article }) {
 
       {/* Title */}
       <h3 className="text-sm font-bold text-white mb-2 leading-snug group-hover:text-cyan-300 transition-colors line-clamp-2">
-        {article.title}
+        {decodeEntities(article.title)}
       </h3>
 
       {/* Summary */}
       <p className="text-xs text-white/50 leading-relaxed mb-3 line-clamp-4">
-        {article.summary}
+        {decodeEntities(article.summary)}
       </p>
 
       {/* AI Insight */}

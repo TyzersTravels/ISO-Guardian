@@ -6,6 +6,24 @@ import { STANDARDS_INFO, getStandardColor } from '../lib/standardsData'
 import PublicLayout from '../components/PublicLayout'
 import { trackPageView } from '../lib/analytics'
 
+/** Decode HTML entities that may survive in DB content */
+function decodeEntities(text) {
+  if (!text) return text
+  const el = typeof document !== 'undefined' ? document.createElement('textarea') : null
+  if (el) {
+    el.innerHTML = text
+    return el.value
+  }
+  // Fallback for SSR/non-browser
+  return text
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+}
+
 export default function ArticleDetail() {
   const { slug } = useParams()
   const navigate = useNavigate()
@@ -127,7 +145,7 @@ export default function ArticleDetail() {
               <span>/</span>
             </>
           )}
-          <span className="text-white/60 truncate max-w-[200px]">{article.title}</span>
+          <span className="text-white/60 truncate max-w-[200px]">{decodeEntities(article.title)}</span>
         </nav>
 
         {/* Standard badges */}
@@ -149,7 +167,7 @@ export default function ArticleDetail() {
 
         {/* Title */}
         <h1 className="text-2xl md:text-4xl font-extrabold text-white mb-4 leading-tight">
-          {article.title}
+          {decodeEntities(article.title)}
         </h1>
 
         {/* Meta */}
@@ -183,7 +201,7 @@ export default function ArticleDetail() {
         {/* Article Content */}
         <article className="prose prose-invert max-w-none">
           <div className="text-white/70 text-[15px] leading-[1.8] space-y-4 whitespace-pre-line">
-            {article.summary}
+            {decodeEntities(article.summary)}
           </div>
         </article>
 
