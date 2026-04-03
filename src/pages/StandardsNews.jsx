@@ -317,19 +317,18 @@ export default function StandardsNews({ standard }) {
 
 /* ── Article Card ── */
 function ArticleCard({ article }) {
+  const navigate = useNavigate()
   const primaryStandard = article.standards?.[0]
   const colors = getStandardColor(primaryStandard)
 
   return (
-    <a
-      href={article.source_url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="glass glass-border rounded-xl p-5 hover:bg-white/[0.06] transition-all group block"
+    <button
+      onClick={() => navigate(`/standards/article/${article.slug}`)}
+      className="glass glass-border rounded-xl p-5 hover:bg-white/[0.06] transition-all group block text-left w-full"
     >
       {/* Source & Date */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] text-white/30 uppercase tracking-wider font-medium">{article.source_name}</span>
+        <span className="text-[10px] text-white/30 uppercase tracking-wider font-medium">ISOGuardian</span>
         <span className="text-[10px] text-white/25">{formatCardDate(article.published_at)}</span>
       </div>
 
@@ -368,7 +367,12 @@ function ArticleCard({ article }) {
           </span>
         ))}
       </div>
-    </a>
+
+      {/* Read more indicator */}
+      <div className="mt-3 flex items-center gap-1 text-cyan-400 text-[11px] font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+        Read article <span>{'\u2192'}</span>
+      </div>
+    </button>
   )
 }
 

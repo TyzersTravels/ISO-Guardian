@@ -21,8 +21,8 @@ export const AuthProvider = ({ children }) => {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null) // { allowed, reason, daysRemaining, tier, status }
 
   useEffect(() => {
-    const publicPaths = ['/', '/login', '/signup', '/popia', '/terms', '/privacy', '/password-recovery', '/reset-password', '/auditor', '/standards', '/standards/iso-9001', '/standards/iso-14001', '/standards/iso-45001', '/reseller-programme', '/affiliate', '/consultation']
-    const isPublicPath = publicPaths.includes(window.location.pathname)
+    const publicPaths = ['/', '/login', '/signup', '/popia', '/terms', '/privacy', '/password-recovery', '/reset-password', '/auditor', '/standards', '/reseller-programme', '/affiliate', '/consultation']
+    const isPublicPath = publicPaths.includes(window.location.pathname) || window.location.pathname.startsWith('/standards/')
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
@@ -44,7 +44,8 @@ export const AuthProvider = ({ children }) => {
         setIsReseller(false)
         setResellerClients([])
         setLoading(false)
-        if (!publicPaths.includes(window.location.pathname)) {
+        const onPublic = publicPaths.includes(window.location.pathname) || window.location.pathname.startsWith('/standards/')
+        if (!onPublic) {
           window.location.href = '/login'
         }
       } else if (session?.user) {
@@ -56,7 +57,8 @@ export const AuthProvider = ({ children }) => {
     })
 
     const sessionCheck = setInterval(async () => {
-      if (publicPaths.includes(window.location.pathname)) return
+      const onPublic = publicPaths.includes(window.location.pathname) || window.location.pathname.startsWith('/standards/')
+      if (onPublic) return
       const { data: { session }, error } = await supabase.auth.getSession()
       if (error || !session) {
         setUser(null)
@@ -84,7 +86,7 @@ export const AuthProvider = ({ children }) => {
     const resetIdleTimer = () => {
       if (idleTimer) clearTimeout(idleTimer)
       idleTimer = setTimeout(async () => {
-        if (publicPaths.includes(window.location.pathname)) return
+        if (publicPaths.includes(window.location.pathname) || window.location.pathname.startsWith('/standards/')) return
         const { data: { session: s } } = await supabase.auth.getSession()
         if (s) {
           await supabase.auth.signOut()

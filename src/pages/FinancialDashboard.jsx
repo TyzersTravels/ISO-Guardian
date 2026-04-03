@@ -924,6 +924,7 @@ const FinancialDashboard = () => {
   const [newsLogs, setNewsLogs] = useState([])
   const [newsFetching, setNewsFetching] = useState(false)
   const [newsStats, setNewsStats] = useState({ total: 0, published: 0, draft: 0, rejected: 0 })
+  const [previewArticle, setPreviewArticle] = useState(null)
 
   useEffect(() => {
     if (activeTab === 'news') fetchNewsData()
@@ -931,7 +932,7 @@ const FinancialDashboard = () => {
 
   const fetchNewsData = async () => {
     const [articlesRes, sourcesRes, logsRes] = await Promise.all([
-      supabase.from('iso_news_articles').select('id, title, source_name, standards, status, relevance_score, published_at, created_at').order('created_at', { ascending: false }).limit(50),
+      supabase.from('iso_news_articles').select('id, title, summary, ai_insight, source_name, source_url, standards, categories, status, relevance_score, slug, published_at, created_at').order('created_at', { ascending: false }).limit(50),
       supabase.from('news_sources').select('id, name, url, source_type, standards, is_active, last_fetched_at').order('name'),
       supabase.from('news_fetch_logs').select('id, source_name, status, articles_found, articles_new, error_message, duration_ms, created_at').order('created_at', { ascending: false }).limit(10),
     ])
@@ -1054,7 +1055,9 @@ const FinancialDashboard = () => {
               <tbody>
                 {newsArticles.map(article => (
                   <tr key={article.id} className="border-b border-white/5 hover:bg-white/5">
-                    <td className="p-3 text-white max-w-[200px] truncate">{article.title}</td>
+                    <td className="p-3 max-w-[200px]">
+                      <button onClick={() => setPreviewArticle(article)} className="text-white hover:text-cyan-300 transition-colors text-left truncate block w-full">{article.title}</button>
+                    </td>
                     <td className="p-3 text-white/50 hidden md:table-cell">{article.source_name}</td>
                     <td className="p-3 hidden md:table-cell">
                       <div className="flex gap-1">
@@ -1073,6 +1076,7 @@ const FinancialDashboard = () => {
                     </td>
                     <td className="p-3 text-right">
                       <div className="flex gap-1 justify-end">
+                        <button onClick={() => setPreviewArticle(article)} className="text-[10px] px-2 py-1 rounded bg-white/10 text-white/60 hover:bg-white/20">Preview</button>
                         {article.status !== 'published' && (
                           <button onClick={() => updateArticleStatus(article.id, 'published')} className="text-[10px] px-2 py-1 rounded bg-green-500/20 text-green-300 hover:bg-green-500/30">Publish</button>
                         )}
@@ -1135,6 +1139,80 @@ const FinancialDashboard = () => {
             )}
           </div>
         </div>
+
+        {/* Article Preview Modal */}
+        {previewArticle && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setPreviewArticle(null)}>
+            <div className="glass glass-border rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex-1">
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {previewArticle.standards?.map(s => (
+                      <span key={s} className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-semibold">{s}</span>
+                    ))}
+                    {previewArticle.categories?.map(c => (
+                      <span key={c} className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-white/40 capitalize">{c.replace('-', ' ')}</span>
+                    ))}
+                  </div>
+                  <h2 className="text-lg font-bold text-white leading-snug">{previewArticle.title}</h2>
+                </div>
+                <button onClick={() => setPreviewArticle(null)} className="text-white/40 hover:text-white p-1">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              {/* Meta */}
+              <div className="flex items-center gap-3 text-xs text-white/40 mb-4 pb-4 border-b border-white/10">
+                <span>{new Date(previewArticle.published_at || previewArticle.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                <span className="w-1 h-1 rounded-full bg-white/20" />
+                <span>Source: {previewArticle.source_name}</span>
+                <span className="w-1 h-1 rounded-full bg-white/20" />
+                <span>Score: {previewArticle.relevance_score}/100</span>
+              </div>
+
+              {/* AI Insight */}
+              {previewArticle.ai_insight && (
+                <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-3 mb-4">
+                  <p className="text-xs text-cyan-300"><span className="font-bold">ISOGuardian Insight:</span> {previewArticle.ai_insight}</p>
+                </div>
+              )}
+
+              {/* Content */}
+              <div className="text-sm text-white/70 leading-relaxed whitespace-pre-line mb-6">
+                {previewArticle.summary}
+              </div>
+
+              {/* Source ref */}
+              <p className="text-[10px] text-white/20 mb-6">Source reference: {previewArticle.source_name}</p>
+
+              {/* Status + Actions */}
+              <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                  previewArticle.status === 'published' ? 'bg-green-500/20 text-green-300' :
+                  previewArticle.status === 'draft' ? 'bg-amber-500/20 text-amber-300' :
+                  'bg-red-500/20 text-red-300'
+                }`}>
+                  {previewArticle.status}
+                </span>
+                <div className="flex gap-2">
+                  {previewArticle.status !== 'published' && (
+                    <button onClick={() => { updateArticleStatus(previewArticle.id, 'published'); setPreviewArticle(p => ({...p, status: 'published'})) }} className="text-xs px-4 py-2 rounded-lg bg-green-500/20 text-green-300 hover:bg-green-500/30 font-medium">Publish</button>
+                  )}
+                  {previewArticle.status === 'published' && (
+                    <button onClick={() => { updateArticleStatus(previewArticle.id, 'draft'); setPreviewArticle(p => ({...p, status: 'draft'})) }} className="text-xs px-4 py-2 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 font-medium">Unpublish</button>
+                  )}
+                  {previewArticle.status !== 'rejected' && (
+                    <button onClick={() => { updateArticleStatus(previewArticle.id, 'rejected'); setPreviewArticle(p => ({...p, status: 'rejected'})) }} className="text-xs px-4 py-2 rounded-lg bg-red-500/20 text-red-300 hover:bg-red-500/30 font-medium">Reject</button>
+                  )}
+                  {previewArticle.status === 'published' && (
+                    <a href={`/standards/article/${previewArticle.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs px-4 py-2 rounded-lg bg-white/10 text-cyan-300 hover:bg-white/20 font-medium">View Live</a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
