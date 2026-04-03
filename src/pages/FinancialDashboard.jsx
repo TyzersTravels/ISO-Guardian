@@ -1011,9 +1011,11 @@ const FinancialDashboard = () => {
           >
             {newsFetching ? 'Fetching...' : 'Fetch Now'}
           </button>
+          {/* Hidden until AI credits loaded
           <a href="/standards" target="_blank" rel="noopener noreferrer" className="text-xs px-4 py-2 rounded-lg glass-border text-cyan-400 hover:bg-white/5 flex items-center gap-1">
             View Public Page
           </a>
+          */}
         </div>
 
         {/* Fetch Result */}
@@ -1205,9 +1207,11 @@ const FinancialDashboard = () => {
                   {previewArticle.status !== 'rejected' && (
                     <button onClick={() => { updateArticleStatus(previewArticle.id, 'rejected'); setPreviewArticle(p => ({...p, status: 'rejected'})) }} className="text-xs px-4 py-2 rounded-lg bg-red-500/20 text-red-300 hover:bg-red-500/30 font-medium">Reject</button>
                   )}
+                  {/* Hidden until AI credits loaded — View Live link
                   {previewArticle.status === 'published' && (
                     <a href={`/standards/article/${previewArticle.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs px-4 py-2 rounded-lg bg-white/10 text-cyan-300 hover:bg-white/20 font-medium">View Live</a>
                   )}
+                  */}
                 </div>
               </div>
             </div>

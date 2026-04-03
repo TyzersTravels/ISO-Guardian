@@ -48,6 +48,7 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
+  <!-- Standards news pages — re-add when AI credits loaded
   <url>
     <loc>https://isoguardian.co.za/standards</loc>
     <lastmod>2026-04-02</lastmod>
@@ -72,4 +73,5 @@
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
+  -->
 </urlset>
