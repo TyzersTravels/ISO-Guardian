@@ -14,7 +14,7 @@ const TABS = [
   { id: 'templates', label: 'Template Sales' },
   { id: 'campaigns', label: 'Campaigns' },
   { id: 'marketing', label: 'Marketing' },
-  { id: 'news', label: 'News' },
+  // { id: 'news', label: 'News' }, // Hidden until AI credits loaded
 ]
 
 function formatCurrency(amountCents) {
