@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 import ClientSelector from './ClientSelector'
 import HelpButton from './HelpButton'
 
@@ -36,6 +37,40 @@ const Layout = ({ children }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [bellOpen, setBellOpen] = useState(false)
+  const [bellItems, setBellItems] = useState([])
+
+  useEffect(() => {
+    if (userProfile) fetchBellItems()
+  }, [userProfile])
+
+  const fetchBellItems = async () => {
+    try {
+      const companyId = userProfile?.company_id
+      if (!companyId) return
+      const today = new Date().toISOString().split('T')[0]
+      const items = []
+
+      const [overdueNcrs, upcomingAudits, overdueDocs] = await Promise.all([
+        supabase.from('ncrs').select('id, ncr_number, severity, due_date').eq('company_id', companyId).eq('status', 'Open').lt('due_date', today).limit(5),
+        supabase.from('audits').select('id, audit_number, audit_date').eq('company_id', companyId).in('status', ['Planned', 'Scheduled']).gte('audit_date', today).lte('audit_date', new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]).limit(3),
+        supabase.from('documents').select('id, name, next_review_date').eq('company_id', companyId).lt('next_review_date', today).limit(3),
+      ])
+
+      ;(overdueNcrs.data || []).forEach(n => items.push({
+        type: 'danger', title: `Overdue: ${n.ncr_number}`, detail: `${n.severity} NCR past due`, path: '/ncrs',
+      }))
+      ;(upcomingAudits.data || []).forEach(a => {
+        const days = Math.ceil((new Date(a.audit_date) - new Date()) / 86400000)
+        items.push({ type: 'warning', title: `Audit ${a.audit_number}`, detail: days === 0 ? 'Today' : `In ${days} day${days !== 1 ? 's' : ''}`, path: '/audits' })
+      })
+      ;(overdueDocs.data || []).forEach(d => items.push({
+        type: 'info', title: `Review: ${d.name}`, detail: 'Overdue for review', path: '/documents',
+      }))
+
+      setBellItems(items)
+    } catch { /* silent */ }
+  }
 
   const handleSignOut = async () => {
     await signOut()
@@ -169,9 +204,15 @@ const Layout = ({ children }) => {
             <img src="/isoguardian-logo.png" alt="ISOGuardian" className="w-8 h-8 object-contain rounded-lg" />
             <span className="text-lg font-bold text-white">ISOGuardian</span>
           </div>
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="text-white/70 hover:text-white p-1">
-            {mobileOpen ? icons.close : icons.menu}
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setBellOpen(!bellOpen)} className="text-white/70 hover:text-white p-1 relative">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+              {bellItems.length > 0 && <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">{bellItems.length}</span>}
+            </button>
+            <button onClick={() => setMobileOpen(!mobileOpen)} className="text-white/70 hover:text-white p-1">
+              {mobileOpen ? icons.close : icons.menu}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -190,8 +231,50 @@ const Layout = ({ children }) => {
         <SidebarContent />
       </aside>
 
+      {/* Notification Bell Dropdown */}
+      {bellOpen && (
+        <div className="fixed inset-0 z-50" onClick={() => setBellOpen(false)}>
+          <div className="absolute top-14 right-4 lg:right-auto lg:left-[260px] lg:top-4 w-80 max-h-[400px] overflow-y-auto glass glass-border rounded-xl shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="p-3 border-b border-white/10 flex items-center justify-between">
+              <h4 className="text-sm font-bold text-white">Notifications</h4>
+              <span className="text-[10px] text-white/40">{bellItems.length} pending</span>
+            </div>
+            {bellItems.length === 0 ? (
+              <div className="p-6 text-center">
+                <svg className="w-8 h-8 text-green-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                <p className="text-sm text-white/50">All clear — no action needed</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/5">
+                {bellItems.map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { navigate(item.path); setBellOpen(false) }}
+                    className="w-full p-3 text-left hover:bg-white/5 transition-colors flex items-start gap-3"
+                  >
+                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${item.type === 'danger' ? 'bg-red-500' : item.type === 'warning' ? 'bg-amber-500' : 'bg-cyan-500'}`} />
+                    <div className="min-w-0">
+                      <p className="text-sm text-white font-medium truncate">{item.title}</p>
+                      <p className="text-xs text-white/40">{item.detail}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="lg:ml-[250px] flex flex-col min-h-screen overflow-x-hidden">
+        {/* Desktop top bar with notification bell */}
+        <div className="hidden lg:flex items-center justify-end px-6 py-2 border-b border-white/5">
+          <button onClick={() => setBellOpen(!bellOpen)} className="text-white/50 hover:text-white p-1.5 relative transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+            {bellItems.length > 0 && <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center animate-pulse">{bellItems.length}</span>}
+          </button>
+        </div>
+
         {/* Reseller Client Selector */}
         <ClientSelector />
 

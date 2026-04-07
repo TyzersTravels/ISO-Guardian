@@ -19,6 +19,7 @@ const Dashboard = () => {
   const [complianceScores, setComplianceScores] = useState([])
   const [recentActivity, setRecentActivity] = useState([])
   const [deadlines, setDeadlines] = useState([])
+  const [actionItems, setActionItems] = useState([])
   const [adminStats, setAdminStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -31,6 +32,7 @@ const Dashboard = () => {
       fetchComplianceScores()
       fetchRecentActivity()
       fetchDeadlines()
+      fetchActionItems()
       if (isSuperAdmin) {
         fetchAdminStats()
       }
@@ -180,6 +182,85 @@ const Dashboard = () => {
       setDeadlines(items.slice(0, 8))
     } catch (err) {
       console.error('Error fetching deadlines:', err)
+    }
+  }
+
+  const fetchActionItems = async () => {
+    try {
+      const companyId = getEffectiveCompanyId()
+      if (!companyId) return
+      const today = new Date().toISOString().split('T')[0]
+      const items = []
+
+      // 1. Overdue NCRs (past due_date, still open)
+      const { data: overdueNcrs } = await supabase
+        .from('ncrs')
+        .select('id, ncr_number, title, severity, due_date')
+        .eq('company_id', companyId)
+        .eq('status', 'Open')
+        .lt('due_date', today)
+        .order('due_date', { ascending: true })
+        .limit(5)
+
+      ;(overdueNcrs || []).forEach(n => items.push({
+        severity: n.severity === 'Critical' ? 'critical' : 'high',
+        icon: 'ncr',
+        title: `Overdue NCR: ${n.ncr_number || n.title}`,
+        detail: `${n.severity} — was due ${new Date(n.due_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}`,
+        path: '/ncrs',
+      }))
+
+      // 2. Audits happening within 7 days
+      const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
+      const { data: upcomingAudits } = await supabase
+        .from('audits')
+        .select('id, audit_number, audit_date, status')
+        .eq('company_id', companyId)
+        .in('status', ['Planned', 'Scheduled'])
+        .gte('audit_date', today)
+        .lte('audit_date', in7Days)
+        .order('audit_date', { ascending: true })
+        .limit(3)
+
+      ;(upcomingAudits || []).forEach(a => {
+        const days = Math.ceil((new Date(a.audit_date) - new Date()) / 86400000)
+        items.push({
+          severity: days <= 2 ? 'high' : 'medium',
+          icon: 'audit',
+          title: `Audit ${a.audit_number} in ${days === 0 ? 'today' : days === 1 ? 'tomorrow' : `${days} days`}`,
+          detail: new Date(a.audit_date).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' }),
+          path: '/audits',
+        })
+      })
+
+      // 3. Documents overdue for review
+      const { data: overdueDocs } = await supabase
+        .from('documents')
+        .select('id, name, next_review_date')
+        .eq('company_id', companyId)
+        .lt('next_review_date', today)
+        .order('next_review_date', { ascending: true })
+        .limit(3)
+
+      ;(overdueDocs || []).forEach(d => items.push({
+        severity: 'medium',
+        icon: 'document',
+        title: `Review overdue: ${d.name}`,
+        detail: `Was due ${new Date(d.next_review_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}`,
+        path: '/documents',
+      }))
+
+      // 4. Low compliance scores (below 50%)
+      // This runs after complianceScores is set, so we check from state
+      // We'll handle this in the render instead
+
+      // Sort by severity
+      const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 }
+      items.sort((a, b) => (severityOrder[a.severity] || 3) - (severityOrder[b.severity] || 3))
+
+      setActionItems(items)
+    } catch (err) {
+      console.error('Error fetching action items:', err)
     }
   }
 
@@ -343,6 +424,48 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* Action Required Panel */}
+        {actionItems.length > 0 && (
+          <div className="glass glass-border rounded-2xl p-4 md:p-6 border-l-4 border-l-red-500/70">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Action Required
+              </h3>
+              <span className="text-xs px-2.5 py-1 rounded-full bg-red-500/20 text-red-300 font-semibold">{actionItems.length} item{actionItems.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="space-y-2">
+              {actionItems.slice(0, 6).map((item, i) => {
+                const severityStyles = {
+                  critical: { dot: 'bg-red-500 animate-pulse', bg: 'bg-red-500/5 border-red-500/20', text: 'text-red-300' },
+                  high: { dot: 'bg-orange-500', bg: 'bg-orange-500/5 border-orange-500/20', text: 'text-orange-300' },
+                  medium: { dot: 'bg-amber-500', bg: 'bg-amber-500/5 border-amber-500/20', text: 'text-amber-300' },
+                  low: { dot: 'bg-white/30', bg: 'bg-white/5 border-white/10', text: 'text-white/60' },
+                }
+                const s = severityStyles[item.severity] || severityStyles.low
+                return (
+                  <button
+                    key={i}
+                    onClick={() => navigate(item.path)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border ${s.bg} hover:bg-white/5 transition-colors text-left group`}
+                  >
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${s.dot}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white font-medium truncate group-hover:text-cyan-300 transition-colors">{item.title}</p>
+                      <p className={`text-xs ${s.text}`}>{item.detail}</p>
+                    </div>
+                    <svg className="w-4 h-4 text-white/20 group-hover:text-white/40 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Compliance Scores + Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Compliance Score Bars + Gauge */}
@@ -402,10 +525,16 @@ const Dashboard = () => {
                 <div className="flex-1 space-y-5">
                   {complianceScores.map(({ standard, score, compliant, total }) => {
                     const style = getBarStyle(standard)
+                    const health = score >= 80 ? { label: 'Healthy', color: 'bg-green-500/20 text-green-300 border-green-500/30' }
+                      : score >= 50 ? { label: 'Needs Work', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' }
+                      : { label: 'At Risk', color: 'bg-red-500/20 text-red-300 border-red-500/30' }
                     return (
                       <div key={standard}>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-white/80 font-medium">{standard.replace('_', ' ')}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-white/80 font-medium">{standard.replace('_', ' ')}</span>
+                            <span className={`text-[9px] px-2 py-0.5 rounded-full font-semibold border ${health.color}`}>{health.label}</span>
+                          </div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-white/40">{compliant}/{total} clauses</span>
                             <span className={`text-sm font-bold ${style.text}`}>{score}%</span>

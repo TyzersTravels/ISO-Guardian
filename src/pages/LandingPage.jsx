@@ -571,6 +571,90 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════
+          7b. COMPARISON TABLE — Why ISOGuardian?
+      ═══════════════════════════════════════════════════════════════════ */}
+      <section className="relative py-24">
+        <div className="max-w-5xl mx-auto px-4 md:px-6">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 rounded-full text-xs font-semibold text-cyan-300 mb-6">
+              The Smart Choice
+            </div>
+            <h2 className="text-2xl md:text-3xl font-extrabold mb-4">
+              Why businesses{' '}
+              <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">switch to ISOGuardian</span>
+            </h2>
+            <p className="text-white/45 max-w-xl mx-auto text-sm">
+              See how ISOGuardian compares to spreadsheets, manual systems, and expensive enterprise tools.
+            </p>
+          </div>
+
+          {/* Comparison table */}
+          <div className="overflow-x-auto -mx-4 px-4">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left py-3 px-4 text-white/40 font-medium text-xs uppercase tracking-wider w-[35%]">Feature</th>
+                  <th className="text-center py-3 px-4 text-white/40 font-medium text-xs uppercase tracking-wider">Spreadsheets</th>
+                  <th className="text-center py-3 px-4 text-white/40 font-medium text-xs uppercase tracking-wider">Enterprise Tools</th>
+                  <th className="text-center py-3 px-4 font-medium text-xs uppercase tracking-wider">
+                    <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-bold">ISOGuardian</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { feature: 'ISO 9001, 14001 & 45001', spreadsheet: false, enterprise: true, iso: true },
+                  { feature: 'Document control & versioning', spreadsheet: false, enterprise: true, iso: true },
+                  { feature: 'NCR tracking & close-out', spreadsheet: false, enterprise: true, iso: true },
+                  { feature: 'Audit scheduling & reports', spreadsheet: false, enterprise: true, iso: true },
+                  { feature: 'External auditor portal', spreadsheet: false, enterprise: false, iso: true },
+                  { feature: 'POPIA compliant (SA law)', spreadsheet: false, enterprise: false, iso: true },
+                  { feature: 'ZAR pricing, no forex risk', spreadsheet: true, enterprise: false, iso: true },
+                  { feature: 'Setup in under 10 minutes', spreadsheet: true, enterprise: false, iso: true },
+                  { feature: 'Real-time compliance scoring', spreadsheet: false, enterprise: true, iso: true },
+                  { feature: 'Automated email reminders', spreadsheet: false, enterprise: true, iso: true },
+                  { feature: 'Multi-company (reseller) support', spreadsheet: false, enterprise: false, iso: true },
+                  { feature: 'From R67/day', spreadsheet: true, enterprise: false, iso: true },
+                ].map(({ feature, spreadsheet, enterprise, iso }, i) => (
+                  <tr key={feature} className={i % 2 === 0 ? 'bg-white/[0.02]' : ''}>
+                    <td className="py-3 px-4 text-white/70 font-medium text-xs md:text-sm">{feature}</td>
+                    <td className="py-3 px-4 text-center">
+                      {spreadsheet
+                        ? <span className="text-amber-400 text-base">{'\u2022'}</span>
+                        : <span className="text-red-400/60 text-xs">{'\u2715'}</span>}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {enterprise
+                        ? <span className="text-amber-400 text-base">{'\u2022'}</span>
+                        : <span className="text-red-400/60 text-xs">{'\u2715'}</span>}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className="text-green-400 text-base">{'\u2713'}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-8 grid md:grid-cols-3 gap-3 text-center text-xs">
+            <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-3">
+              <p className="text-red-300/80 font-bold mb-0.5">Spreadsheets</p>
+              <p className="text-white/30">No audit trail, version chaos, zero automation</p>
+            </div>
+            <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-3">
+              <p className="text-amber-300/80 font-bold mb-0.5">Enterprise Tools</p>
+              <p className="text-white/30">R12,000+/mo, USD pricing, months to implement</p>
+            </div>
+            <div className="bg-green-500/5 border border-green-500/10 rounded-xl p-3">
+              <p className="text-green-300/80 font-bold mb-0.5">ISOGuardian</p>
+              <p className="text-white/30">Built for SA, affordable, ready in minutes</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════
           8. SOCIAL PROOF — Stats + Value Props (moved up, after pricing)
       ═══════════════════════════════════════════════════════════════════ */}
       <section className="relative py-20 overflow-hidden">

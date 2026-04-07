@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
+import { createBrandedPDF } from '../lib/brandedPDFExport'
 
 const Compliance = () => {
   const { userProfile, getEffectiveCompanyId } = useAuth()
@@ -91,11 +92,137 @@ const Compliance = () => {
     return Math.round(((met + (partial * 0.5)) / total) * 100)
   }
 
+  const [exporting, setExporting] = useState(false)
+
   const scores = calculateScores()
   const overallTotal = requirements.length
   const overallMet = requirements.filter(r => r.compliance_status === 'Met').length
   const overallPartial = requirements.filter(r => r.compliance_status === 'Partially Met').length
   const overallScore = calculatePercentage(overallMet, overallPartial, overallTotal)
+
+  const exportComplianceReport = async () => {
+    try {
+      setExporting(true)
+      const standardLabel = standards.find(s => s.code === selectedStandard)?.name || selectedStandard
+      const companyName = userProfile?.company?.name || 'Company'
+      const companyLogo = userProfile?.company?.logo_url || null
+      const userName = userProfile?.full_name || userProfile?.email || ''
+
+      await createBrandedPDF({
+        title: `${standardLabel} Compliance Report`,
+        docNumber: `IG-COMP-${selectedStandard.replace('ISO_', '')}`,
+        companyName,
+        preparedBy: userName,
+        companyLogoUrl: companyLogo,
+        type: 'document',
+        contentRenderer: (doc, startY) => {
+          const margin = 20
+          const pageWidth = doc.internal.pageSize.getWidth()
+          const contentWidth = pageWidth - margin * 2
+          let y = startY
+
+          // Overall score summary
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(12)
+          doc.setTextColor(30, 27, 75)
+          doc.text('Overall Compliance Score', margin, y)
+          y += 8
+
+          // Score bar background
+          doc.setFillColor(230, 230, 235)
+          doc.roundedRect(margin, y, contentWidth, 8, 2, 2, 'F')
+          // Score bar fill
+          const barColor = overallScore >= 70 ? [34, 197, 94] : overallScore >= 50 ? [249, 115, 22] : [239, 68, 68]
+          doc.setFillColor(...barColor)
+          doc.roundedRect(margin, y, (contentWidth * overallScore) / 100, 8, 2, 2, 'F')
+          // Score text
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(10)
+          doc.setTextColor(...barColor)
+          doc.text(`${overallScore}%`, margin + contentWidth + 2, y + 6)
+          y += 14
+
+          doc.setFontSize(9)
+          doc.setTextColor(107, 114, 128)
+          doc.setFont('helvetica', 'normal')
+          doc.text(`${overallMet} Met  |  ${overallPartial} Partially Met  |  ${overallTotal - overallMet - overallPartial} Not Met  |  ${overallTotal} Total`, margin, y)
+          y += 12
+
+          // Clause-by-clause breakdown
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(12)
+          doc.setTextColor(30, 27, 75)
+          doc.text('Clause-by-Clause Breakdown', margin, y)
+          y += 8
+
+          Object.entries(scores).forEach(([clauseNum, data]) => {
+            const pct = calculatePercentage(data.met, data.partial, data.total)
+
+            // Check for page overflow
+            if (y > 255) {
+              doc.addPage()
+              y = 25
+            }
+
+            // Clause header row
+            doc.setFillColor(249, 250, 251)
+            doc.rect(margin, y - 4, contentWidth, 10, 'F')
+            doc.setFont('helvetica', 'bold')
+            doc.setFontSize(9)
+            doc.setTextColor(30, 27, 75)
+            doc.text(`Clause ${clauseNum}: ${data.clauseName}`, margin + 2, y + 2)
+            const pctColor = pct >= 70 ? [34, 197, 94] : pct >= 50 ? [249, 115, 22] : [239, 68, 68]
+            doc.setTextColor(...pctColor)
+            doc.text(`${pct}%`, pageWidth - margin - 2, y + 2, { align: 'right' })
+            y += 10
+
+            // Individual requirements under this clause
+            const clauseReqs = requirements.filter(r => r.clause_number === parseInt(clauseNum))
+            clauseReqs.forEach(req => {
+              if (y > 270) {
+                doc.addPage()
+                y = 25
+              }
+
+              const statusColor = req.compliance_status === 'Met' ? [34, 197, 94]
+                : req.compliance_status === 'Partially Met' ? [249, 115, 22]
+                : [239, 68, 68]
+
+              // Status indicator dot
+              doc.setFillColor(...statusColor)
+              doc.circle(margin + 3, y + 1, 1.5, 'F')
+
+              // Requirement text (wrapped)
+              doc.setFont('helvetica', 'normal')
+              doc.setFontSize(8)
+              doc.setTextColor(60, 60, 70)
+              const lines = doc.splitTextToSize(req.requirement_text || '', contentWidth - 30)
+              doc.text(lines, margin + 8, y + 2)
+
+              // Status label
+              doc.setFont('helvetica', 'bold')
+              doc.setFontSize(7)
+              doc.setTextColor(...statusColor)
+              doc.text(req.compliance_status, pageWidth - margin - 2, y + 2, { align: 'right' })
+
+              y += Math.max(lines.length * 4, 6) + 2
+            })
+
+            y += 4
+          })
+
+          return y
+        }
+      })
+
+      toast.success('Compliance report exported successfully')
+    } catch (err) {
+      console.error('Error exporting compliance report:', err)
+      toast.error('Failed to export compliance report')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -109,9 +236,20 @@ const Compliance = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold text-white mb-2">Compliance Management</h2>
-          <p className="text-white/60">Track compliance requirements by clause</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-2">Compliance Management</h2>
+            <p className="text-white/60">Track compliance requirements by clause</p>
+          </div>
+          {requirements.length > 0 && (
+            <button
+              onClick={exportComplianceReport}
+              disabled={exporting}
+              className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all text-sm disabled:opacity-50 whitespace-nowrap self-start sm:self-auto"
+            >
+              {exporting ? 'Exporting...' : 'Export Report'}
+            </button>
+          )}
         </div>
 
         {/* Standard Selector */}
