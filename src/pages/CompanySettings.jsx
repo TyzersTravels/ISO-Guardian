@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
+import ComplianceBadge from '../components/ComplianceBadge'
 import { useToast } from '../contexts/ToastContext'
 import { PERSONNEL_ROLES } from '../lib/templateData'
 
@@ -677,6 +678,9 @@ const CompanySettings = () => {
             ))}
           </div>
         </div>
+
+        {/* Compliance Badge */}
+        <ComplianceBadge />
         </>}
 
         {/* POPIA Notice */}

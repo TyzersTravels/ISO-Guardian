@@ -46,6 +46,7 @@ const AffiliateProgramme = lazy(() => import('./pages/AffiliateProgramme'))
 const Consultation = lazy(() => import('./pages/Consultation'))
 const FinancialDashboard = lazy(() => import('./pages/FinancialDashboard'))
 const TemplateEditor = lazy(() => import('./pages/TemplateEditor'))
+const AuditSimulator = lazy(() => import('./pages/AuditSimulator'))
 // const StandardsNews = lazy(() => import('./pages/StandardsNews')) // Hidden until AI credits loaded
 // const ArticleDetail = lazy(() => import('./pages/ArticleDetail')) // Hidden until AI credits loaded
 
@@ -110,6 +111,7 @@ function App() {
           <Route path="/audit-connect" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin', 'lead_auditor']}><AuditorInvite /></RoleProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
           <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
+          <Route path="/audit-simulator" element={<ProtectedRoute><AuditSimulator /></ProtectedRoute>} />
           <Route path="/editor/new" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
           <Route path="/editor/:instanceId" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
           <Route path="/finance" element={<RoleProtectedRoute allowedRoles={['super_admin']}><FinancialDashboard /></RoleProtectedRoute>} />

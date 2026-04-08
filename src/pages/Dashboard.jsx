@@ -23,6 +23,8 @@ const Dashboard = () => {
   const [adminStats, setAdminStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const [checklistDismissed, setChecklistDismissed] = useState(() => localStorage.getItem('isoguardian_checklist_dismissed') === 'true')
+
   const isSuperAdmin = userProfile?.role === 'super_admin'
   const { showOnboarding, completeOnboarding } = useOnboarding()
 
@@ -423,6 +425,67 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Setup Checklist */}
+        {!checklistDismissed && (() => {
+          const checks = [
+            { label: 'Upload company logo', done: !!userProfile?.company?.logo_url, path: '/settings' },
+            { label: 'Upload your first document', done: stats.totalDocuments > 0, path: '/documents' },
+            { label: 'Log an NCR or verify none exist', done: stats.recentNCRs.length > 0, path: '/ncrs' },
+            { label: 'Review compliance scoring', done: complianceScores.some(s => s.score > 0), path: '/compliance' },
+            { label: 'Schedule an audit', done: stats.upcomingAudits > 0, path: '/audits' },
+            { label: 'Invite a team member', done: false, path: '/users', adminOnly: true },
+          ].filter(c => !c.adminOnly || (userProfile?.role === 'super_admin' || userProfile?.role === 'admin'))
+          const completed = checks.filter(c => c.done).length
+          const progress = Math.round((completed / checks.length) * 100)
+          if (completed === checks.length) return null
+          return (
+            <div className="glass glass-border rounded-2xl p-4 md:p-6 border-l-4 border-l-cyan-500/70">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                  Getting Started
+                </h3>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-cyan-300 font-semibold">{completed}/{checks.length}</span>
+                  <button
+                    onClick={() => { localStorage.setItem('isoguardian_checklist_dismissed', 'true'); setChecklistDismissed(true) }}
+                    className="text-white/30 hover:text-white/60 text-xs transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden mb-4">
+                <div className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full transition-all duration-700" style={{ width: `${progress}%` }} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {checks.map(check => (
+                  <button
+                    key={check.label}
+                    onClick={() => !check.done && navigate(check.path)}
+                    className={`flex items-center gap-3 p-3 rounded-xl text-left transition-all ${
+                      check.done
+                        ? 'bg-green-500/10 border border-green-500/20'
+                        : 'bg-white/5 border border-white/10 hover:border-cyan-500/30 hover:bg-cyan-500/5 cursor-pointer'
+                    }`}
+                  >
+                    {check.done ? (
+                      <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <div className="w-5 h-5 rounded-full border-2 border-white/20 flex-shrink-0" />
+                    )}
+                    <span className={`text-sm ${check.done ? 'text-green-300 line-through' : 'text-white/70'}`}>{check.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Action Required Panel */}
         {actionItems.length > 0 && (

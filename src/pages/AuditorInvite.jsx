@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../contexts/ToastContext'
 import Layout from '../components/Layout'
+import QRGenerator from '../components/QRGenerator'
 
 const AuditorInvite = () => {
   const { user, userProfile, getEffectiveCompanyId } = useAuth()
@@ -13,6 +14,7 @@ const AuditorInvite = () => {
   const [creating, setCreating] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [copiedToken, setCopiedToken] = useState(null)
+  const [qrSession, setQrSession] = useState(null)
   const [formData, setFormData] = useState({
     audit_id: '',
     auditor_name: '',
@@ -329,6 +331,12 @@ const AuditorInvite = () => {
                             {copiedToken === session.access_token ? 'Copied!' : 'Copy Link'}
                           </button>
                           <button
+                            onClick={() => setQrSession(qrSession === session.id ? null : session.id)}
+                            className="px-3 py-1.5 text-xs glass glass-border rounded-lg text-purple-300 hover:bg-purple-500/20 transition-colors"
+                          >
+                            QR Code
+                          </button>
+                          <button
                             onClick={() => revokeSession(session.id)}
                             className="px-3 py-1.5 text-xs glass glass-border rounded-lg text-red-300 hover:bg-red-500/20 transition-colors"
                           >
@@ -338,6 +346,19 @@ const AuditorInvite = () => {
                       )}
                     </div>
                   </div>
+
+                  {/* QR Code Inline */}
+                  {qrSession === session.id && (
+                    <div className="mt-4 pt-4 border-t border-white/10 flex flex-col items-center">
+                      <p className="text-xs text-white/40 mb-3">Scan this QR code to access the auditor workspace</p>
+                      <QRGenerator
+                        value={`${window.location.origin}/auditor?token=${session.access_token}`}
+                        size={180}
+                        label={`${session.auditor_name} — ${audit?.audit_number || 'Audit'}`}
+                      />
+                      <p className="text-[10px] text-white/25 mt-3">Print and place at the audit location for walk-in access</p>
+                    </div>
+                  )}
                 </div>
               )
             })}

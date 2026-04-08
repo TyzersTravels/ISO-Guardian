@@ -9,6 +9,7 @@ const ActivityTrail = () => {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all');
   const [filterAction, setFilterAction] = useState('all');
+  const [viewMode, setViewMode] = useState('timeline');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 25;
 
@@ -167,14 +168,73 @@ const ActivityTrail = () => {
               className="text-xs text-cyan-300 hover:text-cyan-200 underline">Clear filters</button>
           )}
           <span className="text-xs text-white/40">Showing {filtered.length} of {allActivities.length} entries</span>
+          <div className="flex items-center gap-1 ml-auto">
+            <button onClick={() => setViewMode('timeline')} className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${viewMode === 'timeline' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-white/40 hover:text-white/60'}`}>Timeline</button>
+            <button onClick={() => setViewMode('list')} className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${viewMode === 'list' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-white/40 hover:text-white/60'}`}>List</button>
+          </div>
         </div>
 
         {/* Activity List */}
-        <div className="space-y-2">
+        <div className={viewMode === 'timeline' ? '' : 'space-y-2'}>
           {filtered.length === 0 ? (
             <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-12 text-center">
               <p className="text-white/70">{allActivities.length === 0 ? 'No activity recorded yet. Actions will appear here as users interact with the system.' : 'No entries match your filter.'}</p>
             </div>
+          ) : viewMode === 'timeline' ? (
+            (() => {
+              // Group by date
+              const groups = {};
+              paginatedActivities.forEach(a => {
+                const dateKey = a.timestamp ? new Date(a.timestamp).toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Unknown';
+                if (!groups[dateKey]) groups[dateKey] = [];
+                groups[dateKey].push(a);
+              });
+              return Object.entries(groups).map(([date, items]) => (
+                <div key={date} className="mb-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-2 h-2 rounded-full bg-cyan-400" />
+                    <h4 className="text-sm font-semibold text-white/60">{date}</h4>
+                    <div className="flex-1 h-px bg-white/10" />
+                    <span className="text-[10px] text-white/30">{items.length} event{items.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="ml-[3px] border-l-2 border-white/10 pl-6 space-y-0">
+                    {items.map((activity, idx) => {
+                      const style = getActionStyle(activity.action);
+                      const time = activity.timestamp ? new Date(activity.timestamp).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' }) : '';
+                      return (
+                        <div key={activity.id} className="relative pb-4 group">
+                          {/* Connector dot */}
+                          <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full ${style.bg} flex items-center justify-center border-2 border-slate-900`}>
+                            <span className={`text-[8px] font-bold ${style.color}`}>{style.icon}</span>
+                          </div>
+                          <div className="bg-white/5 border border-white/10 rounded-xl p-3 hover:bg-white/[0.08] transition-colors group-hover:border-white/15">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`text-sm font-semibold capitalize ${style.color}`}>
+                                {activity.action?.replace(/_/g, ' ')}
+                              </span>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/60">
+                                {entityLabels[activity.entity_type] || activity.entity_type}
+                              </span>
+                              <span className="text-[10px] text-white/25 ml-auto">{time}</span>
+                            </div>
+                            {activity.changes && typeof activity.changes === 'object' && Object.keys(activity.changes).length > 0 && (
+                              <div className="mt-1.5 text-xs text-white/40">
+                                {Object.entries(activity.changes).map(([key, val]) => (
+                                  <span key={key} className="mr-3">
+                                    <span className="text-white/50">{key.replace(/_/g, ' ')}:</span>{' '}
+                                    <span className="text-white/70">{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ));
+            })()
           ) : (
             paginatedActivities.map((activity) => {
               const style = getActionStyle(activity.action);

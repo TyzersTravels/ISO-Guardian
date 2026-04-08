@@ -350,6 +350,102 @@ async function sendWeeklyDigest(): Promise<number> {
   return sent;
 }
 
+// ─── Weekly Compliance Report ────────────────────────────────────────────────
+
+async function sendComplianceReports(): Promise<number> {
+  // Only run on Mondays
+  const now = new Date();
+  if (now.getUTCDay() !== 1) return 0;
+
+  let sent = 0;
+
+  const { data: companies } = await supabase.from("companies").select("id, name");
+  if (!companies?.length) return 0;
+
+  for (const company of companies) {
+    // Get users who opted in to compliance_report
+    const { data: users } = await supabase
+      .from("users")
+      .select("email, notification_preferences")
+      .eq("company_id", company.id);
+
+    const recipients = (users || []).filter(
+      (u) => u.notification_preferences?.compliance_report === true
+    );
+    if (!recipients.length) continue;
+
+    // Fetch compliance data
+    const { data: reqs } = await supabase
+      .from("compliance_requirements")
+      .select("standard, compliance_status")
+      .eq("company_id", company.id);
+
+    if (!reqs?.length) continue;
+
+    // Group by standard
+    const grouped: Record<string, { total: number; met: number; partial: number }> = {};
+    reqs.forEach((r) => {
+      const std = r.standard || "Unknown";
+      if (!grouped[std]) grouped[std] = { total: 0, met: 0, partial: 0 };
+      grouped[std].total++;
+      if (r.compliance_status === "Met") grouped[std].met++;
+      else if (r.compliance_status === "Partially Met") grouped[std].partial++;
+    });
+
+    // Build per-standard rows
+    let standardRows = "";
+    let overallMet = 0, overallPartial = 0, overallTotal = 0;
+    for (const [std, data] of Object.entries(grouped)) {
+      const score = data.total > 0 ? Math.round(((data.met + data.partial * 0.5) / data.total) * 100) : 0;
+      const color = score >= 80 ? "#22c55e" : score >= 50 ? "#f59e0b" : "#ef4444";
+      const health = score >= 80 ? "Healthy" : score >= 50 ? "Needs Work" : "At Risk";
+      const label = std.replace("_", " ");
+      standardRows += `
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+          <td style="padding:12px 0;color:#94a3b8;">${escapeHtml(label)}</td>
+          <td style="padding:12px 0;text-align:center;color:#94a3b8;font-size:12px;">${data.met}/${data.total}</td>
+          <td style="padding:12px 0;text-align:center;"><span style="background:${color}22;color:${color};padding:4px 10px;border-radius:8px;font-size:11px;font-weight:bold;">${health}</span></td>
+          <td style="padding:12px 0;text-align:right;font-size:20px;font-weight:bold;color:${color};">${score}%</td>
+        </tr>`;
+      overallMet += data.met;
+      overallPartial += data.partial;
+      overallTotal += data.total;
+    }
+
+    const overallScore = overallTotal > 0 ? Math.round(((overallMet + overallPartial * 0.5) / overallTotal) * 100) : 0;
+    const overallColor = overallScore >= 80 ? "#22c55e" : overallScore >= 50 ? "#f59e0b" : "#ef4444";
+
+    const subject = `Compliance Report — ${company.name} (${overallScore}%)`;
+    const body = `
+      <p>Here's your weekly compliance report for <strong>${escapeHtml(company.name)}</strong>:</p>
+      <div style="text-align:center;margin:20px 0;">
+        <span style="font-size:48px;font-weight:bold;color:${overallColor};">${overallScore}%</span>
+        <p style="color:#94a3b8;font-size:13px;margin-top:4px;">Overall Compliance Score</p>
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.15);">
+          <th style="padding:8px 0;text-align:left;color:#64748b;font-size:11px;text-transform:uppercase;">Standard</th>
+          <th style="padding:8px 0;text-align:center;color:#64748b;font-size:11px;text-transform:uppercase;">Clauses</th>
+          <th style="padding:8px 0;text-align:center;color:#64748b;font-size:11px;text-transform:uppercase;">Status</th>
+          <th style="padding:8px 0;text-align:right;color:#64748b;font-size:11px;text-transform:uppercase;">Score</th>
+        </tr>
+        ${standardRows}
+      </table>
+      <p style="color:#94a3b8;font-size:13px;">Log in to ISOGuardian for the full clause-by-clause breakdown and to export a PDF report.</p>`;
+
+    const html = emailTemplate(subject, body, `${APP_URL}/compliance`, "View Full Report");
+
+    for (const user of recipients) {
+      if (await alreadySent(company.id, user.email, "compliance_report", "company", company.id, 168)) continue;
+      if (await sendEmail(user.email, subject, html)) {
+        await logNotification(company.id, user.email, "compliance_report", "company", company.id);
+        sent++;
+      }
+    }
+  }
+  return sent;
+}
+
 // ─── HTML Escape (prevent XSS in emails) ────────────────────────────────────
 
 function escapeHtml(str: string): string {
@@ -480,6 +576,7 @@ Deno.serve(async (req: Request) => {
       overdue_ncrs: await sendOverdueNCRs(),
       document_reviews: await sendDocumentReviewReminders(),
       weekly_digest: await sendWeeklyDigest(),
+      compliance_report: await sendComplianceReports(),
       lead_notifications: await sendLeadNotifications(),
       timestamp: new Date().toISOString(),
     };
