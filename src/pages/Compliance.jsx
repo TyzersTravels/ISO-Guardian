@@ -108,7 +108,7 @@ const Compliance = () => {
       const companyLogo = userProfile?.company?.logo_url || null
       const userName = userProfile?.full_name || userProfile?.email || ''
 
-      await createBrandedPDF({
+      const doc = await createBrandedPDF({
         title: `${standardLabel} Compliance Report`,
         docNumber: `IG-COMP-${selectedStandard.replace('ISO_', '')}`,
         companyName,
@@ -215,6 +215,7 @@ const Compliance = () => {
         }
       })
 
+      doc.save(`IG-COMP-${selectedStandard.replace('ISO_', '')}_Compliance_Report.pdf`)
       toast.success('Compliance report exported successfully')
     } catch (err) {
       console.error('Error exporting compliance report:', err)
