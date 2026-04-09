@@ -86,6 +86,8 @@ const Layout = ({ children }) => {
         { path: '/documents', label: 'Documents', icon: 'documents' },
         { path: '/ncrs', label: 'NCRs', icon: 'ncrs' },
         { path: '/compliance', label: 'Compliance', icon: 'compliance' },
+        { path: '/risk-register', label: 'Risk Register', icon: 'ncrs' },
+        { path: '/quality-objectives', label: 'Objectives', icon: 'analytics' },
         { path: '/audits', label: 'Audits', icon: 'audits' },
         { path: '/management-reviews', label: 'Reviews', icon: 'reviews' },
       ],

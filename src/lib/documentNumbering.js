@@ -14,6 +14,8 @@ const TYPE_MAP = {
   ncr: 'NCR',
   audit: 'AUD',
   management_review: 'MR',
+  risk: 'RSK',
+  objective: 'OBJ',
 };
 
 const COUNTER_MAP = {
@@ -21,6 +23,8 @@ const COUNTER_MAP = {
   ncr: 'ncr_counter',
   audit: 'audit_counter',
   management_review: 'review_counter',
+  risk: 'risk_counter',
+  objective: 'objective_counter',
 };
 
 export const generateDocNumber = async (companyId, entityType) => {
