@@ -403,7 +403,7 @@ const RiskRegister = () => {
           ))}
         </div>
 
-        {/* Risk Matrix (5x5) */}
+        {/* Risk Matrix (5x5) — density-based heat map */}
         <div className="glass glass-border rounded-2xl p-4 md:p-6">
           <h3 className="text-lg font-bold text-white mb-4">Risk Heat Map</h3>
           <div className="overflow-x-auto">
@@ -422,12 +422,26 @@ const RiskRegister = () => {
                   {[1, 2, 3, 4, 5].map(s => {
                     const rating = l * s
                     const count = risks.filter(r => r.likelihood === l && r.severity === s).length
-                    const bg = rating <= 4 ? 'bg-green-500/30' : rating <= 9 ? 'bg-yellow-500/30' : rating <= 15 ? 'bg-orange-500/40' : 'bg-red-500/50'
+                    const cellCounts = Object.values(risks.reduce((acc, r) => {
+                      const key = `${r.likelihood}-${r.severity}`
+                      acc[key] = (acc[key] || 0) + 1
+                      return acc
+                    }, {}))
+                    const maxCount = cellCounts.length > 0 ? Math.max(...cellCounts) : 1
+                    // Base color from risk rating, intensity from density
+                    const baseColor = rating <= 4 ? '34,197,94' : rating <= 9 ? '234,179,8' : rating <= 15 ? '249,115,22' : '239,68,68'
+                    const baseOpacity = rating <= 4 ? 0.15 : rating <= 9 ? 0.2 : rating <= 15 ? 0.25 : 0.3
+                    const densityBoost = count > 0 ? Math.min(0.7, baseOpacity + (count / maxCount) * 0.5) : baseOpacity
                     return (
-                      <div key={s} className={`flex-1 aspect-square m-0.5 rounded-lg ${bg} flex items-center justify-center relative`}>
-                        <span className="text-[10px] text-white/40">{rating}</span>
+                      <div key={s} className="flex-1 aspect-square m-0.5 rounded-lg flex items-center justify-center relative transition-all"
+                        style={{
+                          backgroundColor: `rgba(${baseColor}, ${densityBoost})`,
+                          boxShadow: count > 0 ? `0 0 ${8 + count * 6}px rgba(${baseColor}, ${Math.min(0.6, count * 0.15)})` : 'none',
+                        }}>
+                        <span className={`text-[10px] ${count > 0 ? 'text-white/80 font-bold' : 'text-white/30'}`}>{rating}</span>
                         {count > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-white text-[9px] font-bold text-gray-900 rounded-full w-4 h-4 flex items-center justify-center">
+                          <span className="absolute -top-1.5 -right-1.5 text-[10px] font-bold text-white rounded-full w-5 h-5 flex items-center justify-center shadow-lg"
+                            style={{ backgroundColor: `rgb(${baseColor})` }}>
                             {count}
                           </span>
                         )}
@@ -439,6 +453,14 @@ const RiskRegister = () => {
               <div className="flex mt-1">
                 <div className="w-20 md:w-24" />
                 <div className="flex-1 text-center text-[10px] text-white/40">Severity →</div>
+              </div>
+              {/* Legend */}
+              <div className="flex justify-center gap-4 mt-3 text-[10px] text-white/40">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ backgroundColor: 'rgba(34,197,94,0.3)' }} /> Low (1-4)</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ backgroundColor: 'rgba(234,179,8,0.35)' }} /> Medium (5-9)</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ backgroundColor: 'rgba(249,115,22,0.4)' }} /> High (10-15)</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ backgroundColor: 'rgba(239,68,68,0.5)' }} /> Critical (16-25)</span>
+                <span className="flex items-center gap-1">Brighter = more risks in cell</span>
               </div>
             </div>
           </div>

@@ -162,7 +162,7 @@ The Quality Policy is:
 Risks are assessed using the Risk Register ({{REF:risk-register}}) and managed according to the Risk Management Procedure.
 
 **Risk Assessment Matrix:**
-| Likelihood → | Rare (1) | Unlikely (2) | Possible (3) | Likely (4) | Almost Certain (5) |
+| Likelihood -> | Rare (1) | Unlikely (2) | Possible (3) | Likely (4) | Almost Certain (5) |
 |---|---|---|---|---|---|
 | **Catastrophic (5)** | 5 | 10 | 15 | 20 | 25 |
 | **Major (4)** | 4 | 8 | 12 | 16 | 20 |
@@ -993,7 +993,7 @@ The register is reviewed at least annually and updated when changes occur.`
 | **Risk Assessment** | Process of evaluating risk(s) arising from hazard(s) |
 | **HIRA** | Hazard Identification and Risk Assessment |
 | **Residual Risk** | Risk remaining after controls are applied |
-| **Hierarchy of Controls** | Ordered approach to risk reduction (elimination → PPE) |`
+| **Hierarchy of Controls** | Ordered approach to risk reduction (elimination to PPE) |`
         },
         {
           heading: '4. Hazard Categories',
@@ -1149,9 +1149,9 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 | 2 | [Action] | [Name] | [Date] | [ ] Open  [ ] In Progress  [ ] Complete |
 | 3 | [Action] | [Name] | [Date] | [ ] Open  [ ] In Progress  [ ] Complete |
 
-**Similar risk elsewhere?** [ ] Yes → [Where? Actions taken?]  [ ] No
+**Similar risk elsewhere?** [ ] Yes -> [Where? Actions taken?]  [ ] No
 
-**QMS changes required?** [ ] Yes → [Which documents?]  [ ] No`
+**QMS changes required?** [ ] Yes -> [Which documents?]  [ ] No`
         },
         {
           heading: 'Section F: Verification of Effectiveness',
@@ -1160,8 +1160,8 @@ Workers must be consulted and have the opportunity to participate in the hazard 
 | **Verification date** | [Date — minimum 30 days after implementation] |
 | **Verified by** | [Name — must not be the person who implemented the action] |
 | **Evidence of effectiveness** | [Describe how effectiveness was confirmed] |
-| **Has the nonconformity recurred?** | [ ] Yes → [Reopen / escalate]  [ ] No |
-| **Corrective action effective?** | [ ] Yes  [ ] No → [Further action required] |
+| **Has the nonconformity recurred?** | [ ] Yes -> [Reopen / escalate]  [ ] No |
+| **Corrective action effective?** | [ ] Yes  [ ] No -> [Further action required] |
 
 **Signatures:**
 
