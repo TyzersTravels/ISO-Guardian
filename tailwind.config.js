@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        outfit: ['Outfit', 'system-ui', 'sans-serif'],
+      },
       colors: {
         brand: {
           cyan: '#06b6d4',
@@ -34,6 +37,11 @@ export default {
         'shimmer': 'shimmer 3s linear infinite',
         'float-slow': 'float-slow 6s ease-in-out infinite',
         'orbit': 'orbit 20s linear infinite',
+        // Landing page animations
+        'mesh-1': 'mesh-float-1 20s ease-in-out infinite',
+        'mesh-2': 'mesh-float-2 25s ease-in-out infinite',
+        'reveal-up': 'reveal-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'cursor-blink': 'cursor-blink 1s step-end infinite',
       },
       keyframes: {
         'fade-in': {
@@ -88,6 +96,25 @@ export default {
         'orbit': {
           '0%': { transform: 'rotate(0deg) translateX(40px) rotate(0deg)' },
           '100%': { transform: 'rotate(360deg) translateX(40px) rotate(-360deg)' },
+        },
+        // Landing page keyframes
+        'mesh-float-1': {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '33%': { transform: 'translate(50px, -30px) scale(1.05)' },
+          '66%': { transform: 'translate(-20px, 25px) scale(0.97)' },
+        },
+        'mesh-float-2': {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '33%': { transform: 'translate(-35px, 20px) scale(0.95)' },
+          '66%': { transform: 'translate(25px, -40px) scale(1.04)' },
+        },
+        'reveal-up': {
+          from: { opacity: '0', transform: 'translateY(24px) translateZ(0)' },
+          to: { opacity: '1', transform: 'translateY(0) translateZ(0)' },
+        },
+        'cursor-blink': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
         },
       },
     },

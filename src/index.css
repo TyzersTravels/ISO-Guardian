@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -31,6 +33,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .anim-fade-init { opacity: 1; transform: none; }
   .anim-fade-in { transition: none; }
+  .animate-mesh-1, .animate-mesh-2 { animation: none !important; }
+  .animate-reveal-up { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .animate-cursor-blink { animation: none !important; opacity: 1 !important; }
 }
 
 @layer components {
