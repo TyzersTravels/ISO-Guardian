@@ -51,6 +51,9 @@ const RiskRegister = lazy(() => import('./pages/RiskRegister'))
 const QualityObjectives = lazy(() => import('./pages/QualityObjectives'))
 const TrainingMatrix = lazy(() => import('./pages/TrainingMatrix'))
 const InterestedParties = lazy(() => import('./pages/InterestedParties'))
+const SupplierRegister = lazy(() => import('./pages/SupplierRegister'))
+const CustomerFeedback = lazy(() => import('./pages/CustomerFeedback'))
+const ImprovementRegister = lazy(() => import('./pages/ImprovementRegister'))
 // const StandardsNews = lazy(() => import('./pages/StandardsNews')) // Hidden until AI credits loaded
 // const ArticleDetail = lazy(() => import('./pages/ArticleDetail')) // Hidden until AI credits loaded
 
@@ -120,6 +123,9 @@ function App() {
           <Route path="/quality-objectives" element={<ProtectedRoute><QualityObjectives /></ProtectedRoute>} />
           <Route path="/training-matrix" element={<ProtectedRoute><TrainingMatrix /></ProtectedRoute>} />
           <Route path="/interested-parties" element={<ProtectedRoute><InterestedParties /></ProtectedRoute>} />
+          <Route path="/suppliers" element={<ProtectedRoute><SupplierRegister /></ProtectedRoute>} />
+          <Route path="/customer-feedback" element={<ProtectedRoute><CustomerFeedback /></ProtectedRoute>} />
+          <Route path="/improvements" element={<ProtectedRoute><ImprovementRegister /></ProtectedRoute>} />
           <Route path="/editor/new" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
           <Route path="/editor/:instanceId" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
           <Route path="/finance" element={<RoleProtectedRoute allowedRoles={['super_admin']}><FinancialDashboard /></RoleProtectedRoute>} />

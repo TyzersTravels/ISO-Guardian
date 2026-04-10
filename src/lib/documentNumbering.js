@@ -17,6 +17,7 @@ const TYPE_MAP = {
   risk: 'RSK',
   objective: 'OBJ',
   training: 'TRN',
+  improvement: 'IMP',
 };
 
 const COUNTER_MAP = {
@@ -27,6 +28,7 @@ const COUNTER_MAP = {
   risk: 'risk_counter',
   objective: 'objective_counter',
   training: 'training_counter',
+  improvement: 'improvement_counter',
 };
 
 export const generateDocNumber = async (companyId, entityType) => {

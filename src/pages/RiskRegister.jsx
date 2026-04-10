@@ -299,6 +299,78 @@ const RiskRegister = () => {
           doc.setFontSize(9)
           doc.setTextColor(60, 60, 70)
           doc.text(`Total Risks: ${totalRisks}  |  Opportunities: ${totalOpps}  |  Critical: ${criticalCount}  |  High: ${highCount}  |  Open: ${openCount}`, margin, y)
+          y += 12
+
+          // 5x5 Risk Heat Map
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(10)
+          doc.setTextColor(30, 27, 75)
+          doc.text('Risk Heat Map', margin, y)
+          y += 6
+          const cellSize = 14
+          const labelW = 22
+          const matrixX = margin + labelW
+          const lLabels = ['Rare', 'Unlikely', 'Possible', 'Likely', 'Almost Certain']
+          const sLabels = ['Insignificant', 'Minor', 'Moderate', 'Major', 'Catastrophic']
+
+          // Severity header
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(5)
+          doc.setTextColor(100, 100, 110)
+          sLabels.forEach((label, i) => {
+            doc.text(label, matrixX + i * cellSize + cellSize / 2, y + 1, { align: 'center' })
+          })
+          y += 4
+
+          for (let li = 4; li >= 0; li--) {
+            const l = li + 1
+            // Likelihood label
+            doc.setFont('helvetica', 'normal')
+            doc.setFontSize(5)
+            doc.setTextColor(100, 100, 110)
+            doc.text(lLabels[li], margin + labelW - 2, y + cellSize / 2 + 1, { align: 'right' })
+
+            for (let si = 0; si < 5; si++) {
+              const s = si + 1
+              const rating = l * s
+              const count = risks.filter(r => r.likelihood === l && r.severity === s).length
+              const cx = matrixX + si * cellSize
+              const cy = y
+
+              // Color based on rating
+              const r = rating <= 4 ? [34, 197, 94] : rating <= 9 ? [234, 179, 8] : rating <= 15 ? [249, 115, 22] : [239, 68, 68]
+              const baseAlpha = rating <= 4 ? 60 : rating <= 9 ? 80 : rating <= 15 ? 100 : 130
+              const alpha = count > 0 ? Math.min(230, baseAlpha + count * 50) : baseAlpha
+
+              doc.setFillColor(r[0], r[1], r[2])
+              doc.setGState(new doc.GState({ opacity: alpha / 255 }))
+              doc.roundedRect(cx, cy, cellSize - 1, cellSize - 1, 1, 1, 'F')
+              doc.setGState(new doc.GState({ opacity: 1 }))
+
+              // Rating number
+              doc.setFont('helvetica', 'normal')
+              doc.setFontSize(6)
+              doc.setTextColor(255, 255, 255)
+              doc.text(String(rating), cx + (cellSize - 1) / 2, cy + (cellSize - 1) / 2 + 1, { align: 'center' })
+
+              // Count badge
+              if (count > 0) {
+                doc.setFillColor(255, 255, 255)
+                doc.circle(cx + cellSize - 3, cy + 2, 2.5, 'F')
+                doc.setFont('helvetica', 'bold')
+                doc.setFontSize(5)
+                doc.setTextColor(30, 30, 30)
+                doc.text(String(count), cx + cellSize - 3, cy + 3, { align: 'center' })
+              }
+            }
+            y += cellSize
+          }
+          y += 3
+          // Legend
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(5)
+          doc.setTextColor(120, 120, 130)
+          doc.text('Low (1-4)    Medium (5-9)    High (10-15)    Critical (16-25)    Count badges show density', margin, y)
           y += 10
 
           // Table header
