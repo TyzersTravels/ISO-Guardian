@@ -88,6 +88,8 @@ const Layout = ({ children }) => {
         { path: '/compliance', label: 'Compliance', icon: 'compliance' },
         { path: '/risk-register', label: 'Risk Register', icon: 'ncrs' },
         { path: '/quality-objectives', label: 'Objectives', icon: 'analytics' },
+        { path: '/training-matrix', label: 'Training', icon: 'users' },
+        { path: '/interested-parties', label: 'Stakeholders', icon: 'reviews' },
         { path: '/audits', label: 'Audits', icon: 'audits' },
         { path: '/management-reviews', label: 'Reviews', icon: 'reviews' },
       ],
