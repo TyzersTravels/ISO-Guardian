@@ -54,6 +54,7 @@ const InterestedParties = lazy(() => import('./pages/InterestedParties'))
 const SupplierRegister = lazy(() => import('./pages/SupplierRegister'))
 const CustomerFeedback = lazy(() => import('./pages/CustomerFeedback'))
 const ImprovementRegister = lazy(() => import('./pages/ImprovementRegister'))
+const CommunicationRegister = lazy(() => import('./pages/CommunicationRegister'))
 // const StandardsNews = lazy(() => import('./pages/StandardsNews')) // Hidden until AI credits loaded
 // const ArticleDetail = lazy(() => import('./pages/ArticleDetail')) // Hidden until AI credits loaded
 
@@ -126,6 +127,7 @@ function App() {
           <Route path="/suppliers" element={<ProtectedRoute><SupplierRegister /></ProtectedRoute>} />
           <Route path="/customer-feedback" element={<ProtectedRoute><CustomerFeedback /></ProtectedRoute>} />
           <Route path="/improvements" element={<ProtectedRoute><ImprovementRegister /></ProtectedRoute>} />
+          <Route path="/communications" element={<ProtectedRoute><CommunicationRegister /></ProtectedRoute>} />
           <Route path="/editor/new" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
           <Route path="/editor/:instanceId" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
           <Route path="/finance" element={<RoleProtectedRoute allowedRoles={['super_admin']}><FinancialDashboard /></RoleProtectedRoute>} />
