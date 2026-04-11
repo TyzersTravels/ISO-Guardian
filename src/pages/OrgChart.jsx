@@ -131,15 +131,17 @@ const OrgChart = () => {
           .update(payload)
           .eq('id', editing.id)
         if (error) throw error
-        await logActivity('Updated org position: ' + form.position_title)
+        await logActivity({ companyId, userId: userProfile.id, action: 'updated', entityType: 'org_position', entityId: editing.id, changes: { position_title: form.position_title } })
         toast.success('Position updated')
       } else {
         payload.created_by = userProfile.id
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('org_positions')
           .insert(payload)
+          .select('id')
+          .single()
         if (error) throw error
-        await logActivity('Created org position: ' + form.position_title)
+        await logActivity({ companyId, userId: userProfile.id, action: 'created', entityType: 'org_position', entityId: data.id, changes: { position_title: form.position_title } })
         toast.success('Position created')
       }
       setShowForm(false)
@@ -157,7 +159,7 @@ const OrgChart = () => {
         .delete()
         .eq('id', pos.id)
       if (error) throw error
-      await logActivity('Deleted org position: ' + pos.position_title)
+      await logActivity({ companyId: getEffectiveCompanyId(), userId: userProfile.id, action: 'deleted', entityType: 'org_position', entityId: pos.id, changes: { position_title: pos.position_title } })
       toast.success('Position deleted')
       setSelectedPosition(null)
       fetchPositions()
