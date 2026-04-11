@@ -119,6 +119,7 @@ const Layout = ({ children }) => {
         ...(isAdmin ? [{ path: '/settings', label: 'Company Profile', icon: 'company' }] : []),
         { path: '/compliance', label: 'SHEQ Policy & Scope', icon: 'compliance', clause: '§4.3 / §5.2' },
         ...(isAdmin ? [{ path: '/users', label: 'Organisation', icon: 'users', clause: '§5.3' }] : []),
+        { path: '/org-chart', label: 'Org Chart', icon: 'users', clause: '§5.3' },
       ],
     },
     // Clause 4: Context of the Organisation
