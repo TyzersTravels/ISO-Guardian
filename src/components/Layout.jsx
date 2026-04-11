@@ -40,6 +40,30 @@ const Layout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [bellOpen, setBellOpen] = useState(false)
   const [bellItems, setBellItems] = useState([])
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ig_nav_expanded') || '{}') } catch { return {} }
+  })
+
+  const toggleGroup = (label) => {
+    setExpandedGroups(prev => {
+      const next = { ...prev, [label]: !prev[label] }
+      localStorage.setItem('ig_nav_expanded', JSON.stringify(next))
+      return next
+    })
+  }
+
+  // Auto-expand the group containing the active route
+  useEffect(() => {
+    const path = location.pathname
+    const activeGroup = navGroups.find(g => g.collapsible && g.items.some(i => i.path === path))
+    if (activeGroup && !expandedGroups[activeGroup.label]) {
+      setExpandedGroups(prev => {
+        const next = { ...prev, [activeGroup.label]: true }
+        localStorage.setItem('ig_nav_expanded', JSON.stringify(next))
+        return next
+      })
+    }
+  }, [location.pathname])
 
   useEffect(() => {
     if (userProfile) fetchBellItems()
@@ -79,28 +103,81 @@ const Layout = ({ children }) => {
   }
 
   const navGroups = [
+    // Dashboard — always visible, no collapsing
     {
-      label: 'Core',
+      label: 'Dashboard',
       items: [
         { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-        { path: '/documents', label: 'Documents', icon: 'documents' },
-        { path: '/ncrs', label: 'NCRs', icon: 'ncrs' },
-        { path: '/compliance', label: 'Compliance', icon: 'compliance' },
-        { path: '/risk-register', label: 'Risk Register', icon: 'ncrs' },
-        { path: '/quality-objectives', label: 'Objectives', icon: 'analytics' },
-        { path: '/training-matrix', label: 'Training', icon: 'users' },
-        { path: '/interested-parties', label: 'Stakeholders', icon: 'reviews' },
-        { path: '/suppliers', label: 'Suppliers', icon: 'documents' },
-        { path: '/customer-feedback', label: 'Feedback', icon: 'ncrs' },
-        { path: '/improvements', label: 'Improvements', icon: 'analytics' },
-        { path: '/communications', label: 'Communications', icon: 'notifications' },
-        { path: '/processes', label: 'Processes', icon: 'compliance' },
-        { path: '/audits', label: 'Audits', icon: 'audits' },
-        { path: '/management-reviews', label: 'Reviews', icon: 'reviews' },
       ],
     },
+    // Section 1 & 2: Company Profile + SHEQ Policy (Clause 5.2)
     {
-      label: 'Intelligence',
+      label: '1. Company',
+      clause: '§5',
+      collapsible: true,
+      items: [
+        ...(isAdmin ? [{ path: '/settings', label: 'Company Profile', icon: 'company' }] : []),
+        { path: '/compliance', label: 'SHEQ Policy & Scope', icon: 'compliance', clause: '§4.3 / §5.2' },
+        ...(isAdmin ? [{ path: '/users', label: 'Organisation', icon: 'users', clause: '§5.3' }] : []),
+      ],
+    },
+    // Clause 4: Context of the Organisation
+    {
+      label: '2. Context',
+      clause: '§4',
+      collapsible: true,
+      items: [
+        { path: '/processes', label: 'Processes', icon: 'compliance', clause: '§4.4' },
+        { path: '/interested-parties', label: 'Stakeholders', icon: 'reviews', clause: '§4.2' },
+      ],
+    },
+    // Clause 6: Planning
+    {
+      label: '3. Planning',
+      clause: '§6',
+      collapsible: true,
+      items: [
+        { path: '/risk-register', label: 'Risks & Opportunities', icon: 'ncrs', clause: '§6.1' },
+        { path: '/quality-objectives', label: 'Objectives & Targets', icon: 'analytics', clause: '§6.2' },
+      ],
+    },
+    // Clause 7: Support
+    {
+      label: '4. Support',
+      clause: '§7',
+      collapsible: true,
+      items: [
+        { path: '/documents', label: 'Documents', icon: 'documents', clause: '§7.5' },
+        { path: '/training-matrix', label: 'Training', icon: 'users', clause: '§7.2' },
+        { path: '/communications', label: 'Communications', icon: 'notifications', clause: '§7.4' },
+      ],
+    },
+    // Clause 8: Operation
+    {
+      label: '5. Operations',
+      clause: '§8',
+      collapsible: true,
+      items: [
+        { path: '/suppliers', label: 'Suppliers', icon: 'documents', clause: '§8.4' },
+        { path: '/customer-feedback', label: 'Customer Feedback', icon: 'ncrs', clause: '§9.1.2' },
+      ],
+    },
+    // Clause 9 & 10: Performance Evaluation + Improvement
+    {
+      label: '6. Performance',
+      clause: '§9–10',
+      collapsible: true,
+      items: [
+        { path: '/ncrs', label: 'NCRs', icon: 'ncrs', clause: '§10.2' },
+        { path: '/audits', label: 'Audits', icon: 'audits', clause: '§9.2' },
+        { path: '/management-reviews', label: 'Management Reviews', icon: 'reviews', clause: '§9.3' },
+        { path: '/improvements', label: 'Improvements', icon: 'analytics', clause: '§10.3' },
+      ],
+    },
+    // Intelligence & Tools
+    {
+      label: 'Tools',
+      collapsible: true,
       items: [
         { path: '/templates', label: 'Templates', icon: 'templates' },
         { path: '/audit-simulator', label: 'Audit Simulator', icon: 'audits' },
@@ -108,20 +185,22 @@ const Layout = ({ children }) => {
         ...(isAdmin || isLeadAuditor ? [{ path: '/audit-connect', label: 'Audit Connect', icon: 'auditConnect' }] : []),
       ],
     },
+    // Activity & Tracking
     {
       label: 'Activity',
+      collapsible: true,
       items: [
         { path: '/activity-trail', label: 'Activity Trail', icon: 'activity' },
         { path: '/notifications', label: 'Notifications', icon: 'notifications' },
         { path: '/data-export', label: 'Export Data', icon: 'export' },
       ],
     },
+    // Administration (admin/super_admin only)
     ...(isAdmin ? [{
       label: 'Administration',
+      collapsible: true,
       items: [
         { path: '/analytics', label: 'Analytics', icon: 'analytics' },
-        { path: '/settings', label: 'Settings', icon: 'settings' },
-        { path: '/users', label: 'Users', icon: 'users' },
         ...(isSuperAdmin ? [{ path: '/create-company', label: 'New Company', icon: 'company' }] : []),
         ...(isSuperAdmin ? [{ path: '/finance', label: 'Finance', icon: 'finance' }] : []),
       ],
@@ -152,34 +231,57 @@ const Layout = ({ children }) => {
       </div>
 
       {/* Nav Groups */}
-      <div className="flex-1 overflow-y-auto py-3 px-3 space-y-5">
-        {navGroups.filter(group => group.items.length > 0).map(group => (
-          <div key={group.label}>
-            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider px-3 mb-1.5">{group.label}</p>
-            <div className="space-y-0.5">
-              {group.items.map(item => (
+      <div className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
+        {navGroups.filter(group => group.items.length > 0).map(group => {
+          const isExpanded = !group.collapsible || expandedGroups[group.label]
+          const hasActiveChild = group.items.some(i => isActive(i.path))
+
+          return (
+            <div key={group.label}>
+              {group.collapsible ? (
                 <button
-                  key={item.path}
-                  data-tour={item.path.replace('/', '')}
-                  onClick={() => handleNav(item.path)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    isActive(item.path)
-                      ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/30'
-                      : item.highlight
-                      ? 'text-cyan-300/80 hover:bg-cyan-500/10'
-                      : 'text-white/60 hover:bg-white/5 hover:text-white/90'
+                  onClick={() => toggleGroup(group.label)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
+                    hasActiveChild ? 'text-cyan-300/80' : 'text-white/35 hover:text-white/60 hover:bg-white/[0.03]'
                   }`}
                 >
-                  <span className={isActive(item.path) ? 'text-cyan-400' : item.highlight ? 'text-cyan-400/70' : 'text-white/40'}>
-                    {icons[item.icon]}
+                  <span className="flex items-center gap-2">
+                    {group.label}
+                    {group.clause && <span className="text-[9px] font-normal normal-case tracking-normal text-white/20">{group.clause}</span>}
                   </span>
-                  {item.highlight && !isActive(item.path) && <span className="text-cyan-400 text-xs">✦</span>}
-                  <span className="truncate">{item.label}</span>
+                  <svg className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </button>
-              ))}
+              ) : (
+                <div className="mb-1" />
+              )}
+
+              <div className={`space-y-0.5 overflow-hidden transition-all duration-200 ${isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                {group.items.map(item => (
+                  <button
+                    key={item.path}
+                    data-tour={item.path.replace('/', '')}
+                    onClick={() => handleNav(item.path)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      isActive(item.path)
+                        ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/30'
+                        : item.highlight
+                        ? 'text-cyan-300/80 hover:bg-cyan-500/10'
+                        : 'text-white/60 hover:bg-white/5 hover:text-white/90'
+                    } ${group.collapsible ? 'pl-5' : ''}`}
+                  >
+                    <span className={isActive(item.path) ? 'text-cyan-400' : item.highlight ? 'text-cyan-400/70' : 'text-white/40'}>
+                      {icons[item.icon]}
+                    </span>
+                    <span className="truncate flex-1">{item.label}</span>
+                    {item.clause && <span className="text-[9px] text-white/15 font-normal flex-shrink-0">{item.clause}</span>}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* User Section */}
