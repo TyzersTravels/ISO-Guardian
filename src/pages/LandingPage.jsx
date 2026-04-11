@@ -125,8 +125,8 @@ export default function LandingPage() {
   const pricingStaggerRef = useStaggerFadeIn(100)
   const heroParallaxRef = useHeroParallax()
 
-  const startTrial = () => {
-    trackConversion('trial_start')
+  const getStarted = () => {
+    trackConversion('signup_start')
     navigate('/signup')
   }
 
@@ -193,8 +193,8 @@ export default function LandingPage() {
             <button onClick={() => navigate('/login')} className="px-5 py-2.5 text-sm font-medium text-white/50 hover:text-white transition-colors">
               Sign in
             </button>
-            <button onClick={startTrial} className="px-5 py-2.5 text-sm font-semibold bg-white text-[#050a14] rounded-xl hover:bg-white/90 transition-all">
-              Start Free Trial
+            <button onClick={getStarted} className="px-5 py-2.5 text-sm font-semibold bg-white text-[#050a14] rounded-xl hover:bg-white/90 transition-all">
+              Get Started
             </button>
           </div>
 
@@ -213,7 +213,7 @@ export default function LandingPage() {
               <button key={id} onClick={() => scrollTo(id)} className="block w-full text-left text-white/40 hover:text-white py-2 capitalize">{id}</button>
             ))}
             <button onClick={() => { setMobileMenuOpen(false); navigate('/login') }} className="block w-full text-left text-white/40 hover:text-white py-2">Sign in</button>
-            <button onClick={() => { setMobileMenuOpen(false); startTrial() }} className="block w-full text-center py-3 mt-2 bg-white text-[#050a14] rounded-xl font-semibold text-sm">Start Free Trial</button>
+            <button onClick={() => { setMobileMenuOpen(false); getStarted() }} className="block w-full text-center py-3 mt-2 bg-white text-[#050a14] rounded-xl font-semibold text-sm">Get Started</button>
           </div>
         )}
       </nav>
@@ -255,8 +255,8 @@ export default function LandingPage() {
             </div>
 
             <div className="flex flex-wrap gap-4 animate-reveal-up" style={{ animationDelay: '0.6s' }}>
-              <button onClick={startTrial} className="group px-8 py-4 bg-white text-[#050a14] font-bold rounded-2xl transition-all text-lg hover:bg-white/90 hover:shadow-xl hover:shadow-white/5">
-                Start Free Trial
+              <button onClick={getStarted} className="group px-8 py-4 bg-white text-[#050a14] font-bold rounded-2xl transition-all text-lg hover:bg-white/90 hover:shadow-xl hover:shadow-white/5">
+                Get Started
                 <span className="inline-block ml-2 transition-transform group-hover:translate-x-1">{'\u2192'}</span>
               </button>
               <button onClick={() => scrollTo('pricing')} className="px-8 py-4 border border-white/[0.08] hover:border-white/20 font-semibold rounded-2xl transition-all text-lg text-white/40 hover:text-white/70">
@@ -265,7 +265,7 @@ export default function LandingPage() {
             </div>
 
             <div className="flex flex-wrap gap-x-6 gap-y-2 mt-12 text-xs text-white/25 animate-reveal-up" style={{ animationDelay: '0.75s' }}>
-              {['POPIA Compliant', 'AES-256 Encrypted', 'ISO 9001 \u00b7 14001 \u00b7 45001', '14-Day Free Trial'].map(t => (
+              {['POPIA Compliant', 'AES-256 Encrypted', 'ISO 9001 \u00b7 14001 \u00b7 45001', 'SA-Built Platform'].map(t => (
                 <span key={t} className="flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5 text-cyan-500/50" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -427,7 +427,7 @@ export default function LandingPage() {
             <div className="hidden md:block absolute top-6 left-[12.5%] right-[12.5%] h-[1px] bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {[
-                { step: '01', title: 'Sign Up', desc: '14-day free trial. No card required.' },
+                { step: '01', title: 'Sign Up', desc: 'Create your account in under 2 minutes.' },
                 { step: '02', title: 'Upload', desc: 'Import existing docs or start fresh.' },
                 { step: '03', title: 'Track', desc: 'NCRs, audits, reviews — all in one place.' },
                 { step: '04', title: 'Get Certified', desc: 'Walk into your audit with confidence.' },
@@ -498,8 +498,8 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 {cta === 'trial' ? (
-                  <button onClick={startTrial} className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${highlight ? 'bg-white text-[#050a14] hover:bg-white/90 shadow-lg shadow-white/5' : 'border border-white/[0.08] hover:border-white/20 text-white/50 hover:text-white'}`}>
-                    Start 14-Day Free Trial
+                  <button onClick={getStarted} className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${highlight ? 'bg-white text-[#050a14] hover:bg-white/90 shadow-lg shadow-white/5' : 'border border-white/[0.08] hover:border-white/20 text-white/50 hover:text-white'}`}>
+                    Get Started
                   </button>
                 ) : (
                   <a href={`mailto:${SUPPORT_EMAIL}?subject=Enterprise%20Pricing%20Enquiry`} className="w-full text-center py-3 rounded-xl font-semibold text-sm transition-all border border-white/[0.08] hover:border-white/20 text-white/50 hover:text-white block">
@@ -694,7 +694,7 @@ export default function LandingPage() {
               { q: 'Which ISO standards are supported?', a: 'ISO 9001:2015 (Quality), ISO 14001:2015 (Environmental), and ISO 45001:2018 (Occupational Health & Safety). ISO 27001:2022 is on our roadmap.' },
               { q: 'Is my data safe?', a: 'Yes. AES-256 encryption at rest, TLS 1.2+ in transit, strict row-level data isolation between companies, POPIA-compliant. You can export or delete your data at any time.' },
               { q: 'Can I manage multiple standards at once?', a: 'Absolutely. Documents, NCRs, and audits can all be tagged to specific standards across all three simultaneously.' },
-              { q: 'What happens after my 14-day free trial?', a: 'Choose a plan. No credit card required to start. During the trial you can download up to 3 starter templates to explore the platform. Full template access and bundles unlock with a paid subscription.' },
+              { q: 'How do I get started?', a: 'Choose a plan that fits your team size, complete sign-up, and you\u2019re live. Our onboarding team will help you import existing documents and configure your standards.' },
               { q: 'Do you support consultants and resellers?', a: 'Yes. Our Reseller Programme lets consultants manage multiple clients from one dashboard with recurring commissions. See our Reseller Programme page for details.' },
               { q: 'Can I buy individual templates without subscribing?', a: 'Yes. Templates are available for one-time purchase starting at R250. Subscribers get all templates free.' },
             ].map((faq, i) => (
@@ -725,11 +725,11 @@ export default function LandingPage() {
               <span className="bg-gradient-to-r from-cyan-400 to-cyan-200 bg-clip-text text-transparent">compliant?</span>
             </h2>
             <p className="text-lg text-white/35 mb-10 max-w-md mx-auto relative">
-              14-day free trial. No credit card. No commitment.
+              Join South African companies already managing compliance smarter.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center relative">
-              <button onClick={startTrial} className="px-10 py-4 bg-white text-[#050a14] font-bold rounded-2xl transition-all hover:bg-white/90 hover:shadow-xl hover:shadow-white/5 text-lg">
-                Start Your Free Trial
+              <button onClick={getStarted} className="px-10 py-4 bg-white text-[#050a14] font-bold rounded-2xl transition-all hover:bg-white/90 hover:shadow-xl hover:shadow-white/5 text-lg">
+                Get Started
               </button>
               <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2.5 px-10 py-4 border border-green-500/20 hover:border-green-500/40 font-bold rounded-2xl transition-all text-green-400/70 hover:text-green-400 text-lg">
                 <WhatsAppIcon />
@@ -743,14 +743,14 @@ export default function LandingPage() {
       {/* ─── STICKY MOBILE CTA BAR ─── */}
       <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#050a14]/95 backdrop-blur-2xl border-t border-white/[0.06] px-4 py-2.5">
         <div className="flex gap-3">
-          <button onClick={startTrial} className="flex-1 py-3 bg-white text-[#050a14] font-bold rounded-xl transition-all text-sm">
-            Start Free Trial
+          <button onClick={getStarted} className="flex-1 py-3 bg-white text-[#050a14] font-bold rounded-xl transition-all text-sm">
+            Get Started
           </button>
           <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 px-4 py-3 border border-green-500/20 font-bold rounded-xl text-green-400/70 text-sm">
             <WhatsAppIcon className="w-5 h-5" />
           </a>
         </div>
-        <p className="text-center text-[10px] text-white/15 mt-1">No credit card required</p>
+        <p className="text-center text-[10px] text-white/15 mt-1">ISO 9001 · 14001 · 45001</p>
       </div>
 
       {/* ─── FOOTER ─── */}
