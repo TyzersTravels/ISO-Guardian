@@ -94,6 +94,7 @@ const Layout = ({ children }) => {
         { path: '/customer-feedback', label: 'Feedback', icon: 'ncrs' },
         { path: '/improvements', label: 'Improvements', icon: 'analytics' },
         { path: '/communications', label: 'Communications', icon: 'notifications' },
+        { path: '/processes', label: 'Processes', icon: 'compliance' },
         { path: '/audits', label: 'Audits', icon: 'audits' },
         { path: '/management-reviews', label: 'Reviews', icon: 'reviews' },
       ],
