@@ -128,6 +128,7 @@ const Layout = ({ children }) => {
       clause: '§4',
       collapsible: true,
       items: [
+        { path: '/context-analysis', label: 'SWOT / Context', icon: 'analytics', clause: '§4.1' },
         { path: '/processes', label: 'Processes', icon: 'compliance', clause: '§4.4' },
         { path: '/interested-parties', label: 'Stakeholders', icon: 'reviews', clause: '§4.2' },
       ],

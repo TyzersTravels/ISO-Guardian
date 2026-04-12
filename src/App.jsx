@@ -55,6 +55,7 @@ const SupplierRegister = lazy(() => import('./pages/SupplierRegister'))
 const CustomerFeedback = lazy(() => import('./pages/CustomerFeedback'))
 const ImprovementRegister = lazy(() => import('./pages/ImprovementRegister'))
 const CommunicationRegister = lazy(() => import('./pages/CommunicationRegister'))
+const ContextAnalysis = lazy(() => import('./pages/ContextAnalysis'))
 const ProcessRegister = lazy(() => import('./pages/ProcessRegister'))
 const OrgChart = lazy(() => import('./pages/OrgChart'))
 // const StandardsNews = lazy(() => import('./pages/StandardsNews')) // Hidden until AI credits loaded
@@ -130,6 +131,7 @@ function App() {
           <Route path="/customer-feedback" element={<ProtectedRoute><CustomerFeedback /></ProtectedRoute>} />
           <Route path="/improvements" element={<ProtectedRoute><ImprovementRegister /></ProtectedRoute>} />
           <Route path="/communications" element={<ProtectedRoute><CommunicationRegister /></ProtectedRoute>} />
+          <Route path="/context-analysis" element={<ProtectedRoute><ContextAnalysis /></ProtectedRoute>} />
           <Route path="/processes" element={<ProtectedRoute><ProcessRegister /></ProtectedRoute>} />
           <Route path="/org-chart" element={<ProtectedRoute><OrgChart /></ProtectedRoute>} />
           <Route path="/editor/new" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
