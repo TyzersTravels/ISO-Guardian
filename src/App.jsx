@@ -61,6 +61,7 @@ const OrgChart = lazy(() => import('./pages/OrgChart'))
 const LegalRegister = lazy(() => import('./pages/LegalRegister'))
 const EnvironmentalAspects = lazy(() => import('./pages/EnvironmentalAspects'))
 const HazardRegister = lazy(() => import('./pages/HazardRegister'))
+const ClauseMatrix = lazy(() => import('./pages/ClauseMatrix'))
 // const StandardsNews = lazy(() => import('./pages/StandardsNews')) // Hidden until AI credits loaded
 // const ArticleDetail = lazy(() => import('./pages/ArticleDetail')) // Hidden until AI credits loaded
 
@@ -140,6 +141,7 @@ function App() {
           <Route path="/legal-register" element={<ProtectedRoute><LegalRegister /></ProtectedRoute>} />
           <Route path="/environmental-aspects" element={<ProtectedRoute><EnvironmentalAspects /></ProtectedRoute>} />
           <Route path="/hazard-register" element={<ProtectedRoute><HazardRegister /></ProtectedRoute>} />
+          <Route path="/clause-matrix" element={<ProtectedRoute><ClauseMatrix /></ProtectedRoute>} />
           <Route path="/editor/new" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
           <Route path="/editor/:instanceId" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
           <Route path="/finance" element={<RoleProtectedRoute allowedRoles={['super_admin']}><FinancialDashboard /></RoleProtectedRoute>} />

@@ -186,6 +186,7 @@ const Layout = ({ children }) => {
       items: [
         { path: '/templates', label: 'Templates', icon: 'templates' },
         { path: '/audit-simulator', label: 'Audit Simulator', icon: 'audits' },
+        { path: '/clause-matrix', label: 'Clause Matrix', icon: 'compliance' },
         // AI Copilot hidden until launch — code preserved in src/pages/AICopilot.jsx
         ...(isAdmin || isLeadAuditor ? [{ path: '/audit-connect', label: 'Audit Connect', icon: 'auditConnect' }] : []),
       ],
