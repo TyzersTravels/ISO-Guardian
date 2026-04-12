@@ -163,6 +163,7 @@ const Layout = ({ children }) => {
       items: [
         { path: '/suppliers', label: 'Suppliers', icon: 'documents', clause: '§8.4' },
         { path: '/customer-feedback', label: 'Customer Feedback', icon: 'ncrs', clause: '§9.1.2' },
+        { path: '/environmental-aspects', label: 'Env. Aspects', icon: 'compliance', clause: '§6.1.2' },
       ],
     },
     // Clause 9 & 10: Performance Evaluation + Improvement
