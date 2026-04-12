@@ -44,6 +44,15 @@ CREATE POLICY "context_issues_update" ON context_issues
 CREATE POLICY "context_issues_delete" ON context_issues
   FOR DELETE USING (company_id = public.get_my_company_id());
 
+-- Reusable updated_at trigger function (safe to re-create)
+CREATE OR REPLACE FUNCTION update_context_issues_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE TRIGGER trg_context_issues_updated
   BEFORE UPDATE ON context_issues FOR EACH ROW
-  EXECUTE FUNCTION update_processes_updated_at();
+  EXECUTE FUNCTION update_context_issues_updated_at();
