@@ -141,6 +141,7 @@ const Layout = ({ children }) => {
       items: [
         { path: '/risk-register', label: 'Risks & Opportunities', icon: 'ncrs', clause: '§6.1' },
         { path: '/quality-objectives', label: 'Objectives & Targets', icon: 'analytics', clause: '§6.2' },
+        { path: '/legal-register', label: 'Legal Register', icon: 'compliance', clause: '§6.1.3' },
       ],
     },
     // Clause 7: Support
