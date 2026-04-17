@@ -6,6 +6,7 @@ import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 import { createBrandedPDF } from '../lib/brandedPDFExport'
+import SupportingDocuments from '../components/SupportingDocuments'
 
 const TRAINING_TYPES = [
   { value: 'induction', label: 'Induction' },
@@ -366,6 +367,8 @@ const TrainingMatrix = () => {
             </div>
           ))}
         </div>
+
+        <SupportingDocuments standard="ISO 9001" clause="7.2" clauseNum={7} clauseName="Clause 7: Support" entityType="training_matrix" title="Existing Training Records" />
 
         {/* View Toggle + Filters */}
         <div className="flex flex-wrap items-center gap-2">

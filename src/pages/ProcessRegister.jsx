@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
+import SupportingDocuments from '../components/SupportingDocuments'
 
 const PROCESS_TYPES = [
   { value: 'core', label: 'Core (Value-Adding)', color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
@@ -230,6 +231,8 @@ const ProcessRegister = () => {
         <div className="glass glass-border rounded-2xl p-4">
           <p className="text-white/40 text-xs">ISO 4.4 requires determining: <strong className="text-white/60">Inputs & Outputs</strong>, <strong className="text-white/60">Sequence & Interaction</strong>, <strong className="text-white/60">Criteria & Methods</strong>, <strong className="text-white/60">Resources</strong>, <strong className="text-white/60">Responsibilities</strong>, <strong className="text-white/60">Risks & Opportunities</strong>, and <strong className="text-white/60">Evaluation & Improvement</strong>.</p>
         </div>
+
+        <SupportingDocuments standard="ISO 9001" clause="4.4" clauseNum={4} clauseName="Clause 4: Context of the Organization" entityType="process_register" title="Existing Process Documents" />
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2">

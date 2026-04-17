@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 
 const SuperAdminDashboard = () => {
   const { userProfile } = useAuth()
+  const toast = useToast()
   const [analytics, setAnalytics] = useState(null)
   const [clients, setClients] = useState([])
   const [invoices, setInvoices] = useState([])
@@ -143,6 +145,7 @@ const SuperAdminDashboard = () => {
 
     } catch (err) {
       console.error('Error fetching admin data:', err)
+      toast.error('Failed to load admin dashboard data. Please refresh the page.')
     } finally {
       setLoading(false)
     }

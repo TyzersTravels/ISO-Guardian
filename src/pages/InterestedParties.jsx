@@ -6,6 +6,7 @@ import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 import { createBrandedPDF } from '../lib/brandedPDFExport'
+import SupportingDocuments from '../components/SupportingDocuments'
 
 const PARTY_TYPES = [
   { value: 'customer', label: 'Customers', icon: '👥' },
@@ -319,6 +320,8 @@ const InterestedParties = () => {
             </div>
           ))}
         </div>
+
+        <SupportingDocuments standard="ISO 9001" clause="4.2" clauseNum={4} clauseName="Clause 4: Context of the Organization" entityType="interested_parties" title="Existing Stakeholder Documents" />
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2">

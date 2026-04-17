@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
+import SupportingDocuments from '../components/SupportingDocuments'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -412,6 +413,8 @@ const HazardRegister = () => {
               <span className="text-orange-400">PPE</span>
             </p>
           </div>
+
+          <SupportingDocuments standard="ISO 45001" clause="6.1.2" clauseNum={6} clauseName="Clause 6: Planning" entityType="hazard_register" title="Existing HIRA Documents" />
 
           {/* KPI Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

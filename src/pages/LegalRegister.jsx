@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
+import SupportingDocuments from '../components/SupportingDocuments'
 
 const REQUIREMENT_TYPES = [
   { value: 'act', label: 'Act' },
@@ -351,6 +352,8 @@ const LegalRegister = () => {
             </div>
           </div>
         </div>
+
+        <SupportingDocuments standard="ISO 14001" clause="6.1.3" clauseNum={6} clauseName="Clause 6: Planning" entityType="legal_register" title="Existing Legal Register Documents" />
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

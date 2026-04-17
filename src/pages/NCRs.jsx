@@ -44,6 +44,7 @@ const NCRs = () => {
       setNcrs((data || []).map(n => ({ ...n, assigned_name: userMap[n.assigned_to] || 'Unassigned' })))
     } catch (err) {
       console.error('Error fetching NCRs:', err)
+      toast.error('Failed to load NCRs. Please refresh the page.')
     } finally {
       setLoading(false)
     }

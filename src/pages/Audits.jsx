@@ -35,6 +35,7 @@ const Audits = () => {
       setAudits(data || [])
     } catch (err) {
       console.error('Error fetching audits:', err)
+      toast.error('Failed to load audits. Please refresh the page.')
     } finally {
       setLoading(false)
     }

@@ -67,6 +67,7 @@ const CompanySettings = () => {
       if (data.logo_url) setLogoPreview(data.logo_url)
     } catch (err) {
       console.error('Error fetching company:', err)
+      toast.error('Failed to load company settings. Please refresh the page.')
     } finally {
       setLoading(false)
     }

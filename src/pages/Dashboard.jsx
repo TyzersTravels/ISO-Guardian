@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import { useNavigate } from 'react-router-dom'
@@ -7,6 +8,7 @@ import OnboardingWelcome, { useOnboarding } from '../components/OnboardingWelcom
 
 const Dashboard = () => {
   const { userProfile, getEffectiveCompanyId } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
   const [stats, setStats] = useState({
     totalDocuments: 0,
@@ -60,6 +62,7 @@ const Dashboard = () => {
       })
     } catch (err) {
       console.error('Error fetching admin stats:', err)
+      toast.error('Failed to load admin stats.')
       setAdminStats({ totalClients: 0, totalUsers: 0, monthlyRevenue: 0, activeClients: 0 })
     }
   }
@@ -317,6 +320,7 @@ const Dashboard = () => {
       })
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
+      toast.error('Failed to load dashboard data. Please refresh the page.')
     } finally {
       setLoading(false)
     }

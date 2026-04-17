@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import Layout from '../components/Layout';
 
 const ActivityTrail = () => {
   const { user, userProfile, getEffectiveCompanyId } = useAuth();
+  const toast = useToast();
   const [allActivities, setAllActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all');
@@ -64,6 +66,7 @@ const ActivityTrail = () => {
       setAllActivities(combined);
     } catch (err) {
       console.error('Error fetching activities:', err);
+      toast.error('Failed to load activity trail. Please refresh the page.');
     } finally {
       setLoading(false);
     }

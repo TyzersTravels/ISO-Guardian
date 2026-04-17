@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
+import SupportingDocuments from '../components/SupportingDocuments'
 
 const FEEDBACK_TYPES = [
   { value: 'complaint', label: 'Complaint', color: 'bg-red-500/20 text-red-400' },
@@ -202,6 +203,8 @@ const CustomerFeedback = () => {
             </div>
           ))}
         </div>
+
+        <SupportingDocuments standard="ISO 9001" clause="9.1.2" clauseNum={9} clauseName="Clause 9: Performance Evaluation" entityType="customer_feedback" title="Existing Feedback Documents" />
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2">

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
+import SupportingDocuments from '../components/SupportingDocuments'
 
 const STANDARDS = [
   { code: 'ISO_9001', label: 'ISO 9001' },
@@ -328,6 +329,8 @@ const OrgChart = () => {
             </div>
           ))}
         </div>
+
+        <SupportingDocuments standard="ISO 9001" clause="5.3" clauseNum={5} clauseName="Clause 5: Leadership" entityType="org_chart" title="Existing Org Chart Documents" />
 
         {/* Content */}
         {loading ? (

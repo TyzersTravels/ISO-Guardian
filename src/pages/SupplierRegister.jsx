@@ -6,6 +6,7 @@ import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 import { createBrandedPDF } from '../lib/brandedPDFExport'
+import SupportingDocuments from '../components/SupportingDocuments'
 
 const SUPPLIER_TYPES = [
   { value: 'product', label: 'Product Supplier' },
@@ -333,6 +334,8 @@ const SupplierRegister = () => {
             </div>
           ))}
         </div>
+
+        <SupportingDocuments standard="ISO 9001" clause="8.4" clauseNum={8} clauseName="Clause 8: Operation" entityType="supplier_register" title="Existing Supplier Documents" />
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2">

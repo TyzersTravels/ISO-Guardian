@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
+import SupportingDocuments from '../components/SupportingDocuments'
 
 const ISSUE_TYPES = [
   { value: 'internal_strength', label: 'Strength', quadrant: 'Strengths' },
@@ -241,6 +242,8 @@ const ContextAnalysis = () => {
             <strong className="text-white/60">ISO 4.1</strong> requires determining external and internal issues relevant to the organisation&apos;s purpose and strategic direction that affect its ability to achieve the intended results of its management system.
           </p>
         </div>
+
+        <SupportingDocuments standard="ISO 9001" clause="4.1" clauseNum={4} clauseName="Clause 4: Context of the Organization" entityType="context_analysis" title="Existing SWOT / Context Documents" />
 
         {/* Filters (shown in both views) */}
         <div className="flex flex-wrap gap-2">

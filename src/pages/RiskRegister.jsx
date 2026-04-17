@@ -7,6 +7,7 @@ import { generateDocNumber } from '../lib/documentNumbering'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 import { createBrandedPDF } from '../lib/brandedPDFExport'
+import SupportingDocuments from '../components/SupportingDocuments'
 
 const RISK_CATEGORIES = [
   { value: 'strategic', label: 'Strategic' },
@@ -474,6 +475,8 @@ const RiskRegister = () => {
             </div>
           ))}
         </div>
+
+        <SupportingDocuments standard="ISO 9001" clause="6.1" clauseNum={6} clauseName="Clause 6: Planning" entityType="risk_register" title="Existing Risk Register Documents" />
 
         {/* Risk Matrix (5x5) — density-based heat map */}
         <div className="glass glass-border rounded-2xl p-4 md:p-6">

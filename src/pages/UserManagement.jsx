@@ -35,6 +35,7 @@ const UserManagement = () => {
       setUsers(data || [])
     } catch (err) {
       console.error('Error fetching users:', err)
+      toast.error('Failed to load users. Please refresh the page.')
     } finally {
       setLoading(false)
     }
