@@ -1,25 +1,43 @@
 import { useEffect, useRef } from 'react'
 
+const isInViewport = (el) => {
+  const r = el.getBoundingClientRect()
+  return r.top < window.innerHeight && r.bottom > 0
+}
+
+const reveal = (el) => {
+  el.classList.remove('anim-fade-init')
+  el.classList.add('anim-fade-in')
+}
+
 // Scroll-triggered fade-in (existing logic extracted)
 export function useFadeIn() {
   const ref = useRef(null)
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    // Use CSS classes instead of inline styles for better mobile perf
+    // Skip the hide entirely if already visible — avoids blank above-the-fold content on slow mobile
+    if (isInViewport(el) || typeof IntersectionObserver === 'undefined') {
+      reveal(el)
+      return
+    }
     el.classList.add('anim-fade-init')
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          el.classList.remove('anim-fade-init')
-          el.classList.add('anim-fade-in')
+          reveal(el)
           observer.disconnect()
         }
       },
       { threshold: 0.08 }
     )
     observer.observe(el)
-    return () => observer.disconnect()
+    // Safety net: if observer never fires (flaky mobile), force-reveal after 1.5s
+    const fallback = setTimeout(() => reveal(el), 1500)
+    return () => {
+      observer.disconnect()
+      clearTimeout(fallback)
+    }
   }, [])
   return ref
 }
@@ -31,25 +49,28 @@ export function useStaggerFadeIn(staggerDelay = 120) {
     const container = ref.current
     if (!container) return
     const children = container.querySelectorAll('[data-stagger]')
-    children.forEach(child => {
-      child.classList.add('anim-fade-init')
-    })
+    if (!children.length) return
+    const revealAll = () => children.forEach((c, i) => setTimeout(() => reveal(c), i * staggerDelay))
+    if (isInViewport(container) || typeof IntersectionObserver === 'undefined') {
+      revealAll()
+      return
+    }
+    children.forEach(child => child.classList.add('anim-fade-init'))
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          children.forEach((child, i) => {
-            setTimeout(() => {
-              child.classList.remove('anim-fade-init')
-              child.classList.add('anim-fade-in')
-            }, i * staggerDelay)
-          })
+          revealAll()
           observer.disconnect()
         }
       },
       { threshold: 0.08 }
     )
     observer.observe(container)
-    return () => observer.disconnect()
+    const fallback = setTimeout(revealAll, 1500)
+    return () => {
+      observer.disconnect()
+      clearTimeout(fallback)
+    }
   }, [staggerDelay])
   return ref
 }
