@@ -37,6 +37,13 @@ body {
   .animate-reveal-up { animation: none !important; opacity: 1 !important; transform: none !important; }
   .animate-cursor-blink { animation: none !important; opacity: 1 !important; }
 }
+/* Mobile: skip the staggered cascade — content should paint immediately on slow networks */
+@media (max-width: 767px) {
+  .animate-reveal-up {
+    animation-delay: 0s !important;
+    animation-duration: 0.3s !important;
+  }
+}
 
 @layer components {
   /* ── Glass Morphism ── */
