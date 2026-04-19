@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -12,7 +12,6 @@ import { initSentry } from './lib/sentry'
 // Eagerly loaded (public, first-paint critical)
 import Login from './pages/Login'
 import LandingPage from './pages/LandingPage'
-import Signup from './pages/Signup'
 import NotFound from './pages/NotFound'
 
 // Lazy-loaded pages (split into separate chunks)
@@ -62,16 +61,19 @@ const LegalRegister = lazy(() => import('./pages/LegalRegister'))
 const EnvironmentalAspects = lazy(() => import('./pages/EnvironmentalAspects'))
 const HazardRegister = lazy(() => import('./pages/HazardRegister'))
 const ClauseMatrix = lazy(() => import('./pages/ClauseMatrix'))
+const AdminCancellations = lazy(() => import('./pages/AdminCancellations'))
+const AdminErasureRequests = lazy(() => import('./pages/AdminErasureRequests'))
+const Demo = lazy(() => import('./pages/Demo'))
 // const StandardsNews = lazy(() => import('./pages/StandardsNews')) // Hidden until AI credits loaded
 // const ArticleDetail = lazy(() => import('./pages/ArticleDetail')) // Hidden until AI credits loaded
 
-// Loading fallback for lazy-loaded routes
+// Loading fallback for lazy-loaded routes.
+// Uses fixed positioning so the document height does not collapse during chunk loads —
+// this preserves scroll position when switching between lazy routes.
 const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0015] via-[#1a0a2e] to-[#0a001a]">
-    <div className="flex flex-col items-center gap-4">
-      <div className="w-10 h-10 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-      <p className="text-white/50 text-sm">Loading...</p>
-    </div>
+  <div className="fixed top-4 right-4 z-50 pointer-events-none flex items-center gap-3 px-4 py-2.5 rounded-full bg-slate-900/80 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/40">
+    <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+    <p className="text-white/70 text-xs font-medium">Loading...</p>
   </div>
 )
 
@@ -93,10 +95,10 @@ function App() {
           <Route path="/privacy" element={<POPIACompliance />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/auditor" element={<AuditorWorkspace />} />
-          <Route path="/signup" element={<Signup />} />
           <Route path="/reseller-programme" element={<ResellerProgramme />} />
           <Route path="/affiliate" element={<AffiliateProgramme />} />
           <Route path="/consultation" element={<Consultation />} />
+          <Route path="/demo" element={<Demo />} />
           {/* Standards news pages — hidden until AI credits loaded
           <Route path="/standards" element={<StandardsNews />} />
           <Route path="/standards/iso-9001" element={<StandardsNews standard="ISO 9001" />} />
@@ -145,6 +147,8 @@ function App() {
           <Route path="/editor/new" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
           <Route path="/editor/:instanceId" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
           <Route path="/finance" element={<RoleProtectedRoute allowedRoles={['super_admin']}><FinancialDashboard /></RoleProtectedRoute>} />
+          <Route path="/admin/cancellations" element={<RoleProtectedRoute allowedRoles={['super_admin']}><AdminCancellations /></RoleProtectedRoute>} />
+          <Route path="/admin/erasure-requests" element={<RoleProtectedRoute allowedRoles={['super_admin']}><AdminErasureRequests /></RoleProtectedRoute>} />
 
           {/* Landing */}
           <Route path="/" element={<LandingPage />} />

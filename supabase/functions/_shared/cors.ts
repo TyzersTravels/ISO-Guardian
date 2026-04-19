@@ -1,7 +1,14 @@
-// Dynamic CORS — allows both apex and www subdomain
+// Dynamic CORS — allows both apex and www subdomain, plus localhost for dev
 export function getCorsHeaders(req?: Request) {
   const origin = req?.headers?.get('origin') || ''
-  const allowed = ['https://isoguardian.co.za', 'https://www.isoguardian.co.za']
+  const allowed = [
+    'https://isoguardian.co.za',
+    'https://www.isoguardian.co.za',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+  ]
   const resolvedOrigin = allowed.includes(origin) ? origin : 'https://isoguardian.co.za'
   return {
     'Access-Control-Allow-Origin': resolvedOrigin,

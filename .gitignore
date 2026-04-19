@@ -34,9 +34,15 @@ Thumbs.db
 
 # Testing
 /coverage
+/test-output
+/playwright-report
+/.playwright-cache
+test-results/
 
 # Generated output
 /generated-pdfs
+test-fixtures/
+schema_dump.sql
 
 # Misc
 .eslintcache

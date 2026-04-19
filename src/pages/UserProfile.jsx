@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
@@ -20,6 +20,93 @@ const UserProfile = () => {
     confirmPassword: '',
   })
   const [showPassword, setShowPassword] = useState(false)
+
+  // POPIA s24 — Request Data Deletion
+  const [erasureRequest, setErasureRequest] = useState(null)
+  const [erasureModalOpen, setErasureModalOpen] = useState(false)
+  const [erasureReason, setErasureReason] = useState('')
+  const [erasureAck, setErasureAck] = useState(false)
+  const [submittingErasure, setSubmittingErasure] = useState(false)
+
+  useEffect(() => {
+    if (!user?.id) return
+    const fetchErasureStatus = async () => {
+      const { data } = await supabase
+        .from('erasure_requests')
+        .select('id, status, requested_at, sla_deadline_at')
+        .eq('user_id', user.id)
+        .in('status', ['pending', 'processing'])
+        .order('requested_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      setErasureRequest(data)
+    }
+    fetchErasureStatus()
+  }, [user])
+
+  const handleSubmitErasure = async () => {
+    if (!erasureAck) {
+      toast.warning('Please acknowledge the terms before submitting.')
+      return
+    }
+    setSubmittingErasure(true)
+    try {
+      const { data: row, error } = await supabase
+        .from('erasure_requests')
+        .insert({
+          user_id: user.id,
+          company_id: userProfile?.company_id || null,
+          user_email: user.email,
+          user_full_name: userProfile?.full_name || null,
+          reason: erasureReason.trim() || null,
+          acknowledgement_signed: true,
+        })
+        .select('id, sla_deadline_at')
+        .single()
+      if (error) throw error
+
+      await logActivity({
+        companyId: userProfile?.company_id,
+        userId: user.id,
+        action: 'erasure_requested',
+        entityType: 'user',
+        entityId: user.id,
+        changes: { request_id: row.id },
+      })
+
+      try {
+        const { error: fnError } = await supabase.functions.invoke('notify-cancellation', {
+          body: {
+            type: 'erasure',
+            request_id: row.id,
+            user_id: user.id,
+            user_email: user.email,
+            user_full_name: userProfile?.full_name || null,
+            company_id: userProfile?.company_id || null,
+            reason: erasureReason.trim() || null,
+            sla_deadline_at: row.sla_deadline_at,
+          },
+        })
+        if (fnError && import.meta.env.DEV) {
+          console.error('[notify-cancellation erasure] returned error:', fnError)
+        }
+      } catch (invokeErr) {
+        if (import.meta.env.DEV) {
+          console.error('[notify-cancellation erasure] threw:', invokeErr)
+        }
+      }
+
+      toast.success('Erasure request submitted. We will process it within 30 days per POPIA s24.')
+      setErasureModalOpen(false)
+      setErasureReason('')
+      setErasureAck(false)
+      setErasureRequest({ id: row.id, status: 'pending', requested_at: new Date().toISOString(), sla_deadline_at: row.sla_deadline_at })
+    } catch (err) {
+      toast.error('Failed to submit erasure request. Please email support@isoguardian.co.za.')
+    } finally {
+      setSubmittingErasure(false)
+    }
+  }
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault()
@@ -200,6 +287,46 @@ const UserProfile = () => {
         </form>
       </div>
 
+      {/* Data & Privacy (POPIA s24) */}
+      <div className="max-w-2xl mx-auto">
+        <div className="glass glass-border rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-white mb-2">Data &amp; Privacy</h2>
+          <p className="text-sm text-white/50 mb-4">
+            Export a full copy of your data at any time, or request that we erase your
+            personal information under POPIA s24.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <a
+              href="/data-export"
+              className="px-4 py-2 bg-white/10 border border-white/20 text-white/80 rounded-xl hover:bg-white/20 transition-all text-sm text-center"
+            >
+              Export My Data
+            </a>
+            {erasureRequest ? (
+              <div className="flex-1 bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-2 text-xs text-orange-300">
+                <p className="font-semibold">Erasure request submitted</p>
+                <p className="mt-0.5 text-orange-300/70">
+                  Status: {erasureRequest.status}. SLA deadline{' '}
+                  {new Date(erasureRequest.sla_deadline_at).toLocaleDateString('en-ZA')}.
+                </p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setErasureModalOpen(true)}
+                className="px-4 py-2 bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25 rounded-xl text-sm font-semibold transition-all"
+              >
+                Request Data Deletion (POPIA s24)
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-white/40 mt-4">
+            We process erasure requests within 30 days, subject to lawful retention obligations
+            (POPIA s14 record-keeping, tax legislation, audit-trail integrity).
+          </p>
+        </div>
+      </div>
+
       {/* Restart Tour */}
       <div className="glass glass-border rounded-xl p-6">
         <h2 className="text-lg font-semibold text-white mb-2">Platform Tour</h2>
@@ -214,6 +341,83 @@ const UserProfile = () => {
           Restart Tour
         </button>
       </div>
+
+      {/* Erasure Request Modal */}
+      {erasureModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => !submittingErasure && setErasureModalOpen(false)}
+        >
+          <div
+            className="bg-slate-900 border border-white/20 rounded-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h3 className="text-lg font-bold text-white">Request Data Deletion</h3>
+              <p className="text-sm text-white/60 mt-1">
+                Under POPIA s24, you may request erasure of your personal information held by ISOGuardian.
+              </p>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-sm text-white/70 space-y-2">
+              <p><strong className="text-white">What gets erased:</strong> your name, email, profile data, and personal activity logs associated with your user account.</p>
+              <p><strong className="text-white">What may be retained:</strong> records required under POPIA s14 (retention obligations), tax legislation, or to preserve audit-trail integrity for the Client company. Retained data will be anonymised or segregated from active use.</p>
+              <p><strong className="text-white">Processing time:</strong> within 30 days of submission.</p>
+            </div>
+
+            <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-3 text-xs text-cyan-300">
+              <strong>Export your data first.</strong>{' '}
+              <a href="/data-export" className="underline hover:text-cyan-200">Download a full copy</a>
+              {' '}before submitting — erasure is irreversible.
+            </div>
+
+            <div>
+              <label className="block text-sm text-white/70 mb-1">Reason (optional)</label>
+              <textarea
+                value={erasureReason}
+                onChange={(e) => setErasureReason(e.target.value)}
+                rows={3}
+                className="glass-input w-full px-3 py-2 rounded-lg text-white text-sm"
+                placeholder="Optional — helps us improve our privacy practices"
+                disabled={submittingErasure}
+              />
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={erasureAck}
+                onChange={(e) => setErasureAck(e.target.checked)}
+                className="mt-1 w-4 h-4"
+                disabled={submittingErasure}
+              />
+              <span className="text-xs text-white/70">
+                I understand that submitting this request will result in the erasure of my personal
+                information subject to lawful retention obligations, and that this action cannot be undone.
+              </span>
+            </label>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setErasureModalOpen(false)}
+                disabled={submittingErasure}
+                className="px-4 py-2 text-white/70 hover:text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmitErasure}
+                disabled={!erasureAck || submittingErasure}
+                className="px-4 py-2 bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                {submittingErasure ? 'Submitting…' : 'Submit Erasure Request'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   )
 }

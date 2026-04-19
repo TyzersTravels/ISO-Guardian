@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null) // { allowed, reason, daysRemaining, tier, status }
 
   useEffect(() => {
-    const publicPaths = ['/', '/login', '/signup', '/popia', '/terms', '/privacy', '/password-recovery', '/reset-password', '/auditor', '/standards', '/reseller-programme', '/affiliate', '/consultation']
+    const publicPaths = ['/', '/login', '/popia', '/terms', '/privacy', '/password-recovery', '/reset-password', '/auditor', '/standards', '/reseller-programme', '/affiliate', '/consultation', '/demo']
     const isPublicPath = publicPaths.includes(window.location.pathname) || window.location.pathname.startsWith('/standards/')
 
     supabase.auth.getSession().then(({ data: { session } }) => {

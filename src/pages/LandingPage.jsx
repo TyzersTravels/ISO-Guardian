@@ -125,9 +125,15 @@ export default function LandingPage() {
   const pricingStaggerRef = useStaggerFadeIn(100)
   const heroParallaxRef = useHeroParallax()
 
-  const getStarted = () => {
-    trackConversion('signup_start')
-    navigate('/signup')
+  const bookDemo = () => {
+    trackConversion('demo_request')
+    setMobileMenuOpen(false)
+    document.getElementById('assessment')?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const tryInteractiveDemo = () => {
+    trackConversion('demo_interactive')
+    navigate('/demo')
   }
 
   return (
@@ -193,8 +199,11 @@ export default function LandingPage() {
             <button onClick={() => navigate('/login')} className="px-5 py-2.5 text-sm font-medium text-white/50 hover:text-white transition-colors">
               Sign in
             </button>
-            <button onClick={getStarted} className="px-5 py-2.5 text-sm font-semibold bg-white text-[#050a14] rounded-xl hover:bg-white/90 transition-all">
-              Get Started
+            <button onClick={tryInteractiveDemo} className="px-5 py-2.5 text-sm font-medium text-white/50 hover:text-white transition-colors">
+              See Demo
+            </button>
+            <button onClick={bookDemo} className="px-5 py-2.5 text-sm font-semibold bg-white text-[#050a14] rounded-xl hover:bg-white/90 transition-all">
+              Book a Demo
             </button>
           </div>
 
@@ -213,7 +222,8 @@ export default function LandingPage() {
               <button key={id} onClick={() => scrollTo(id)} className="block w-full text-left text-white/40 hover:text-white py-2 capitalize">{id}</button>
             ))}
             <button onClick={() => { setMobileMenuOpen(false); navigate('/login') }} className="block w-full text-left text-white/40 hover:text-white py-2">Sign in</button>
-            <button onClick={() => { setMobileMenuOpen(false); getStarted() }} className="block w-full text-center py-3 mt-2 bg-white text-[#050a14] rounded-xl font-semibold text-sm">Get Started</button>
+            <button onClick={() => { setMobileMenuOpen(false); tryInteractiveDemo() }} className="block w-full text-left text-white/40 hover:text-white py-2">See Demo</button>
+            <button onClick={() => { setMobileMenuOpen(false); bookDemo() }} className="block w-full text-center py-3 mt-2 bg-white text-[#050a14] rounded-xl font-semibold text-sm">Book a Demo</button>
           </div>
         )}
       </nav>
@@ -255,12 +265,12 @@ export default function LandingPage() {
             </div>
 
             <div className="flex flex-wrap gap-4 animate-reveal-up" style={{ animationDelay: '0.6s' }}>
-              <button onClick={getStarted} className="group px-8 py-4 bg-white text-[#050a14] font-bold rounded-2xl transition-all text-lg hover:bg-white/90 hover:shadow-xl hover:shadow-white/5">
-                Get Started
+              <button onClick={bookDemo} className="group px-8 py-4 bg-white text-[#050a14] font-bold rounded-2xl transition-all text-lg hover:bg-white/90 hover:shadow-xl hover:shadow-white/5">
+                Book a Demo
                 <span className="inline-block ml-2 transition-transform group-hover:translate-x-1">{'\u2192'}</span>
               </button>
-              <button onClick={() => scrollTo('pricing')} className="px-8 py-4 border border-white/[0.08] hover:border-white/20 font-semibold rounded-2xl transition-all text-lg text-white/40 hover:text-white/70">
-                View Pricing
+              <button onClick={tryInteractiveDemo} className="px-8 py-4 border border-white/[0.08] hover:border-white/20 font-semibold rounded-2xl transition-all text-lg text-white/40 hover:text-white/70">
+                Try the Interactive Demo
               </button>
             </div>
 
@@ -459,11 +469,11 @@ export default function LandingPage() {
           <div ref={pricingStaggerRef} className="grid md:grid-cols-3 gap-4 items-stretch">
             {[
               {
-                tier: 'Starter', subtitle: '1\u201310 users', highlight: false, cta: 'trial',
+                tier: 'Starter', subtitle: '1\u201310 users', highlight: false, cta: 'demo',
                 features: ['Up to 10 users', '5GB storage', 'ISO 9001, 14001 & 45001', 'Document management', 'NCR tracking', 'Audit scheduling', 'Compliance scoring', 'Branded PDF exports', 'Email support'],
               },
               {
-                tier: 'Growth', subtitle: '11\u201320 users', highlight: true, cta: 'trial',
+                tier: 'Growth', subtitle: '11\u201320 users', highlight: true, cta: 'demo',
                 features: ['Up to 20 users', '15GB storage', 'ISO 9001, 14001 & 45001', 'Everything in Starter', 'Management reviews', 'Activity trail', 'Priority support', 'All templates free'],
               },
               {
@@ -497,9 +507,9 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                {cta === 'trial' ? (
-                  <button onClick={getStarted} className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${highlight ? 'bg-white text-[#050a14] hover:bg-white/90 shadow-lg shadow-white/5' : 'border border-white/[0.08] hover:border-white/20 text-white/50 hover:text-white'}`}>
-                    Get Started
+                {cta === 'demo' ? (
+                  <button onClick={bookDemo} className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${highlight ? 'bg-white text-[#050a14] hover:bg-white/90 shadow-lg shadow-white/5' : 'border border-white/[0.08] hover:border-white/20 text-white/50 hover:text-white'}`}>
+                    Book a Demo
                   </button>
                 ) : (
                   <a href={`mailto:${SUPPORT_EMAIL}?subject=Enterprise%20Pricing%20Enquiry`} className="w-full text-center py-3 rounded-xl font-semibold text-sm transition-all border border-white/[0.08] hover:border-white/20 text-white/50 hover:text-white block">
@@ -694,7 +704,7 @@ export default function LandingPage() {
               { q: 'Which ISO standards are supported?', a: 'ISO 9001:2015 (Quality), ISO 14001:2015 (Environmental), and ISO 45001:2018 (Occupational Health & Safety). ISO 27001:2022 is on our roadmap.' },
               { q: 'Is my data safe?', a: 'Yes. AES-256 encryption at rest, TLS 1.2+ in transit, strict row-level data isolation between companies, POPIA-compliant. You can export or delete your data at any time.' },
               { q: 'Can I manage multiple standards at once?', a: 'Absolutely. Documents, NCRs, and audits can all be tagged to specific standards across all three simultaneously.' },
-              { q: 'How do I get started?', a: 'Choose a plan that fits your team size, complete sign-up, and you\u2019re live. Our onboarding team will help you import existing documents and configure your standards.' },
+              { q: 'How do I get started?', a: 'Book a demo with our team. We\u2019ll walk you through ISOGuardian, confirm the right tier for your team size, countersign a subscription agreement, and then provision your account so you can start uploading documents on day one.' },
               { q: 'Do you support consultants and resellers?', a: 'Yes. Our Reseller Programme lets consultants manage multiple clients from one dashboard with recurring commissions. See our Reseller Programme page for details.' },
               { q: 'Can I buy individual templates without subscribing?', a: 'Yes. Templates are available for one-time purchase starting at R250. Subscribers get all templates free.' },
             ].map((faq, i) => (
@@ -728,8 +738,8 @@ export default function LandingPage() {
               Join South African companies already managing compliance smarter.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center relative">
-              <button onClick={getStarted} className="px-10 py-4 bg-white text-[#050a14] font-bold rounded-2xl transition-all hover:bg-white/90 hover:shadow-xl hover:shadow-white/5 text-lg">
-                Get Started
+              <button onClick={bookDemo} className="px-10 py-4 bg-white text-[#050a14] font-bold rounded-2xl transition-all hover:bg-white/90 hover:shadow-xl hover:shadow-white/5 text-lg">
+                Book a Demo
               </button>
               <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2.5 px-10 py-4 border border-green-500/20 hover:border-green-500/40 font-bold rounded-2xl transition-all text-green-400/70 hover:text-green-400 text-lg">
                 <WhatsAppIcon />
@@ -743,8 +753,8 @@ export default function LandingPage() {
       {/* ─── STICKY MOBILE CTA BAR ─── */}
       <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#050a14]/95 backdrop-blur-2xl border-t border-white/[0.06] px-4 py-2.5">
         <div className="flex gap-3">
-          <button onClick={getStarted} className="flex-1 py-3 bg-white text-[#050a14] font-bold rounded-xl transition-all text-sm">
-            Get Started
+          <button onClick={bookDemo} className="flex-1 py-3 bg-white text-[#050a14] font-bold rounded-xl transition-all text-sm">
+            Book a Demo
           </button>
           <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 px-4 py-3 border border-green-500/20 font-bold rounded-xl text-green-400/70 text-sm">
             <WhatsAppIcon className="w-5 h-5" />

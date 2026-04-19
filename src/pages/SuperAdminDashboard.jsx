@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
@@ -11,6 +12,9 @@ const SuperAdminDashboard = () => {
   const [clients, setClients] = useState([])
   const [invoices, setInvoices] = useState([])
   const [recentActivity, setRecentActivity] = useState([])
+  const [pendingCancellations, setPendingCancellations] = useState(0)
+  const [pendingErasures, setPendingErasures] = useState(0)
+  const [overdueErasures, setOverdueErasures] = useState(0)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview') // 'overview', 'clients', 'revenue', 'activity'
 
@@ -63,6 +67,19 @@ const SuperAdminDashboard = () => {
           .limit(50)
         if (!error) activityData = data || []
       } catch (e) { /* audit_log not accessible */ }
+
+      // Compliance queues (cancellations + POPIA erasures)
+      try {
+        const [{ count: cancCount }, { count: eraseCount }, { data: overdueRows }] = await Promise.all([
+          supabase.from('cancellation_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('erasure_requests').select('id', { count: 'exact', head: true }).in('status', ['pending', 'processing']),
+          supabase.from('erasure_requests').select('id, sla_deadline_at, status').in('status', ['pending', 'processing']),
+        ])
+        setPendingCancellations(cancCount || 0)
+        setPendingErasures(eraseCount || 0)
+        const overdue = (overdueRows || []).filter(r => new Date(r.sla_deadline_at) < new Date()).length
+        setOverdueErasures(overdue)
+      } catch (e) { /* queue tables not accessible */ }
 
       // Calculate per-client stats
       const clientStats = await Promise.all(
@@ -192,6 +209,39 @@ const SuperAdminDashboard = () => {
               🔄 Refresh
             </button>
           </div>
+        </div>
+
+        {/* Compliance Queues */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link
+            to="/admin/cancellations"
+            className="glass glass-border rounded-2xl p-5 bg-gradient-to-br from-orange-500/10 to-rose-500/10 hover:from-orange-500/20 hover:to-rose-500/20 transition-all flex items-center justify-between"
+          >
+            <div>
+              <div className="text-white/60 text-xs uppercase tracking-wider mb-1">Cancellation Queue</div>
+              <div className="text-2xl font-bold text-white">
+                {pendingCancellations} <span className="text-sm font-normal text-white/50">pending</span>
+              </div>
+              <div className="text-orange-300 text-xs mt-1">SLA: 2 business days</div>
+            </div>
+            <div className="text-3xl">📝</div>
+          </Link>
+          <Link
+            to="/admin/erasure-requests"
+            className="glass glass-border rounded-2xl p-5 bg-gradient-to-br from-purple-500/10 to-fuchsia-500/10 hover:from-purple-500/20 hover:to-fuchsia-500/20 transition-all flex items-center justify-between"
+          >
+            <div>
+              <div className="text-white/60 text-xs uppercase tracking-wider mb-1">POPIA s24 Erasure Queue</div>
+              <div className="text-2xl font-bold text-white">
+                {pendingErasures} <span className="text-sm font-normal text-white/50">open</span>
+                {overdueErasures > 0 && (
+                  <span className="ml-2 text-sm font-semibold text-rose-300">• {overdueErasures} overdue</span>
+                )}
+              </div>
+              <div className="text-purple-300 text-xs mt-1">SLA: 30 days</div>
+            </div>
+            <div className="text-3xl">🔐</div>
+          </Link>
         </div>
 
         {/* Tab Navigation */}

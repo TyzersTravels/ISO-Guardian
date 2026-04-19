@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-**Last updated: 2026-03-27**
+**Last updated: 2026-04-18**
 
 ## Commands
 
@@ -30,6 +30,31 @@ No test runner is configured. No linter is configured.
 
 **Critical: all data-fetching useEffects must guard with `if (userProfile)` and include `[userProfile]` in deps** to prevent race conditions where `getEffectiveCompanyId()` returns undefined.
 
+### Consultation-Gated Onboarding
+
+**There is no self-serve signup.** The 14-day free trial was dropped in April 2026 — ISOGuardian is consultation-gated. Accounts are only created after a qualified consultation and countersigned Client Subscription & SLA.
+
+- Public `/signup` route removed from `App.jsx`. `src/pages/Signup.jsx` has been deleted from the repo.
+- All public CTAs ("Start Free Trial", "Sign Up") rewritten to "Book a Demo" or "See Demo" and route to `/consultation` or `ConsultationUpsell`.
+- `/login` no longer links to `/signup` — it points non-clients to the consultation form.
+- Account provisioning paths that remain:
+  1. **super_admin manual:** `/create-company` (`CreateCompany.jsx`) — direct-signed clients, countersigned contract in hand
+  2. **Reseller:** `/client-onboarding` (`ClientOnboarding.jsx`) — resellers provision their own clients
+  3. **Admin invite:** `/users` (`UserManagement.jsx`) — company admins invite users to an already-provisioned company
+
+The `trial-onboarding` drip campaign is retained for historical-context only — no new trial users are being created.
+
+### Cancellation & POPIA s24 Erasure
+
+**User-initiated request flows shipped April 2026.**
+
+- **Cancellation:** `CompanySettings.jsx` → Subscription tab → Request Cancellation. Modal shows CPA s16 5-business-day cooling-off (if account age < 5 business days), Client Subscription & SLA §4.1 Initial Term fee calculator (50% months 1–6, 25% months 7–12), and a "Export your data first (POPIA s24)" link to `/data-export`. On confirm, inserts a `cancellation_requests` row (status `pending`) and fires the `notify-cancellation` Edge Function to `support@isoguardian.co.za`.
+- **Erasure (POPIA s24):** `UserProfile.jsx` → Request Data Deletion button. Modal explains POPIA s24, the 30-day processing SLA, and retention exceptions under POPIA s14 / tax / regulatory. On confirm, inserts an `erasure_requests` row (status `pending`, `sla_deadline_at = now + 30d`) and fires the same Edge Function.
+- **super_admin queues:**
+  - `/admin/cancellations` (`AdminCancellations.jsx`) — pending/approved/completed/rejected/withdrawn filter tabs; approve with an effective date + processor notes; transitions logged via `logActivity({ action: 'cancellation_approved' })` etc.
+  - `/admin/erasure-requests` (`AdminErasureRequests.jsx`) — same filter pattern; SLA countdown column (red/overdue, orange/≤7 days, emerald/>7); retention-exceptions field for POPIA s14 / tax / regulatory notes.
+- **SuperAdminDashboard.jsx** surfaces live pending/overdue queue counts as quick-nav cards above the tab navigation.
+
 ### Route Protection
 
 Two route guard components:
@@ -40,7 +65,7 @@ Route access matrix:
 | Route | Guard |
 |-------|-------|
 | `/dashboard`, `/documents`, `/ncrs`, `/compliance`, `/audits`, `/management-reviews`, `/data-export`, `/activity-trail`, `/notifications` | `ProtectedRoute` (any authenticated user) |
-| `/admin`, `/create-company`, `/finance` | `RoleProtectedRoute allowedRoles={['super_admin']}` |
+| `/admin`, `/create-company`, `/finance`, `/admin/cancellations`, `/admin/erasure-requests` | `RoleProtectedRoute allowedRoles={['super_admin']}` |
 | `/analytics`, `/settings`, `/users` | `RoleProtectedRoute allowedRoles={['super_admin', 'admin']}` |
 | `/reseller`, `/client-onboarding` | `RoleProtectedRoute requireReseller` |
 | `/ai-copilot` | `ProtectedRoute` (any authenticated user) |
@@ -145,13 +170,13 @@ Automated email sequences that nurture leads into customers — zero manual effo
 **3 active campaigns:**
 - `post-assessment` — 5 emails over 14 days (score-based, triggered after readiness quiz)
 - `post-consultation` — 3 emails (triggered after consultation request)
-- `trial-onboarding` — 4 emails over 14 days (triggered on new trial user creation)
+- `trial-onboarding` — retained for historical-context only; no new enrolments since consultation-gated onboarding shipped (April 2026)
 
 **Edge Functions:**
 - `process-drip-campaigns` — daily queue processor via pg_cron at 07:00 SAST
 - `unsubscribe` — GET `?token=xxx`, branded HTML confirmation, cancels pending emails
 - `notify-lead` — now also enrolls assessment/consultation leads into drip campaigns
-- `create-user` — now also enrolls trial users into onboarding drip
+- `create-user` — service role user creation for `/create-company` (super_admin) + `/client-onboarding` (reseller); no trial drip enrolment since consultation-gated onboarding shipped
 
 **Enrollment:** `supabase/functions/_shared/drip.ts` — shared `enrollInDrip()` helper. Checks unsubscribe status, prevents duplicates, calculates scheduled_at dates.
 
@@ -187,7 +212,7 @@ SEO: react-helmet-async for meta tags, JSON-LD, canonical URLs. `robots.txt` + `
 ### Referral Tracking
 
 - Affiliate links: `?ref=CODE` → 1 month free per conversion
-- Partner links: `?partner=CODE` → reseller onboarding (skip trial)
+- Partner links: `?partner=CODE` → skip straight to reseller-managed onboarding
 - Tracked via `useReferralTracking.js` hook → sessionStorage → stored in `referrals` table on login
 
 ### Email Notifications
@@ -242,6 +267,10 @@ Two Edge Functions handle email:
 
 **Security**: `failed_login_attempts` (server-side rate limiting)
 
+**User-initiated request tables** (RLS: users insert their own; super_admin reads/updates all):
+- `cancellation_requests` — subscription cancellation requests with cooling-off / Initial Term fee context
+- `erasure_requests` — POPIA s24 right-to-erasure requests with 30-day SLA deadline
+
 ### Database Column Notes
 
 - `management_reviews` does NOT have a `title` column — use `review_number` as identifier
@@ -256,7 +285,8 @@ Two Edge Functions handle email:
 |----------|---------|
 | `ai-copilot` | Claude API proxy for AI Copilot feature |
 | `auditor-portal` | Token-based auditor workspace API |
-| `create-user` | Service role user creation + trial drip enrollment |
+| `create-user` | Service role user creation (consultation-gated; invoked by `/create-company` + `/client-onboarding`) |
+| `notify-cancellation` | Instant admin email for cancellation + POPIA erasure requests |
 | `notify-lead` | Instant lead notification emails + drip enrollment |
 | `process-drip-campaigns` | Daily drip queue processor (pg_cron 07:00 SAST) |
 | `rate-limit` | Server-side brute force protection |

@@ -97,13 +97,6 @@ const Login = () => {
 
   // Load Turnstile script
   useEffect(() => {
-    if (document.getElementById('turnstile-script')) return;
-    const script = document.createElement('script');
-    script.id = 'turnstile-script';
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
-    script.async = true;
-    document.head.appendChild(script);
-
     window.onTurnstileLoad = () => {
       if (turnstileRef.current && window.turnstile) {
         window.turnstile.render(turnstileRef.current, {
@@ -114,6 +107,16 @@ const Login = () => {
         });
       }
     };
+
+    if (!document.getElementById('turnstile-script')) {
+      const script = document.createElement('script');
+      script.id = 'turnstile-script';
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
+      script.async = true;
+      document.head.appendChild(script);
+    } else if (window.turnstile) {
+      window.onTurnstileLoad();
+    }
 
     return () => { delete window.onTurnstileLoad; };
   }, []);
@@ -199,7 +202,8 @@ const Login = () => {
           sessionStorage.removeItem('isoguardian_ref')
           sessionStorage.removeItem('isoguardian_ref_type')
 
-          // Partner referrals skip trial and go to client onboarding
+          // Partner referrals route straight to the reseller's client-onboarding
+          // flow (ISOGuardian is consultation-gated — there is no trial to skip).
           if (refType === 'partner') {
             navigate('/client-onboarding')
             setLoading(false)
@@ -416,12 +420,12 @@ const Login = () => {
 
           {/* Footer */}
           <div className="mt-6 text-center space-y-4">
-            {/* Sign Up CTA */}
+            {/* Book a Demo CTA — account creation is consultation-gated, not self-serve */}
             <a
-              href="/signup"
+              href="/#assessment"
               className="block w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-cyan-500/20 to-purple-500/20 hover:from-cyan-500/30 hover:to-purple-500/30 border border-cyan-500/30 text-cyan-300 text-center transition-all"
             >
-              Don&apos;t have an account? Start your free trial
+              Not a client yet? Book a Demo
             </a>
 
             {/* Contact Us */}

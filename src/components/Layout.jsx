@@ -209,6 +209,8 @@ const Layout = ({ children }) => {
         { path: '/analytics', label: 'Analytics', icon: 'analytics' },
         ...(isSuperAdmin ? [{ path: '/create-company', label: 'New Company', icon: 'company' }] : []),
         ...(isSuperAdmin ? [{ path: '/finance', label: 'Finance', icon: 'finance' }] : []),
+        ...(isSuperAdmin ? [{ path: '/admin/cancellations', label: 'Cancellations', icon: 'notifications' }] : []),
+        ...(isSuperAdmin ? [{ path: '/admin/erasure-requests', label: 'Erasure Requests', icon: 'notifications' }] : []),
       ],
     }] : []),
   ]

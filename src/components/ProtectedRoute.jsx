@@ -67,15 +67,15 @@ const SubscriptionBlockedScreen = ({ reason, navigate }) => {
   const messages = {
     no_subscription: {
       title: 'No Active Subscription',
-      desc: 'You need an active subscription to access ISOGuardian. Start your 14-day free trial or contact your administrator.',
-      cta: 'View Plans',
-      ctaAction: () => window.location.href = '/#pricing',
+      desc: 'You need an active subscription to access ISOGuardian. Please contact your administrator, or book a demo to start onboarding.',
+      cta: 'Book a Demo',
+      ctaAction: () => window.location.href = '/#consultation',
     },
     trial_expired: {
-      title: 'Free Trial Expired',
-      desc: 'Your 14-day free trial has ended. Subscribe now to continue managing your ISO compliance.',
-      cta: 'Subscribe Now',
-      ctaAction: () => window.location.href = '/#pricing',
+      title: 'Subscription Inactive',
+      desc: 'Your subscription is no longer active. Please contact support to reactivate your account.',
+      cta: 'Contact Support',
+      ctaAction: () => window.location.href = 'mailto:support@isoguardian.co.za',
     },
     past_due_expired: {
       title: 'Account Suspended',

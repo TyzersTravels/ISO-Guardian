@@ -33,11 +33,23 @@ const CompanySettings = () => {
     quality_policy: '',
   })
 
+  // Subscription tab state (cancellation flow)
+  const [subscription, setSubscription] = useState(null)
+  const [pendingCancellation, setPendingCancellation] = useState(null)
+  const [cancellationModalOpen, setCancellationModalOpen] = useState(false)
+  const [cancellationReason, setCancellationReason] = useState('')
+  const [cancellationAck, setCancellationAck] = useState(false)
+  const [submittingCancellation, setSubmittingCancellation] = useState(false)
+
   const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'super_admin'
 
   useEffect(() => {
     if (userProfile?.company_id) fetchCompany()
   }, [userProfile])
+
+  useEffect(() => {
+    if (activeTab === 'subscription' && userProfile?.company_id) fetchSubscription()
+  }, [activeTab, userProfile])
 
   const fetchCompany = async () => {
     try {
@@ -70,6 +82,132 @@ const CompanySettings = () => {
       toast.error('Failed to load company settings. Please refresh the page.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchSubscription = async () => {
+    try {
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('id, plan, status, users_count, total_amount, next_billing_date, grace_period_end, created_at')
+        .eq('company_id', userProfile.company_id)
+        .maybeSingle()
+      setSubscription(sub)
+
+      const { data: pending } = await supabase
+        .from('cancellation_requests')
+        .select('id, status, effective_date, requested_at, termination_fee_zar')
+        .eq('company_id', userProfile.company_id)
+        .in('status', ['pending', 'approved'])
+        .order('requested_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      setPendingCancellation(pending)
+    } catch (err) {
+      // Silent — tab just shows empty state
+    }
+  }
+
+  // Per Client Subscription & SLA v1.1 §4.1 — cooling-off (CPA s16), Initial Term
+  // (12 months), and 50%/25% sliding-scale early-termination fee.
+  const getCancellationContext = () => {
+    if (!company) return null
+    const now = new Date()
+    const startDate = new Date(subscription?.created_at || company.created_at)
+    const daysElapsed = Math.max(0, Math.floor((now - startDate) / (1000 * 60 * 60 * 24)))
+    // 5 business days ≈ 7 calendar days (conservative for cooling-off eligibility)
+    const coolingOffApplies = daysElapsed < 7
+    const monthsElapsed = Math.floor(daysElapsed / 30)
+    const withinInitialTerm = monthsElapsed < 12
+    const monthsRemaining = withinInitialTerm ? 12 - monthsElapsed : 0
+    const mrr = Number(subscription?.total_amount) || 0
+
+    let terminationFee = 0
+    if (coolingOffApplies) {
+      terminationFee = 0
+    } else if (withinInitialTerm) {
+      const pctBand = monthsElapsed < 6 ? 0.5 : 0.25
+      terminationFee = Math.round(mrr * monthsRemaining * pctBand * 100) / 100
+    }
+
+    return { daysElapsed, monthsElapsed, monthsRemaining, coolingOffApplies, withinInitialTerm, terminationFee, mrr }
+  }
+
+  const handleSubmitCancellation = async () => {
+    if (!cancellationAck) {
+      toast.warning('Please acknowledge the terms before submitting.')
+      return
+    }
+    setSubmittingCancellation(true)
+    try {
+      const ctx = getCancellationContext()
+      const { data: row, error } = await supabase
+        .from('cancellation_requests')
+        .insert({
+          company_id: userProfile.company_id,
+          requested_by: userProfile.id,
+          subscription_id: subscription?.id || null,
+          subscription_status: subscription?.status || null,
+          tier: subscription?.plan || null,
+          account_age_days: ctx?.daysElapsed ?? null,
+          cooling_off_applies: ctx?.coolingOffApplies ?? false,
+          within_initial_term: ctx?.withinInitialTerm ?? false,
+          months_remaining: ctx?.monthsRemaining ?? null,
+          termination_fee_zar: ctx?.terminationFee ?? 0,
+          reason: cancellationReason.trim() || null,
+          acknowledgement_signed: true,
+        })
+        .select('id')
+        .single()
+      if (error) throw error
+
+      await logActivity({
+        companyId: userProfile.company_id,
+        userId: userProfile.id,
+        action: 'cancellation_requested',
+        entityType: 'subscription',
+        entityId: row.id,
+        changes: {
+          termination_fee_zar: ctx?.terminationFee ?? 0,
+          cooling_off_applies: ctx?.coolingOffApplies ?? false,
+          within_initial_term: ctx?.withinInitialTerm ?? false,
+        },
+      })
+
+      // Fire-and-forget — notification failure should not block the request
+      try {
+        const { error: fnError } = await supabase.functions.invoke('notify-cancellation', {
+          body: {
+            type: 'cancellation',
+            request_id: row.id,
+            company_id: userProfile.company_id,
+            company_name: company?.name,
+            requester_email: userProfile.email,
+            requester_name: userProfile.full_name,
+            reason: cancellationReason.trim() || null,
+            termination_fee_zar: ctx?.terminationFee ?? 0,
+            cooling_off_applies: ctx?.coolingOffApplies ?? false,
+            within_initial_term: ctx?.withinInitialTerm ?? false,
+          },
+        })
+        if (fnError && import.meta.env.DEV) {
+          console.error('[notify-cancellation] returned error:', fnError)
+        }
+      } catch (invokeErr) {
+        if (import.meta.env.DEV) {
+          console.error('[notify-cancellation] threw:', invokeErr)
+        }
+      }
+
+      toast.success('Cancellation requested. Our team will be in touch within 2 business days.')
+      setCancellationModalOpen(false)
+      setCancellationReason('')
+      setCancellationAck(false)
+      fetchSubscription()
+    } catch (err) {
+      toast.error('Failed to submit cancellation request. Please try again or email support@isoguardian.co.za.')
+    } finally {
+      setSubmittingCancellation(false)
     }
   }
 
@@ -253,6 +391,7 @@ const CompanySettings = () => {
             { id: 'profile', label: 'Profile & Logo', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
             { id: 'personnel', label: 'Key Personnel', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
             { id: 'qms', label: 'QMS Content', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+            { id: 'subscription', label: 'Subscription', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -684,6 +823,138 @@ const CompanySettings = () => {
         <ComplianceBadge />
         </>}
 
+        {/* ═══ SUBSCRIPTION TAB ═══ */}
+        {activeTab === 'subscription' && (() => {
+          const ctx = getCancellationContext()
+          const fmtZAR = (n) => `R${(Number(n) || 0).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          const tierLabel = subscription?.plan
+            ? subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)
+            : '—'
+          const statusLabel = subscription?.status || 'unknown'
+          const statusColor = {
+            active: 'text-green-300 bg-green-500/10 border-green-500/20',
+            trial: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
+            trialing: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
+            past_due: 'text-orange-300 bg-orange-500/10 border-orange-500/20',
+            cancelled: 'text-red-300 bg-red-500/10 border-red-500/20',
+          }[statusLabel] || 'text-white/60 bg-white/5 border-white/10'
+          return (
+            <>
+              {/* Current Subscription */}
+              <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-4 md:p-6">
+                <h2 className="text-lg md:text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  Current Subscription
+                </h2>
+                {!subscription ? (
+                  <p className="text-sm text-white/50">No active subscription on record. Contact <a href="mailto:support@isoguardian.co.za" className="text-cyan-400 hover:text-cyan-300">support@isoguardian.co.za</a> for assistance.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-white/50">Tier</span>
+                      <p className="text-white font-semibold">{tierLabel}</p>
+                    </div>
+                    <div>
+                      <span className="text-white/50">Status</span>
+                      <p><span className={`inline-block px-2 py-0.5 rounded border text-xs font-semibold ${statusColor}`}>{statusLabel}</span></p>
+                    </div>
+                    <div>
+                      <span className="text-white/50">Users</span>
+                      <p className="text-white font-semibold">{subscription.users_count ?? '—'}</p>
+                    </div>
+                    <div>
+                      <span className="text-white/50">Monthly Fee</span>
+                      <p className="text-white font-semibold">{fmtZAR(subscription.total_amount)}</p>
+                    </div>
+                    <div>
+                      <span className="text-white/50">Next Billing</span>
+                      <p className="text-white font-semibold">
+                        {subscription.next_billing_date
+                          ? new Date(subscription.next_billing_date).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-white/50">Anniversary</span>
+                      <p className="text-white font-semibold">
+                        {subscription.created_at
+                          ? new Date(subscription.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Pending Cancellation Banner */}
+              {pendingCancellation && (
+                <div className="bg-orange-500/10 border border-orange-500/30 rounded-2xl p-4 md:p-6">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-orange-300">Cancellation Requested</p>
+                      <p className="text-xs text-orange-300/70 mt-1">
+                        Requested on {new Date(pendingCancellation.requested_at).toLocaleDateString('en-ZA')}.
+                        {pendingCancellation.effective_date && ` Effective ${new Date(pendingCancellation.effective_date).toLocaleDateString('en-ZA')}.`}
+                        {' '}Our team will confirm next steps by email within 2 business days. To withdraw this request, email <a href="mailto:support@isoguardian.co.za" className="underline font-semibold hover:text-orange-200">support@isoguardian.co.za</a>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Cancellation Section */}
+              {!pendingCancellation && isAdmin && subscription && (
+                <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-4 md:p-6">
+                  <h3 className="text-base font-semibold text-white mb-2">Cancel Subscription</h3>
+                  <p className="text-sm text-white/60 mb-4">
+                    Before cancelling, <a href="/data-export" className="text-cyan-400 hover:text-cyan-300 underline">export your company data (POPIA s24)</a> — you'll lose access once the notice period ends.
+                  </p>
+
+                  {ctx && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                      <div className="bg-white/5 rounded-lg p-3">
+                        <p className="text-xs text-white/50 mb-1">Cooling-off (CPA s16)</p>
+                        <p className={`text-sm font-semibold ${ctx.coolingOffApplies ? 'text-green-300' : 'text-white/40'}`}>
+                          {ctx.coolingOffApplies ? 'Eligible — no fee' : 'Not eligible'}
+                        </p>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-3">
+                        <p className="text-xs text-white/50 mb-1">Initial Term</p>
+                        <p className={`text-sm font-semibold ${ctx.withinInitialTerm ? 'text-orange-300' : 'text-white/40'}`}>
+                          {ctx.withinInitialTerm ? `${ctx.monthsRemaining} mo remaining` : 'Completed'}
+                        </p>
+                      </div>
+                      <div className="bg-white/5 rounded-lg p-3">
+                        <p className="text-xs text-white/50 mb-1">Early termination fee</p>
+                        <p className="text-sm font-semibold text-white">{fmtZAR(ctx.terminationFee)}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setCancellationModalOpen(true)}
+                    className="px-4 py-2 bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 rounded-xl text-sm font-semibold transition-all"
+                  >
+                    Request Cancellation
+                  </button>
+                </div>
+              )}
+
+              {!isAdmin && (
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white/50">
+                  Only company administrators can request subscription changes.
+                </div>
+              )}
+            </>
+          )
+        })()}
+
         {/* POPIA Notice */}
         <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-4">
           <div className="flex items-start gap-3">
@@ -701,6 +972,117 @@ const CompanySettings = () => {
         </div>
       </div>
       {confirmAction && <ConfirmModal {...confirmAction} onCancel={() => setConfirmAction(null)} />}
+
+      {/* Cancellation Request Modal */}
+      {cancellationModalOpen && (() => {
+        const ctx = getCancellationContext()
+        const fmtZAR = (n) => `R${(Number(n) || 0).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => !submittingCancellation && setCancellationModalOpen(false)}
+          >
+            <div
+              className="bg-slate-900 border border-white/20 rounded-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div>
+                <h3 className="text-lg font-bold text-white">Request Subscription Cancellation</h3>
+                <p className="text-sm text-white/60 mt-1">
+                  Submitting this request is valid written notice under the Client Subscription &amp; SLA §4.1.
+                </p>
+              </div>
+
+              {ctx && (
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 text-sm">
+                  {ctx.coolingOffApplies && (
+                    <div className="flex gap-2 text-green-300">
+                      <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>You are within the 5-business-day CPA s16 cooling-off period. No early termination fee applies.</span>
+                    </div>
+                  )}
+                  {!ctx.coolingOffApplies && ctx.withinInitialTerm && (
+                    <div className="flex gap-2 text-orange-300">
+                      <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <p>
+                          Within 12-month Initial Term — {ctx.monthsRemaining} month(s) remaining.
+                          An early termination fee of <strong>{fmtZAR(ctx.terminationFee)}</strong> applies per SLA §4.1
+                          ({ctx.monthsElapsed < 6 ? '50%' : '25%'} of remaining MRR).
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {!ctx.coolingOffApplies && !ctx.withinInitialTerm && (
+                    <div className="flex gap-2 text-white/70">
+                      <svg className="w-5 h-5 flex-shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>Initial Term complete. Cancellation takes effect at the end of the current billing cycle, subject to 60-day notice per SLA §4.1.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-3 text-xs text-cyan-300">
+                <strong>Export your data first.</strong>{' '}
+                <a href="/data-export" className="underline hover:text-cyan-200">Download a full POPIA export</a>
+                {' '}before submitting — access ends when the notice period closes.
+              </div>
+
+              <div>
+                <label className="block text-sm text-white/70 mb-1">Reason (optional)</label>
+                <textarea
+                  value={cancellationReason}
+                  onChange={(e) => setCancellationReason(e.target.value)}
+                  rows={3}
+                  className="glass-input w-full px-3 py-2 rounded-lg text-white text-sm"
+                  placeholder="Help us improve — what didn't work for you?"
+                  disabled={submittingCancellation}
+                />
+              </div>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={cancellationAck}
+                  onChange={(e) => setCancellationAck(e.target.checked)}
+                  className="mt-1 w-4 h-4"
+                  disabled={submittingCancellation}
+                />
+                <span className="text-xs text-white/70">
+                  I understand that cancellation takes effect at the end of the current billing cycle,
+                  subject to the 60-day notice and early termination provisions in the Client Subscription
+                  Agreement §4.1, and that any applicable termination fee will be invoiced separately.
+                </span>
+              </label>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCancellationModalOpen(false)}
+                  disabled={submittingCancellation}
+                  className="px-4 py-2 text-white/70 hover:text-white rounded-xl text-sm font-semibold disabled:opacity-50"
+                >
+                  Keep Subscription
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitCancellation}
+                  disabled={!cancellationAck || submittingCancellation}
+                  className="px-4 py-2 bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  {submittingCancellation ? 'Submitting…' : 'Submit Cancellation Request'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </Layout>
   )
 }
