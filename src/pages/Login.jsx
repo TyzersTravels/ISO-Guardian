@@ -316,7 +316,7 @@ const Login = () => {
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-cyan-100 mb-2">Email Address</label>
+                <label htmlFor="login-email" className="block text-sm font-medium text-cyan-100 mb-2">Email Address</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -324,6 +324,7 @@ const Login = () => {
                     </svg>
                   </div>
                   <input
+                    id="login-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -335,7 +336,7 @@ const Login = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-cyan-100 mb-2">Password</label>
+                <label htmlFor="login-password" className="block text-sm font-medium text-cyan-100 mb-2">Password</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -343,6 +344,7 @@ const Login = () => {
                     </svg>
                   </div>
                   <input
+                    id="login-password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

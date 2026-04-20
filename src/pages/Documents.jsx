@@ -1119,6 +1119,7 @@ ${htmlContent}
 
 const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
   const toast = useToast()
+  const { getEffectiveCompanyId } = useAuth()
   const [formData, setFormData] = useState({
     name: '',
     standard: (userProfile?.standards_access || ['ISO_9001'])[0] || 'ISO_9001',
@@ -1211,8 +1212,9 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm text-white/60 block mb-2">Document Name *</label>
+            <label htmlFor="doc-name" className="text-sm text-white/60 block mb-2">Document Name *</label>
             <input
+              id="doc-name"
               type="text"
               required
               value={formData.name}
@@ -1224,8 +1226,9 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-white/60 block mb-2">ISO Standard *</label>
+              <label htmlFor="doc-standard" className="text-sm text-white/60 block mb-2">ISO Standard *</label>
               <select
+                id="doc-standard"
                 required
                 value={formData.standard}
                 onChange={(e) => setFormData({ ...formData, standard: e.target.value })}
@@ -1240,8 +1243,9 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
             </div>
 
             <div>
-              <label className="text-sm text-white/60 block mb-2">Clause *</label>
+              <label htmlFor="doc-clause" className="text-sm text-white/60 block mb-2">Clause *</label>
               <select
+                id="doc-clause"
                 required
                 value={formData.clause}
                 onChange={(e) => setFormData({ ...formData, clause: parseInt(e.target.value) })}
@@ -1256,8 +1260,9 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-white/60 block mb-2">Document Type *</label>
+              <label htmlFor="doc-type" className="text-sm text-white/60 block mb-2">Document Type *</label>
               <select
+                id="doc-type"
                 required
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -1272,8 +1277,9 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
             </div>
 
             <div>
-              <label className="text-sm text-white/60 block mb-2">Version *</label>
+              <label htmlFor="doc-version" className="text-sm text-white/60 block mb-2">Version *</label>
               <input
+                id="doc-version"
                 type="text"
                 required
                 value={formData.version}
@@ -1285,8 +1291,9 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
           </div>
 
           <div>
-            <label className="text-sm text-white/60 block mb-2">Upload File * (PDF, Word, Excel, Images)</label>
+            <label htmlFor="doc-file" className="text-sm text-white/60 block mb-2">Upload File * (PDF, Word, Excel, Images)</label>
             <input
+              id="doc-file"
               type="file"
               required
               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.csv,.txt"
@@ -1330,6 +1337,7 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
 
 const BulkUploadForm = ({ userProfile, onClose, onUploaded }) => {
   const toast = useToast()
+  const { getEffectiveCompanyId } = useAuth()
   const [files, setFiles] = useState([])
   const [standard, setStandard] = useState((userProfile?.standards_access || ['ISO_9001'])[0] || 'ISO_9001')
   const [clause, setClause] = useState(7)

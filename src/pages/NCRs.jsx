@@ -562,6 +562,7 @@ const NCRs = () => {
 // Create NCR Form Component
 const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
   const toast = useToast()
+  const { getEffectiveCompanyId } = useAuth()
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -634,8 +635,9 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm text-white/60 block mb-2">Title *</label>
+            <label htmlFor="ncr-title" className="text-sm text-white/60 block mb-2">Title *</label>
             <input
+              id="ncr-title"
               type="text"
               required
               value={formData.title}
@@ -646,8 +648,9 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
           </div>
 
           <div>
-            <label className="text-sm text-white/60 block mb-2">Description *</label>
+            <label htmlFor="ncr-description" className="text-sm text-white/60 block mb-2">Description *</label>
             <textarea
+              id="ncr-description"
               required
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -659,8 +662,9 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-white/60 block mb-2">Standard *</label>
+              <label htmlFor="ncr-standard" className="text-sm text-white/60 block mb-2">Standard *</label>
               <select
+                id="ncr-standard"
                 required
                 value={formData.standard}
                 onChange={(e) => setFormData({ ...formData, standard: e.target.value })}
@@ -675,8 +679,9 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
             </div>
 
             <div>
-              <label className="text-sm text-white/60 block mb-2">Clause *</label>
+              <label htmlFor="ncr-clause" className="text-sm text-white/60 block mb-2">Clause *</label>
               <select
+                id="ncr-clause"
                 required
                 value={formData.clause}
                 onChange={(e) => setFormData({ ...formData, clause: parseInt(e.target.value) })}
@@ -691,8 +696,9 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-white/60 block mb-2">Severity *</label>
+              <label htmlFor="ncr-severity" className="text-sm text-white/60 block mb-2">Severity *</label>
               <select
+                id="ncr-severity"
                 required
                 value={formData.severity}
                 onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
@@ -705,8 +711,9 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
             </div>
 
             <div>
-              <label className="text-sm text-white/60 block mb-2">Due Date *</label>
+              <label htmlFor="ncr-due-date" className="text-sm text-white/60 block mb-2">Due Date *</label>
               <input
+                id="ncr-due-date"
                 type="date"
                 required
                 value={formData.due_date}
@@ -717,8 +724,9 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
           </div>
 
           <div>
-            <label className="text-sm text-white/60 block mb-2">Root Cause *</label>
+            <label htmlFor="ncr-root-cause" className="text-sm text-white/60 block mb-2">Root Cause *</label>
             <textarea
+              id="ncr-root-cause"
               required
               value={formData.root_cause}
               onChange={(e) => setFormData({ ...formData, root_cause: e.target.value })}
@@ -728,8 +736,9 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
           </div>
 
           <div>
-            <label className="text-sm text-white/60 block mb-2">Corrective Action *</label>
+            <label htmlFor="ncr-corrective-action" className="text-sm text-white/60 block mb-2">Corrective Action *</label>
             <textarea
+              id="ncr-corrective-action"
               required
               value={formData.corrective_action}
               onChange={(e) => setFormData({ ...formData, corrective_action: e.target.value })}

@@ -86,25 +86,16 @@ const steps = [
   },
 ]
 
-const joyrideOptions = {
-  arrowColor: 'rgba(15, 23, 42, 0.97)',
-  backgroundColor: 'rgba(15, 23, 42, 0.97)',
-  overlayColor: 'rgba(2, 6, 23, 0.72)',
-  primaryColor: '#06b6d4',
-  textColor: '#e2e8f0',
-  zIndex: 10000,
-  width: 360,
-  spotlightPadding: 6,
-  spotlightRadius: 14,
-  skipBeacon: true,
-  overlayClickAction: false,
-  buttons: ['back', 'skip', 'primary'],
-  showProgress: true,
-  scrollOffset: 120,
-  scrollDuration: 450,
-}
-
 const joyrideStyles = {
+  options: {
+    arrowColor: 'rgba(15, 23, 42, 0.97)',
+    backgroundColor: 'rgba(15, 23, 42, 0.97)',
+    overlayColor: 'rgba(2, 6, 23, 0.78)',
+    primaryColor: '#06b6d4',
+    textColor: '#e2e8f0',
+    zIndex: 10000,
+    width: 360,
+  },
   tooltip: {
     borderRadius: 20,
     padding: 22,
@@ -155,6 +146,11 @@ const joyrideStyles = {
   },
   spotlight: {
     borderRadius: 14,
+    boxShadow: '0 0 0 9999px rgba(2, 6, 23, 0.78), 0 0 0 4px rgba(34, 211, 238, 0.65), 0 0 40px 6px rgba(34, 211, 238, 0.35)',
+  },
+  overlay: {
+    backgroundColor: 'rgba(2, 6, 23, 0.78)',
+    mixBlendMode: 'normal',
   },
 }
 
@@ -200,7 +196,11 @@ const DemoTour = () => {
         callback={handleCallback}
         continuous
         scrollToFirstStep
-        options={joyrideOptions}
+        showProgress
+        showSkipButton
+        spotlightPadding={8}
+        disableOverlayClose
+        disableScrolling={false}
         locale={{
           back: 'Back',
           close: 'Close',

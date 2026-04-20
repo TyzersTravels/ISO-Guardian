@@ -159,8 +159,9 @@ export default function ConsultationUpsell() {
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm text-white/70 mb-1">Full Name *</label>
+                    <label htmlFor="consult-name" className="block text-sm text-white/70 mb-1">Full Name *</label>
                     <input
+                      id="consult-name"
                       type="text"
                       value={form.name}
                       onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
@@ -169,8 +170,9 @@ export default function ConsultationUpsell() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-white/70 mb-1">Email *</label>
+                    <label htmlFor="consult-email" className="block text-sm text-white/70 mb-1">Email *</label>
                     <input
+                      id="consult-email"
                       type="email"
                       value={form.email}
                       onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
@@ -182,8 +184,9 @@ export default function ConsultationUpsell() {
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm text-white/70 mb-1">Company *</label>
+                    <label htmlFor="consult-company" className="block text-sm text-white/70 mb-1">Company *</label>
                     <input
+                      id="consult-company"
                       type="text"
                       value={form.company}
                       onChange={e => setForm(prev => ({ ...prev, company: e.target.value }))}
@@ -192,8 +195,9 @@ export default function ConsultationUpsell() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-white/70 mb-1">ISO Standard</label>
+                    <label htmlFor="consult-standard" className="block text-sm text-white/70 mb-1">ISO Standard</label>
                     <select
+                      id="consult-standard"
                       value={form.standard}
                       onChange={e => setForm(prev => ({ ...prev, standard: e.target.value }))}
                       className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:border-purple-500/50 focus:outline-none transition-colors"
@@ -207,8 +211,9 @@ export default function ConsultationUpsell() {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">Preferred Date (optional)</label>
+                  <label htmlFor="consult-date" className="block text-sm text-white/70 mb-1">Preferred Date (optional)</label>
                   <input
+                    id="consult-date"
                     type="date"
                     value={form.preferred_date}
                     onChange={e => setForm(prev => ({ ...prev, preferred_date: e.target.value }))}
@@ -217,8 +222,9 @@ export default function ConsultationUpsell() {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-white/70 mb-1">Message (optional)</label>
+                  <label htmlFor="consult-message" className="block text-sm text-white/70 mb-1">Message (optional)</label>
                   <textarea
+                    id="consult-message"
                     value={form.message}
                     onChange={e => setForm(prev => ({ ...prev, message: e.target.value }))}
                     rows={3}

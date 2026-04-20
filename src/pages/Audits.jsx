@@ -586,6 +586,7 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
 
 const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
   const toast = useToast()
+  const { getEffectiveCompanyId } = useAuth()
   const [formData, setFormData] = useState({
     audit_type: 'Internal',
     standard: (userProfile?.standards_access || ['ISO_9001'])[0] || 'ISO_9001',
@@ -645,8 +646,9 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-white/60 block mb-2">Audit Type *</label>
+              <label htmlFor="audit-type" className="text-sm text-white/60 block mb-2">Audit Type *</label>
               <select
+                id="audit-type"
                 required
                 value={formData.audit_type}
                 onChange={(e) => setFormData({ ...formData, audit_type: e.target.value })}
@@ -660,8 +662,9 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
             </div>
 
             <div>
-              <label className="text-sm text-white/60 block mb-2">Standard *</label>
+              <label htmlFor="audit-standard" className="text-sm text-white/60 block mb-2">Standard *</label>
               <select
+                id="audit-standard"
                 required
                 value={formData.standard}
                 onChange={(e) => setFormData({ ...formData, standard: e.target.value })}
@@ -678,8 +681,9 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-white/60 block mb-2">Audit Date *</label>
+              <label htmlFor="audit-date" className="text-sm text-white/60 block mb-2">Audit Date *</label>
               <input
+                id="audit-date"
                 type="date"
                 required
                 value={formData.audit_date}
@@ -689,8 +693,9 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
             </div>
 
             <div>
-              <label className="text-sm text-white/60 block mb-2">Audit Time</label>
+              <label htmlFor="audit-time" className="text-sm text-white/60 block mb-2">Audit Time</label>
               <input
+                id="audit-time"
                 type="time"
                 value={formData.audit_time}
                 onChange={(e) => setFormData({ ...formData, audit_time: e.target.value })}
@@ -700,8 +705,9 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
           </div>
 
           <div>
-            <label className="text-sm text-white/60 block mb-2">Assigned Auditor *</label>
+            <label htmlFor="audit-auditor" className="text-sm text-white/60 block mb-2">Assigned Auditor *</label>
             <input
+              id="audit-auditor"
               type="text"
               required
               value={formData.assigned_auditor_name}
@@ -712,8 +718,9 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
           </div>
 
           <div>
-            <label className="text-sm text-white/60 block mb-2">Audit Scope *</label>
+            <label htmlFor="audit-scope" className="text-sm text-white/60 block mb-2">Audit Scope *</label>
             <textarea
+              id="audit-scope"
               required
               value={formData.scope}
               onChange={(e) => setFormData({ ...formData, scope: e.target.value })}
@@ -724,8 +731,9 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
           </div>
 
           <div>
-            <label className="text-sm text-white/60 block mb-2">Reminder Method *</label>
+            <label htmlFor="audit-reminder" className="text-sm text-white/60 block mb-2">Reminder Method *</label>
             <select
+              id="audit-reminder"
               required
               value={formData.reminder_method}
               onChange={(e) => setFormData({ ...formData, reminder_method: e.target.value })}
