@@ -311,10 +311,10 @@ export default function StandardsNews({ standard }) {
             Document control, NCR tracking, audit management, and compliance scoring in one platform.
           </p>
           <button
-            onClick={() => navigate('/signup')}
+            onClick={() => navigate('/consultation')}
             className="px-8 py-3.5 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-2xl transition-all shadow-xl shadow-purple-900/50 text-lg"
           >
-            Start Your Free Trial {'\u2192'}
+            Book a Demo {'\u2192'}
           </button>
         </div>
       </div>

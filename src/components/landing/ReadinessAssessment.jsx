@@ -349,21 +349,22 @@ export default function ReadinessAssessment() {
 
               {/* Next steps based on score */}
               <div className="space-y-4 mb-6">
-                {/* Primary CTA — Start trial */}
+                {/* Primary CTA — Book a demo (consultation-gated onboarding) */}
                 <div className="bg-gradient-to-br from-cyan-500/10 to-purple-500/10 border border-cyan-500/20 rounded-2xl p-6">
-                  <h4 className="font-bold text-white mb-2">Start managing your compliance today</h4>
+                  <h4 className="font-bold text-white mb-2">Book a demo to get started</h4>
                   <p className="text-white/50 text-sm mb-4">
                     {score <= 60
-                      ? 'ISOGuardian helps you close gaps fast with document templates, NCR tracking, and audit management — all in one platform.'
-                      : 'Keep your compliance current with automated tracking, audit scheduling, and real-time dashboards.'}
+                      ? 'ISOGuardian helps you close gaps fast with document templates, NCR tracking, and audit management — let us walk you through your roadmap.'
+                      : 'Keep your compliance current with automated tracking, audit scheduling, and real-time dashboards — see it running on your standards.'}
                   </p>
-                  <a
-                    href="/signup"
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('consultation')?.scrollIntoView({ behavior: 'smooth' })}
                     className="inline-block px-8 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 font-bold rounded-xl transition-all"
                   >
-                    Start 14-Day Free Trial
-                  </a>
-                  <p className="text-white/30 text-xs mt-2">No credit card required</p>
+                    Book a Demo
+                  </button>
+                  <p className="text-white/30 text-xs mt-2">Free 30-minute consultation — no obligation</p>
                 </div>
 
                 {/* Secondary — Templates + Consultation */}

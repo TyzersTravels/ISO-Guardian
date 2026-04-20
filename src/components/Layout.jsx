@@ -110,87 +110,94 @@ const Layout = ({ children }) => {
         { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
       ],
     },
-    // Section 1 & 2: Company Profile + SHEQ Policy (Clause 5.2)
-    {
-      label: '1. Company',
-      clause: '§5',
-      collapsible: true,
-      items: [
-        ...(isAdmin ? [{ path: '/settings', label: 'Company Profile', icon: 'company' }] : []),
-        { path: '/compliance', label: 'SHEQ Policy & Scope', icon: 'compliance', clause: '§4.3 / §5.2' },
-        ...(isAdmin ? [{ path: '/users', label: 'Organisation', icon: 'users', clause: '§5.3' }] : []),
-        { path: '/org-chart', label: 'Org Chart', icon: 'users', clause: '§5.3' },
-      ],
-    },
-    // Clause 4: Context of the Organisation
-    {
-      label: '2. Context',
+    // Clause 4: Context — ALL speculative, super_admin only for now
+    ...(isSuperAdmin ? [{
+      label: '1. Context',
       clause: '§4',
       collapsible: true,
       items: [
         { path: '/context-analysis', label: 'SWOT / Context', icon: 'analytics', clause: '§4.1' },
-        { path: '/processes', label: 'Processes', icon: 'compliance', clause: '§4.4' },
         { path: '/interested-parties', label: 'Stakeholders', icon: 'reviews', clause: '§4.2' },
+        { path: '/processes', label: 'Processes', icon: 'compliance', clause: '§4.4' },
+      ],
+    }] : []),
+    // Clause 5: Leadership — Company Profile, SHEQ Policy, Users shipped. Org Chart hidden.
+    {
+      label: isSuperAdmin ? '2. Leadership' : 'Leadership',
+      clause: '§5',
+      collapsible: true,
+      items: [
+        ...(isAdmin ? [{ path: '/settings', label: 'Company Profile', icon: 'company', clause: '§5.1' }] : []),
+        { path: '/compliance', label: 'SHEQ Policy & Scope', icon: 'compliance', clause: '§5.2' },
+        ...(isAdmin ? [{ path: '/users', label: 'Roles & Responsibilities', icon: 'users', clause: '§5.3' }] : []),
+        ...(isSuperAdmin ? [{ path: '/org-chart', label: 'Org Chart', icon: 'users', clause: '§5.3' }] : []),
       ],
     },
-    // Clause 6: Planning
-    {
+    // Clause 6: Planning — ALL speculative, super_admin only
+    ...(isSuperAdmin ? [{
       label: '3. Planning',
       clause: '§6',
       collapsible: true,
       items: [
         { path: '/risk-register', label: 'Risks & Opportunities', icon: 'ncrs', clause: '§6.1' },
-        { path: '/quality-objectives', label: 'Objectives & Targets', icon: 'analytics', clause: '§6.2' },
+        { path: '/environmental-aspects', label: 'Env. Aspects', icon: 'compliance', clause: '§6.1.2' },
+        { path: '/hazard-register', label: 'HIRA / Hazards', icon: 'ncrs', clause: '§6.1.2' },
         { path: '/legal-register', label: 'Legal Register', icon: 'compliance', clause: '§6.1.3' },
+        { path: '/quality-objectives', label: 'Objectives & Targets', icon: 'analytics', clause: '§6.2' },
       ],
-    },
-    // Clause 7: Support
+    }] : []),
+    // Clause 7: Support — only Documents shipped. Training/Comms hidden.
     {
-      label: '4. Support',
+      label: isSuperAdmin ? '4. Support' : 'Support',
       clause: '§7',
       collapsible: true,
       items: [
+        ...(isSuperAdmin ? [{ path: '/training-matrix', label: 'Training & Competence', icon: 'users', clause: '§7.2' }] : []),
+        ...(isSuperAdmin ? [{ path: '/communications', label: 'Communications', icon: 'notifications', clause: '§7.4' }] : []),
         { path: '/documents', label: 'Documents', icon: 'documents', clause: '§7.5' },
-        { path: '/training-matrix', label: 'Training', icon: 'users', clause: '§7.2' },
-        { path: '/communications', label: 'Communications', icon: 'notifications', clause: '§7.4' },
       ],
     },
-    // Clause 8: Operation
-    {
-      label: '5. Operations',
+    // Clause 8: Operation — speculative, super_admin only
+    ...(isSuperAdmin ? [{
+      label: '5. Operation',
       clause: '§8',
       collapsible: true,
       items: [
         { path: '/suppliers', label: 'Suppliers', icon: 'documents', clause: '§8.4' },
-        { path: '/customer-feedback', label: 'Customer Feedback', icon: 'ncrs', clause: '§9.1.2' },
-        { path: '/environmental-aspects', label: 'Env. Aspects', icon: 'compliance', clause: '§6.1.2' },
-        { path: '/hazard-register', label: 'HIRA / Hazards', icon: 'ncrs', clause: '§6.1.2' },
       ],
-    },
-    // Clause 9 & 10: Performance Evaluation + Improvement
+    }] : []),
+    // Clause 9: Performance — Audits + Mgmt Reviews shipped. Customer Feedback hidden.
     {
-      label: '6. Performance',
-      clause: '§9–10',
+      label: isSuperAdmin ? '6. Performance' : 'Performance',
+      clause: '§9',
       collapsible: true,
       items: [
-        { path: '/ncrs', label: 'NCRs', icon: 'ncrs', clause: '§10.2' },
-        { path: '/audits', label: 'Audits', icon: 'audits', clause: '§9.2' },
+        ...(isSuperAdmin ? [{ path: '/customer-feedback', label: 'Customer Feedback', icon: 'ncrs', clause: '§9.1.2' }] : []),
+        { path: '/audits', label: 'Internal Audits', icon: 'audits', clause: '§9.2' },
         { path: '/management-reviews', label: 'Management Reviews', icon: 'reviews', clause: '§9.3' },
-        { path: '/improvements', label: 'Improvements', icon: 'analytics', clause: '§10.3' },
       ],
     },
-    // Intelligence & Tools
+    // Clause 10: Improvement — NCRs shipped. Continual Improvement hidden.
     {
+      label: isSuperAdmin ? '7. Improvement' : 'Improvement',
+      clause: '§10',
+      collapsible: true,
+      items: [
+        { path: '/ncrs', label: 'Non-Conformities', icon: 'ncrs', clause: '§10.2' },
+        ...(isSuperAdmin ? [{ path: '/improvements', label: 'Continual Improvement', icon: 'analytics', clause: '§10.3' }] : []),
+      ],
+    },
+    // Tools — super_admin only until polished
+    ...(isSuperAdmin ? [{
       label: 'Tools',
       collapsible: true,
       items: [
         { path: '/templates', label: 'Templates', icon: 'templates' },
         { path: '/audit-simulator', label: 'Audit Simulator', icon: 'audits' },
         { path: '/clause-matrix', label: 'Clause Matrix', icon: 'compliance' },
-        // AI Copilot hidden until launch — code preserved in src/pages/AICopilot.jsx
-        ...(isAdmin || isLeadAuditor ? [{ path: '/audit-connect', label: 'Audit Connect', icon: 'auditConnect' }] : []),
+        { path: '/audit-connect', label: 'Audit Connect', icon: 'auditConnect' },
       ],
-    },
+    }] : []),
     // Activity & Tracking
     {
       label: 'Activity',

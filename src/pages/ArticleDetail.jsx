@@ -222,10 +222,10 @@ export default function ArticleDetail() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate('/consultation')}
               className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white rounded-xl font-semibold text-sm transition-all"
             >
-              Start Free Trial {'\u2192'}
+              Book a Demo {'\u2192'}
             </button>
             <button
               onClick={() => navigate('/consultation')}

@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { throttle } from '../../lib/rateLimiter'
 import { trackConversion } from '../../lib/analytics'
@@ -108,7 +107,6 @@ const CARDS = [
 ]
 
 export default function TemplateMarketplace() {
-  const navigate = useNavigate()
   const formRef = useRef(null)
   const [expanded, setExpanded] = useState(null) // which card is showing full preview
   const [buying, setBuying] = useState(null)
@@ -397,10 +395,10 @@ export default function TemplateMarketplace() {
             audit management, NCR tracking, and document control.
           </p>
           <button
-            onClick={() => navigate('/signup')}
+            onClick={() => document.getElementById('consultation')?.scrollIntoView({ behavior: 'smooth' })}
             className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold rounded-xl transition-all"
           >
-            Start 14-Day Free Trial
+            Book a Demo
           </button>
         </div>
 

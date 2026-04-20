@@ -171,15 +171,15 @@ export default function AffiliateProgramme() {
             Start Referring Today
           </h2>
           <p className="text-white/60 mb-8 max-w-lg mx-auto">
-            Sign up for an ISOGuardian account to get your unique referral link.
-            Already have an account? Find your referral code in your profile settings.
+            Book a demo with us to become an ISOGuardian client — once onboarded, your unique
+            referral link is waiting in your profile settings.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate('/consultation')}
               className="px-10 py-4 font-bold bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 rounded-2xl transition-all shadow-xl shadow-purple-900/40 text-white text-lg"
             >
-              Sign Up & Get Your Link
+              Book a Demo
             </button>
             <button
               onClick={() => navigate('/login')}
