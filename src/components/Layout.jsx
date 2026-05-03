@@ -195,7 +195,7 @@ const Layout = ({ children }) => {
       label: 'Tools',
       collapsible: true,
       items: [
-        { path: '/ai-copilot', label: 'AI Copilot ✨', icon: 'analytics' },
+        // { path: '/ai-copilot', label: 'AI Copilot ✨', icon: 'analytics' }, // Hidden until Anthropic credits restored
         { path: '/audit-simulator', label: 'Audit Simulator', icon: 'audits' },
         { path: '/clause-matrix', label: 'Clause Matrix', icon: 'compliance' },
         { path: '/audit-connect', label: 'Audit Connect', icon: 'auditConnect' },

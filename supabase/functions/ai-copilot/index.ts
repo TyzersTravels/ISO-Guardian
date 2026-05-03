@@ -177,7 +177,7 @@ async function callClaude(
       m.content.toLowerCase().includes("audit readiness")
   );
 
-  const model = isComplexQuery ? "claude-sonnet-4-5-20241022" : "claude-haiku-4-5-20251001";
+  const model = isComplexQuery ? "claude-sonnet-4-6" : "claude-haiku-4-5-20251001";
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",

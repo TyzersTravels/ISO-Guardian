@@ -10,9 +10,21 @@ node_modules/
 # Environment variables - NEVER COMMIT THESE
 .env
 .env.local
+.env.*.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.staging
+.env.dev.backup
+
+# Claude Code internal files
+.claude/
+
+# Binaries / installers
+*.exe
+*.msi
+*.dmg
+*.pkg
 
 # Logs
 npm-debug.log*
@@ -49,3 +61,6 @@ schema_dump.sql
 .mcp.json
 
 .vercel
+
+# Superpowers brainstorming session data (transient)
+.superpowers/
