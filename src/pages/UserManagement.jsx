@@ -23,7 +23,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const query = supabase.from('users').select('id, full_name, email, role, company_id, created_at, is_active, status, last_login, standards_access').order('created_at', { ascending: false })
+      const query = supabase.from('users').select('id, full_name, email, role, company_id, created_at, is_active, last_login, standards_access').order('created_at', { ascending: false })
 
       // Non-super-admins only see their own company
       if (!isSuperAdmin) {
@@ -66,12 +66,12 @@ const UserManagement = () => {
     }
   }
 
-  const toggleUserStatus = async (userId, currentStatus) => {
-    const newStatus = currentStatus === 'active' ? 'suspended' : 'active'
+  const toggleUserStatus = async (userId, currentIsActive) => {
+    const newIsActive = !currentIsActive
     try {
       const { error } = await supabase
         .from('users')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .update({ is_active: newIsActive, updated_at: new Date().toISOString() })
         .eq('id', userId)
 
       if (error) throw error
@@ -82,7 +82,7 @@ const UserManagement = () => {
         action: 'updated',
         entityType: 'user',
         entityId: userId,
-        changes: { status: newStatus }
+        changes: { is_active: newIsActive }
       })
 
       fetchUsers()
@@ -139,8 +139,8 @@ const UserManagement = () => {
     )
   }
 
-  const activeUsers = users.filter(u => u.status !== 'suspended')
-  const suspendedUsers = users.filter(u => u.status === 'suspended')
+  const activeUsers = users.filter(u => u.is_active !== false)
+  const suspendedUsers = users.filter(u => u.is_active === false)
 
   return (
     <Layout>
@@ -203,7 +203,7 @@ const UserManagement = () => {
                         {u.id === userProfile.id && (
                           <span className="text-xs px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded-full">You</span>
                         )}
-                        {u.status === 'suspended' && (
+                        {u.is_active === false && (
                           <span className="text-xs px-2 py-0.5 bg-red-500/20 text-red-300 rounded-full">Suspended</span>
                         )}
                       </div>
@@ -242,14 +242,14 @@ const UserManagement = () => {
                     {/* Suspend/Activate */}
                     {u.id !== userProfile.id && (
                       <button
-                        onClick={() => toggleUserStatus(u.id, u.status)}
+                        onClick={() => toggleUserStatus(u.id, u.is_active !== false)}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                          u.status === 'suspended'
+                          u.is_active === false
                             ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30'
                             : 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
                         }`}
                       >
-                        {u.status === 'suspended' ? 'Activate' : 'Suspend'}
+                        {u.is_active === false ? 'Activate' : 'Suspend'}
                       </button>
                     )}
                   </div>
@@ -327,20 +327,25 @@ const InviteUserModal = ({ userProfile, onClose, onInvited }) => {
     setSubmitting(true)
 
     try {
-      // Create user record (auth account is created separately via Supabase invite or signup)
-      const { error } = await supabase
-        .from('users')
-        .insert([{
-          email: formData.email.trim().toLowerCase(),
-          full_name: formData.full_name.trim(),
-          role: formData.role,
-          company_id: userProfile.company_id,
-          standards_access: formData.standards_access.length > 0 ? formData.standards_access : ['ISO_9001'],
-          status: 'pending_invite',
-          created_at: new Date().toISOString()
-        }])
+      // Generate temp password
+      const array = new Uint8Array(16)
+      crypto.getRandomValues(array)
+      const tempPassword = `C!${Array.from(array, b => b.toString(36)).join('').substring(0, 14)}`
 
-      if (error) throw error
+      // Call create-user Edge Function (creates auth user + users row atomically with service role key)
+      const res = await supabase.functions.invoke('create-user', {
+        body: {
+          email: formData.email.trim().toLowerCase(),
+          password: tempPassword,
+          full_name: formData.full_name.trim(),
+          company_id: userProfile.company_id,
+          role: formData.role,
+          standards_access: formData.standards_access.length > 0 ? formData.standards_access : ['ISO_9001'],
+        },
+      })
+
+      if (res.error) throw new Error(res.error.message || 'Failed to create user')
+      if (res.data?.error) throw new Error(res.data.error)
 
       await logActivity({
         companyId: userProfile.company_id,
@@ -351,11 +356,11 @@ const InviteUserModal = ({ userProfile, onClose, onInvited }) => {
         changes: { role: formData.role, name: formData.full_name.trim() }
       })
 
-      toast.success(`User record created for ${formData.full_name}. They will need to sign up at your ISOGuardian URL with the email ${formData.email} to activate their account.`)
+      toast.success(`User created. Temp password: ${tempPassword} — copy it and send to ${formData.email} via secure channel. They must change it on first login.`, { duration: 15000 })
       onInvited()
     } catch (err) {
       console.error('Error inviting user:', err)
-      if (err.message?.includes('duplicate') || err.code === '23505') {
+      if (err.message?.toLowerCase().includes('already') || err.message?.toLowerCase().includes('duplicate')) {
         toast.error('A user with this email already exists.')
       } else {
         toast.error('Failed to invite user. Please try again.')

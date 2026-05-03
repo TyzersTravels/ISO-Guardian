@@ -23,6 +23,27 @@ const WHITE = [255, 255, 255];
 const LIGHT_BG = [249, 250, 251];
 
 /**
+ * Add an image to a PDF preserving its natural aspect ratio inside a bounding box.
+ * Used for client-uploaded logos which arrive in any shape (square, wide, tall).
+ * Centres the image inside the box.
+ */
+export const fitImage = (doc, dataUrl, x, y, maxW, maxH) => {
+  try {
+    const props = doc.getImageProperties(dataUrl);
+    const ratio = props.width / props.height;
+    let w = maxW;
+    let h = maxW / ratio;
+    if (h > maxH) { h = maxH; w = maxH * ratio; }
+    const offsetX = x + (maxW - w) / 2;
+    const offsetY = y + (maxH - h) / 2;
+    doc.addImage(dataUrl, 'PNG', offsetX, offsetY, w, h);
+    return { x: offsetX, y: offsetY, w, h };
+  } catch (e) {
+    return { x, y, w: 0, h: 0 };
+  }
+};
+
+/**
  * Create a branded PDF document
  * @param {Object} options
  * @param {string} options.title - Document title
@@ -98,7 +119,7 @@ export const createBrandedPDF = async (options) => {
     let logoX = margin;
     if (companyLogoLoaded && companyLogoImg) {
       try {
-        doc.addImage(companyLogoImg, 'PNG', margin, 3, 26, 26);
+        fitImage(doc, companyLogoImg, margin, 3, 26, 26);
         logoX = margin + 30;
       } catch (e) { /* skip logo */ }
     }
@@ -153,19 +174,14 @@ export const createBrandedPDF = async (options) => {
     doc.setDrawColor(...GREY);
     doc.line(margin, y - 4, pageWidth - margin, y - 4);
 
-    // Subtle ISOGuardian logo in footer
-    if (logoLoaded && logoImg) {
-      try {
-        doc.addImage(logoImg, 'PNG', margin, y - 3, 5, 5);
-      } catch (e) { /* skip */ }
-    }
-
-    doc.setFontSize(6);
+    // Footer is CLIENT-only branding. ISOGuardian attribution lives subtly in
+    // the header ("Powered by ISOGuardian") so the document is unambiguously
+    // owned by the client company, not the platform.
+    doc.setFontSize(7);
     doc.setTextColor(...GREY);
     doc.setFont('helvetica', 'normal');
-    const footerX = logoLoaded ? margin + 7 : margin;
-    doc.text('Powered by ISOGuardian | www.isoguardian.co.za', footerX, y);
-    doc.text(`Printed: ${new Date().toLocaleDateString('en-ZA')} | CONFIDENTIAL`, pageWidth - margin, y, { align: 'right' });
+    doc.text(`${companyName || 'Company'} — CONFIDENTIAL`, margin, y);
+    doc.text(`Printed: ${new Date().toLocaleDateString('en-ZA')}`, pageWidth - margin, y, { align: 'right' });
   };
 
   // Page 1
@@ -287,6 +303,87 @@ export const addTable = (doc, headers, rows, y, margin, contentWidth) => {
 };
 
 /**
+ * Helper: Add ISO §7.5.3 / §9.2 signature blocks. Designed to be reused by
+ * any document that requires accountable sign-off (audits, management reviews,
+ * approved policies, etc.).
+ *
+ * @param {jsPDF} doc
+ * @param {number} y       Current y-cursor position
+ * @param {number} margin
+ * @param {number} contentWidth
+ * @param {Array<{label, name?, dateLabel, dateValue?}>} blocks  Signature definitions, rendered 2-up
+ * @returns {number} new y-cursor
+ */
+export const addSignatureBlocks = (doc, y, margin, contentWidth, blocks) => {
+  if (!blocks || blocks.length === 0) return y;
+
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const blockHeight = 40; // each row of 2 blocks needs ~40mm
+  const rows = Math.ceil(blocks.length / 2);
+  const totalHeight = 12 + (rows * blockHeight);
+
+  // Page break if not enough space
+  if (y + totalHeight > pageHeight - 25) {
+    doc.addPage();
+    y = 20;
+  } else {
+    y += 4;
+  }
+
+  // Section header
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...PURPLE);
+  doc.text('Signatures', margin, y);
+  y += 7;
+
+  const colW = (contentWidth - 6) / 2;
+
+  blocks.forEach((b, i) => {
+    const xCol = i % 2;
+    const xStart = margin + (xCol === 0 ? 0 : colW + 6);
+
+    // Label
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...GREY);
+    doc.text(b.label, xStart, y);
+
+    // Name printed below if known
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...DARK);
+    if (b.name) doc.text(`Name: ${b.name}`, xStart, y + 5);
+
+    // Signature line
+    doc.setDrawColor(160, 160, 160);
+    doc.setLineWidth(0.3);
+    doc.line(xStart, y + 18, xStart + colW, y + 18);
+    doc.setFontSize(7);
+    doc.setTextColor(120, 120, 120);
+    doc.text('Signature', xStart, y + 22);
+
+    // Date line
+    doc.line(xStart, y + 30, xStart + colW, y + 30);
+    if (b.dateValue) {
+      doc.setFontSize(8);
+      doc.setTextColor(...DARK);
+      doc.text(b.dateValue, xStart, y + 28);
+    }
+    doc.setFontSize(7);
+    doc.setTextColor(120, 120, 120);
+    doc.text(b.dateLabel || 'Date', xStart, y + 34);
+
+    // Move to next row after every 2 blocks
+    if (xCol === 1 || i === blocks.length - 1) {
+      y += blockHeight;
+    }
+  });
+
+  return y;
+};
+
+/**
  * Quick export functions for each module
  */
 
@@ -308,7 +405,35 @@ export const exportDocumentPDF = async (document, companyName, userName, company
       y = addField(doc, 'Type', document.type, y, margin);
       y = addField(doc, 'Version', document.version, y, margin);
       y = addField(doc, 'Status', document.status, y, margin);
-      y = addField(doc, 'Last Updated', document.date_updated, y, margin);
+      const lastUpdated = document.date_updated || document.updated_at?.split('T')[0] || document.created_at?.split('T')[0];
+      y = addField(doc, 'Last Updated', lastUpdated, y, margin);
+
+      // Retention policy (ISO 9001 §7.5.3)
+      const retentionLabels = {
+        standard_3y: '3 years after supersession (ISO §7.5.3)',
+        standard_5y: '5 years after supersession (ISO §7.5.3 extended)',
+        standard_7y: '7 years after supersession (SARS / Companies Act)',
+        ohs_incident: '7 years after supersession (SA OHS Act s24)',
+        employment_plus_5y: 'Employment + 5 years (BCEA + §7.2)',
+        medical_40y: '40 years after supersession (SA OHS hazardous regs)',
+        indefinite: 'Indefinite',
+        no_retention: 'No retention (blank template)',
+      };
+      if (document.retention_policy) {
+        y = addField(doc, 'Retention Policy', retentionLabels[document.retention_policy] || document.retention_policy, y, margin);
+      }
+      if (document.retention_until) {
+        y = addField(doc, 'Retained Until', new Date(document.retention_until).toLocaleDateString('en-ZA'), y, margin);
+      }
+
+      // ISO 9001 §7.5.3 documented-information sign-off
+      y = addSignatureBlocks(doc, y, margin, contentWidth, [
+        { label: 'PREPARED BY', name: userName || '', dateLabel: 'Date', dateValue: lastUpdated || '' },
+        { label: 'REVIEWED BY', name: '', dateLabel: 'Review Date', dateValue: '' },
+        { label: 'APPROVED BY (Quality Manager)', name: '', dateLabel: 'Approval Date', dateValue: '' },
+        { label: 'NEXT REVIEW DUE', name: '', dateLabel: 'Next Review', dateValue: document.next_review_date || '' },
+      ]);
+
       return y;
     },
   });
@@ -406,6 +531,15 @@ export const exportAuditPDF = async (audit, companyName, userName, companyCode, 
         y = addText(doc, audit.conclusion, y, margin, contentWidth);
       }
 
+      // ISO 19011 + ISO 9001 §9.2 signature blocks
+      const completionDate = audit.completion_date || audit.audit_date || '';
+      y = addSignatureBlocks(doc, y, margin, contentWidth, [
+        { label: 'LEAD AUDITOR', name: audit.lead_auditor || audit.assigned_auditor_name || '', dateLabel: 'Date', dateValue: completionDate },
+        { label: 'AUDITEE REPRESENTATIVE', name: '', dateLabel: 'Date', dateValue: '' },
+        { label: 'APPROVED BY (Quality Manager)', name: '', dateLabel: 'Approval Date', dateValue: '' },
+        { label: 'REPORT ISSUED TO', name: '', dateLabel: 'Issue Date', dateValue: '' },
+      ]);
+
       return y;
     },
   });
@@ -465,6 +599,13 @@ export const exportReviewPDF = async (review, companyName, userName, companyCode
         y += 4;
         y = addField(doc, 'Next Review Date', review.next_review_date, y, margin);
       }
+
+      // ISO 9001 §9.3 management review sign-off
+      y = addSignatureBlocks(doc, y, margin, contentWidth, [
+        { label: 'CHAIRPERSON (Top Management)', name: review.chairperson || '', dateLabel: 'Date', dateValue: review.review_date || '' },
+        { label: 'QUALITY MANAGER', name: '', dateLabel: 'Date', dateValue: '' },
+        { label: 'RECORDED BY', name: userName || '', dateLabel: 'Date', dateValue: review.review_date || '' },
+      ]);
 
       return y;
     },

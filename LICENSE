@@ -1,0 +1,41 @@
+Copyright (c) 2026 ISOGuardian (Pty) Ltd. All Rights Reserved.
+
+This source code, including all related artefacts, configuration files,
+documentation, database schemas, design assets, and accompanying materials
+contained in this repository (collectively, the "Software"), is the
+proprietary and confidential property of ISOGuardian (Pty) Ltd, a private
+company duly incorporated under the laws of the Republic of South Africa
+with company registration number 2026/082362/07.
+
+NO LICENSE IS GRANTED. Unless explicitly authorised in writing by an officer
+of ISOGuardian (Pty) Ltd, no person, entity, agent, contractor, or
+automated system may:
+
+  (a) copy, reproduce, transmit, distribute, publish, sell, or sublicense
+      the Software, in whole or in part, in any form or by any means;
+  (b) modify, adapt, translate, decompile, reverse-engineer, disassemble,
+      or create derivative works based on the Software;
+  (c) deploy, run, host, or operate the Software for the benefit of any
+      person other than ISOGuardian (Pty) Ltd or its express customers
+      under a separate written subscription agreement;
+  (d) remove, alter, or obscure any proprietary notices, trademarks,
+      copyright marks, or attribution from the Software;
+  (e) use the Software, or any extracted component thereof, to train,
+      fine-tune, or otherwise improve any machine-learning model or
+      artificial-intelligence system without prior written consent.
+
+The Software is provided to authorised users on an "as is" basis. To the
+maximum extent permitted by South African law, ISOGuardian (Pty) Ltd
+disclaims all express or implied warranties, including but not limited to
+warranties of merchantability, fitness for a particular purpose, and
+non-infringement.
+
+Unauthorised use of the Software constitutes a breach of copyright under
+the South African Copyright Act, 1978 (Act No. 98 of 1978) and may give
+rise to civil and criminal liability.
+
+For licensing enquiries, partner agreements, or permission requests:
+
+    ISOGuardian (Pty) Ltd
+    Email:   support@isoguardian.co.za
+    Domain:  https://isoguardian.co.za

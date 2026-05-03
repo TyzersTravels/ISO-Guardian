@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISOGuardian — 90-Day Content Calendar</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  body { font-family: 'Inter', sans-serif; background: #0f172a; color: #cbd5e1; line-height: 1.7; }
+
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    padding: 80px 40px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .hero .label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; color: #06b6d4; margin-bottom: 16px; }
+  .hero h1 { font-size: 40px; font-weight: 800; color: #fff; margin-bottom: 12px; }
+  .hero p { color: rgba(255,255,255,0.5); font-size: 16px; max-width: 600px; margin: 0 auto; }
+
+  .container { max-width: 1000px; margin: 0 auto; padding: 48px 24px; }
+
+  h2 {
+    font-size: 24px; font-weight: 800; color: #fff;
+    margin: 48px 0 16px; padding-top: 32px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  h2:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+
+  h3 { font-size: 18px; font-weight: 700; color: #e2e8f0; margin: 32px 0 12px; }
+  h4 { font-size: 15px; font-weight: 700; color: #06b6d4; margin: 20px 0 8px; }
+
+  p { margin-bottom: 16px; font-size: 15px; }
+
+  .highlight { color: #06b6d4; font-weight: 600; }
+  .warn { color: #f59e0b; font-weight: 600; }
+  .success { color: #22c55e; font-weight: 600; }
+  .purple { color: #a855f7; font-weight: 600; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0 32px;
+    font-size: 14px;
+  }
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    background: rgba(6,182,212,0.1);
+    color: #06b6d4;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: #e2e8f0;
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .week-section {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 32px;
+    margin: 24px 0;
+  }
+  .week-section h3 {
+    margin-top: 0;
+    font-size: 20px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .week-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #06b6d4, #a855f7);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .theme-badge {
+    display: inline-block;
+    background: rgba(168,85,247,0.15);
+    color: #a855f7;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+
+  .day-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 16px 0;
+  }
+  .day-card h4 {
+    margin-top: 0;
+    font-size: 16px;
+    color: #fff;
+  }
+  .platform-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 6px;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tag-linkedin { background: rgba(0,119,181,0.2); color: #0077b5; }
+  .tag-facebook { background: rgba(24,119,242,0.2); color: #4599f7; }
+  .tag-instagram { background: rgba(225,48,108,0.2); color: #e1306c; }
+  .tag-x { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+  .tag-whatsapp { background: rgba(37,211,102,0.2); color: #25d366; }
+
+  .post-content {
+    margin: 8px 0 12px;
+    padding: 12px 16px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.8;
+    border-left: 3px solid rgba(255,255,255,0.1);
+  }
+  .post-content.linkedin-post { border-left-color: #0077b5; }
+  .post-content.facebook-post { border-left-color: #4599f7; }
+  .post-content.instagram-post { border-left-color: #e1306c; }
+  .post-content.x-post { border-left-color: #e2e8f0; }
+  .post-content.whatsapp-post { border-left-color: #25d366; }
+
+  .callout {
+    background: rgba(6,182,212,0.08);
+    border-left: 4px solid #06b6d4;
+    border-radius: 0 12px 12px 0;
+    padding: 20px 24px;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+  .callout-warn {
+    background: rgba(245,158,11,0.08);
+    border-left-color: #f59e0b;
+  }
+  .callout-success {
+    background: rgba(34,197,94,0.08);
+    border-left-color: #22c55e;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin: 24px 0 32px;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+  }
+  .stat-card .value {
+    font-size: 36px;
+    font-weight: 800;
+    background: linear-gradient(to right, #06b6d4, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .stat-card .label { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+  ul { margin: 12px 0 20px 24px; }
+  li { margin-bottom: 8px; font-size: 15px; }
+
+  ol { margin: 12px 0 20px 24px; }
+  ol li { margin-bottom: 8px; font-size: 15px; }
+
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding-left: 28px; position: relative; }
+  .checklist li::before { content: ""; position: absolute; left: 0; top: 6px; width: 16px; height: 16px; border: 2px solid rgba(6,182,212,0.4); border-radius: 4px; }
+
+  .footer {
+    text-align: center; padding: 40px; margin-top: 60px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.3); font-size: 12px;
+  }
+
+  a { color: #06b6d4; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  @media (max-width: 768px) {
+    .hero { padding: 48px 20px; }
+    .hero h1 { font-size: 28px; }
+    .container { padding: 32px 16px; }
+    .week-section { padding: 20px; }
+    table { font-size: 12px; }
+    th, td { padding: 8px 10px; }
+  }
+
+  @media print {
+    body { background: #fff; color: #1e293b; }
+    .hero { background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
+    .hero h1 { color: #0f172a; }
+    .hero .label { color: #0891b2; }
+    h2 { color: #0f172a; border-top-color: #e2e8f0; }
+    h3 { color: #1e293b; }
+    td { color: #334155; border-bottom-color: #e2e8f0; }
+    th { background: #f0fdfa; }
+    .week-section { border-color: #e2e8f0; background: #f8fafc; }
+    .day-card { border-color: #e2e8f0; background: #fff; }
+    .post-content { background: #f1f5f9; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="label">Content Strategy</div>
+  <h1>90-Day Content Calendar</h1>
+  <p>Start Date: Week of March 17, 2026. Posting from Tyreece Kruger's personal accounts (higher reach than company pages).</p>
+</div>
+
+<div class="container">
+
+  <!-- Stats overview -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="value">90</div>
+      <div class="label">Days of Content</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">12</div>
+      <div class="label">Weeks Planned</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">5</div>
+      <div class="label">Platforms</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">15</div>
+      <div class="label">Min/Day Engagement</div>
+    </div>
+  </div>
+
+  <!-- Posting Schedule -->
+  <h2>Weekly Posting Schedule</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Day</th>
+        <th>LinkedIn</th>
+        <th>Facebook</th>
+        <th>Instagram</th>
+        <th>X (Twitter)</th>
+        <th>WhatsApp Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Mon</strong></td><td>Educational post</td><td>Cross-post LinkedIn</td><td>Carousel tip</td><td>Thread</td><td>Daily tip</td></tr>
+      <tr><td><strong>Tue</strong></td><td>Pain point post</td><td>Group engagement</td><td>Reel/Story</td><td>Quick tip</td><td>Feature highlight</td></tr>
+      <tr><td><strong>Wed</strong></td><td>&mdash;</td><td>Community post</td><td>Story only</td><td>Industry news RT</td><td>Assessment link</td></tr>
+      <tr><td><strong>Thu</strong></td><td>Product feature</td><td>Cross-post LinkedIn</td><td>Carousel/Reel</td><td>Hot take</td><td>Testimonial</td></tr>
+      <tr><td><strong>Fri</strong></td><td>Founder story/personal</td><td>Fun/relatable</td><td>Behind-the-scenes</td><td>Tip</td><td>Weekend CTA</td></tr>
+      <tr><td><strong>Sat</strong></td><td>&mdash;</td><td>&mdash;</td><td>Story only</td><td>&mdash;</td><td>Motivational</td></tr>
+      <tr><td><strong>Sun</strong></td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>Week preview</td></tr>
+    </tbody>
+  </table>
+
+  <!-- WEEK 1 -->
+  <div class="week-section">
+    <h3><span class="week-badge">Week 1</span> March 17&ndash;23 <span class="theme-badge">Why ISO Matters</span></h3>
+
+    <div class="day-card">
+      <h4>Monday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "Most SA businesses lose tenders not because of price &mdash; but because they can't prove quality management. ISO 9001 is the difference between 'we're good' and 'here's the proof.' If you're chasing government or corporate contracts, compliance isn't optional &mdash; it's your competitive edge. Here are 3 things ISO certification unlocks for SA businesses: [list]. What's stopping your business from getting certified? Drop a comment."<br><br>
+        <strong>CTA:</strong> Take our free ISO Readiness Assessment &rarr; isoguardian.co.za
+      </div>
+
+      <span class="platform-tag tag-facebook">Facebook</span>
+      <div class="post-content facebook-post">
+        Adapted shorter version of LinkedIn post
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Carousel &mdash; "3 Reasons SA Businesses Need ISO Certification" (use Template A)
+      </div>
+
+      <span class="platform-tag tag-x">X</span>
+      <div class="post-content x-post">
+        "ISO 9001 isn't a nice-to-have in SA. It's the key to government tenders, corporate supply chains, and export markets. Most SMEs don't know this until they lose a bid. Thread:"
+      </div>
+
+      <span class="platform-tag tag-whatsapp">WhatsApp</span>
+      <div class="post-content whatsapp-post">
+        "Did you know? ISO 9001 certification can unlock government tenders worth millions. Take our free readiness assessment &rarr; isoguardian.co.za"
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Tuesday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "Your quality manager is drowning. They're tracking NCRs in Excel. Documents are scattered across emails and shared drives. Audit prep takes 3 weeks of panic. Sound familiar? This is the reality for most SA businesses running ISO compliance on spreadsheets. There's a better way."
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Reel &mdash; "POV: It's audit week and your documents are in 47 different folders" (relatable humor)
+      </div>
+
+      <span class="platform-tag tag-x">X</span>
+      <div class="post-content x-post">
+        "Your quality manager right now: - 47 Excel spreadsheets - 200 emails to find one document - 3 weeks of audit panic. There's a better way."
+      </div>
+
+      <span class="platform-tag tag-whatsapp">WhatsApp</span>
+      <div class="post-content whatsapp-post">
+        "Still managing ISO compliance on spreadsheets? There's a reason auditors cringe when they see Excel."
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Wednesday</h4>
+
+      <span class="platform-tag tag-facebook">Facebook</span>
+      <div class="post-content facebook-post">
+        Post in SHEQ SA group: "Question for quality managers &mdash; what's the single biggest time-waster in your audit prep process? Curious to hear your experiences."
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Story &mdash; Poll: "How do you currently manage ISO documents? A) Paper files B) Spreadsheets C) Shared drive chaos D) Dedicated software"
+      </div>
+
+      <span class="platform-tag tag-x">X</span>
+      <div class="post-content x-post">
+        RT + comment on any SABS or ISO-related news
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Thursday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "We built ISOGuardian because we saw SA businesses paying R8,000-R15,000/mo for compliance software built for American enterprises. Our SMEs need something different: affordable, simple, and built for how South African businesses actually work. Here's what R2,000/mo gets you: [feature list with emoji bullets]. No long contracts. No complex setup. Audit-ready in 10 minutes."
+      </div>
+
+      <span class="platform-tag tag-facebook">Facebook</span>
+      <div class="post-content facebook-post">
+        Cross-post with screenshot of dashboard
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Carousel &mdash; "What You Get with ISOGuardian" (use Template B &mdash; feature showcase)
+      </div>
+
+      <span class="platform-tag tag-x">X</span>
+      <div class="post-content x-post">
+        "We built ISO compliance software for SA businesses at R2,000/mo. Not R15,000. Not USD pricing. Real ZAR pricing for real SA SMEs."
+      </div>
+
+      <span class="platform-tag tag-whatsapp">WhatsApp</span>
+      <div class="post-content whatsapp-post">
+        Dashboard screenshot + "This is what audit-ready looks like. R2,000/mo. isoguardian.co.za"
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Friday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "I started ISOGuardian because I watched businesses lose contracts they should have won. The only thing missing? A simple way to prove their quality management was in order. As a 2026 startup founder in SA, I'm building this with zero outside funding and a lot of late nights. If you know someone struggling with ISO compliance, tag them below &mdash; I'd love to help."
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Behind-the-scenes Story &mdash; dev setup, coffee, late night coding
+      </div>
+
+      <span class="platform-tag tag-x">X</span>
+      <div class="post-content x-post">
+        "Building ISO compliance software from scratch in SA. No funding. Just a problem worth solving. Day 1 of sharing the journey."
+      </div>
+
+      <span class="platform-tag tag-whatsapp">WhatsApp</span>
+      <div class="post-content whatsapp-post">
+        "Weekend reading: Why every SA business chasing tenders needs ISO compliance sorted. Link in bio."
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEK 2 -->
+  <div class="week-section">
+    <h3><span class="week-badge">Week 2</span> March 24&ndash;30 <span class="theme-badge">ISO 9001 Deep Dive</span></h3>
+
+    <div class="day-card">
+      <h4>Monday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "ISO 9001 Clause 4.1 &mdash; Understanding your organisation's context. This is where most companies fail before they even start. In plain English: you need to document what your business does, who your customers are, and what external factors affect your quality. Here's a simple framework any SA business can follow: [3-step breakdown]. Save this post for your next management review."
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Carousel &mdash; "ISO 9001 Clause 4.1 Explained Simply" (5 slides)
+      </div>
+
+      <span class="platform-tag tag-x">X</span>
+      <div class="post-content x-post">
+        "ISO 9001 Clause 4.1 in 30 seconds: Document WHO you serve, WHAT affects your quality, and WHY it matters. Most companies skip this. Don't."
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Tuesday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "I audited a manufacturing company last month (name withheld). They had 200+ documents. Zero were version-controlled. Three different 'latest versions' of their quality manual existed. The auditor found a non-conformance in the first 5 minutes. Version control isn't glamorous. But it's the difference between a clean audit and a major NCR."
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Reel &mdash; "When the auditor asks for the latest version and you have 3 'final_FINAL_v2' copies"
+      </div>
+
+      <span class="platform-tag tag-x">X</span>
+      <div class="post-content x-post">
+        "Auditor: 'Can I see the latest version of your quality manual?' Quality Manager: *opens folder with final_v2_FINAL_updated_REAL.docx* Auditor: *writes NCR*"
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Wednesday</h4>
+
+      <span class="platform-tag tag-facebook">Facebook</span>
+      <div class="post-content facebook-post">
+        Share article/tip about document control best practices in SHEQ group
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Story &mdash; Quiz: "True or False: You need ISO certification to bid on government tenders in SA"
+      </div>
+
+      <span class="platform-tag tag-x">X</span>
+      <div class="post-content x-post">
+        Engage with #QualityManagement posts
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Thursday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "Feature spotlight: ISOGuardian tracks every document version automatically. Upload a new version &rarr; old version archived &rarr; audit trail created. No more 'which one is the latest?' Zero effort. Here's how it works: [3 bullet points]. Try it free for 14 days &rarr; isoguardian.co.za"
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Carousel &mdash; document version control feature walkthrough
+      </div>
+
+      <span class="platform-tag tag-whatsapp">WhatsApp</span>
+      <div class="post-content whatsapp-post">
+        "New feature spotlight: Automatic document version control. Never lose track of the latest version again."
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Friday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "Week 2 of building ISOGuardian in public. This week: fixed 6 database queries, pushed 3 updates, and had our first consultation request from the landing page. Small wins matter when you're bootstrapping. What's your small win this week?"
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Story &mdash; Week recap, personal touch
+      </div>
+
+      <span class="platform-tag tag-x">X</span>
+      <div class="post-content x-post">
+        "Week 2 building @ISOGuardian: First consultation request came through. If you're bootstrapping in SA, celebrate the small wins. They compound."
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEK 3 -->
+  <div class="week-section">
+    <h3><span class="week-badge">Week 3</span> March 31 &ndash; April 6 <span class="theme-badge">Audit Preparation</span></h3>
+
+    <div class="day-card">
+      <h4>Monday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "Your ISO audit is in 30 days. Here's your checklist: [10-item checklist]. Save this. Share it with your quality team. And if you want all of this tracked automatically &mdash; you know where to find us."
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Carousel &mdash; "30-Day Audit Prep Checklist" (use Template C)
+      </div>
+
+      <span class="platform-tag tag-x">X</span>
+      <div class="post-content x-post">
+        Thread &mdash; "Your ISO audit is in 30 days. Here's exactly what to do, week by week:"
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Tuesday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "The #1 reason SA businesses fail ISO audits: they treat it as a once-a-year event instead of a daily practice. Compliance isn't a project. It's a system. If your quality management only happens during audit season, you're setting yourself up for non-conformances."
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Reel &mdash; "Companies 11 months of the year vs. 1 month before the audit"
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Wednesday</h4>
+
+      <span class="platform-tag tag-facebook">Facebook</span>
+      <div class="post-content facebook-post">
+        "Free resource: We've put together a 30-day audit prep checklist. Drop a comment if you'd like the link."
+      </div>
+
+      <span class="platform-tag tag-x">X</span>
+      <div class="post-content x-post">
+        "Hot take: If your ISO compliance only exists in the month before an audit, it doesn't exist."
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Thursday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "ISOGuardian sends automatic audit reminders 7 days and 1 day before every scheduled audit. Plus overdue NCR alerts and document review reminders. Your team never misses a deadline again. That's the power of a system vs. a spreadsheet."
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Feature highlight &mdash; notification system
+      </div>
+
+      <span class="platform-tag tag-whatsapp">WhatsApp</span>
+      <div class="post-content whatsapp-post">
+        "Never miss an audit deadline again. ISOGuardian sends automatic reminders so your team stays on track."
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Friday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        Personal story about a compliance close call or business lesson
+      </div>
+
+      <span class="platform-tag tag-x">X</span>
+      <div class="post-content x-post">
+        Quick tip + weekend CTA
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEK 4 -->
+  <div class="week-section">
+    <h3><span class="week-badge">Week 4</span> April 7&ndash;13 <span class="theme-badge">NCR Management</span></h3>
+
+    <div class="day-card">
+      <h4>Monday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "NCRs (Non-Conformance Reports) are not punishments. They're improvement opportunities. The best companies I've worked with actually celebrate finding NCRs &mdash; because each one makes them stronger. Here's how to shift your team's mindset: [3 points]"
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Carousel &mdash; "NCRs: From Punishment to Improvement" (mindset shift)
+      </div>
+
+      <span class="platform-tag tag-x">X</span>
+      <div class="post-content x-post">
+        "Companies that fear NCRs stay stuck. Companies that embrace NCRs improve. Which one are you?"
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Tuesday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "A proper NCR workflow: Identify &rarr; Document &rarr; Root cause analysis &rarr; Corrective action &rarr; Verify &rarr; Close. Most SA businesses skip steps 3 and 5. That's why the same non-conformances keep coming back audit after audit."
+      </div>
+
+      <span class="platform-tag tag-instagram">Instagram</span>
+      <div class="post-content instagram-post">
+        Reel &mdash; "The NCR lifecycle in 60 seconds"
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Thursday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        "ISOGuardian tracks every NCR from open to close with full audit trail. Assign ownership, set due dates, attach evidence, and verify corrective actions. No more NCRs falling through the cracks. See it in action &rarr; isoguardian.co.za"
+      </div>
+
+      <span class="platform-tag tag-whatsapp">WhatsApp</span>
+      <div class="post-content whatsapp-post">
+        "Track NCRs from identification to closure. Full audit trail. Full accountability."
+      </div>
+    </div>
+
+    <div class="day-card">
+      <h4>Friday</h4>
+
+      <span class="platform-tag tag-linkedin">LinkedIn</span>
+      <div class="post-content linkedin-post">
+        Month-end reflection + milestone update
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEKS 5-8 -->
+  <h2>Weeks 5&ndash;8 &mdash; Theme Rotation</h2>
+
+  <table>
+    <thead>
+      <tr><th>Week</th><th>Theme</th><th>Key Content</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>5</strong></td>
+        <td><span class="highlight">ISO 14001 (Environmental)</span></td>
+        <td>Why SA manufacturers need environmental compliance, waste management, legal register</td>
+      </tr>
+      <tr>
+        <td><strong>6</strong></td>
+        <td><span class="highlight">ISO 45001 (Safety)</span></td>
+        <td>Mining Charter requirements, workplace safety stats in SA, incident management</td>
+      </tr>
+      <tr>
+        <td><strong>7</strong></td>
+        <td><span class="highlight">POPIA &amp; Data Compliance</span></td>
+        <td>How ISOGuardian is POPIA-compliant, data export feature, privacy in quality management</td>
+      </tr>
+      <tr>
+        <td><strong>8</strong></td>
+        <td><span class="highlight">Reseller Programme</span></td>
+        <td>Partner opportunity for SHEQ consultants, 25% commission, case study with Simathemba</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- WEEKS 9-12 -->
+  <h2>Weeks 9&ndash;12 &mdash; Theme Rotation</h2>
+
+  <table>
+    <thead>
+      <tr><th>Week</th><th>Theme</th><th>Key Content</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>9</strong></td>
+        <td><span class="purple">Client Success Stories</span></td>
+        <td>Testimonials, before/after metrics, case studies</td>
+      </tr>
+      <tr>
+        <td><strong>10</strong></td>
+        <td><span class="purple">Management Reviews</span></td>
+        <td>ISO 9.3 requirements, how to run effective reviews, ISOGuardian's review feature</td>
+      </tr>
+      <tr>
+        <td><strong>11</strong></td>
+        <td><span class="purple">ROI of Compliance</span></td>
+        <td>Cost of non-compliance vs. R2,000/mo, tender values unlocked, risk reduction</td>
+      </tr>
+      <tr>
+        <td><strong>12</strong></td>
+        <td><span class="purple">Quarter Review + Scale</span></td>
+        <td>Results recap, community growth, what's next, aggressive CTA push</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Daily Engagement Routine -->
+  <h2>Daily Engagement Routine (15 min/day)</h2>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="value">10</div>
+      <div class="label">Min on LinkedIn</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">3</div>
+      <div class="label">Min on X</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">2</div>
+      <div class="label">Min on WhatsApp</div>
+    </div>
+  </div>
+
+  <h3>1. LinkedIn (10 minutes)</h3>
+  <ul>
+    <li>Like/comment on 5 posts from quality managers, SHEQ professionals</li>
+    <li>Accept/send 5 connection requests (personalized note)</li>
+    <li>Reply to all comments on your posts</li>
+  </ul>
+
+  <h3>2. X (3 minutes)</h3>
+  <ul>
+    <li>RT 1 industry post with your take</li>
+    <li>Reply to 2 relevant conversations</li>
+  </ul>
+
+  <h3>3. WhatsApp (2 minutes)</h3>
+  <ul>
+    <li>Update Status with daily tip/feature</li>
+    <li>Reply to any incoming messages</li>
+  </ul>
+
+  <div class="callout">
+    <strong>Consistency is everything.</strong> 15 minutes daily beats 2 hours once a week. The algorithm rewards daily engagement and the compound effect kicks in at month 2&ndash;3.
+  </div>
+
+  <!-- Monthly Reviews -->
+  <h2>Monthly Review Checklist</h2>
+
+  <p>At the end of each month, review the following:</p>
+
+  <ul class="checklist">
+    <li>Which posts got the most engagement? Create more like those.</li>
+    <li>How many leads came through the ISO Assessment?</li>
+    <li>How many consultation requests?</li>
+    <li>How many trial signups?</li>
+    <li>What questions are people asking? Turn those into content.</li>
+    <li>Which platform drives the most website traffic?</li>
+  </ul>
+
+  <div class="callout-success callout">
+    <strong>Track everything.</strong> The monthly review is where you refine your strategy. Double down on what works, cut what doesn't. By month 3, you'll have a clear picture of which platforms and content types drive real leads.
+  </div>
+
+</div>
+
+<div class="footer">
+  ISOGuardian (Pty) Ltd | Reg: 2026/082362/07 | Confidential<br>
+  <a href="index.html">&larr; Back to Marketing Hub</a>
+</div>
+
+</body>
+</html>

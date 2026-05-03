@@ -6,8 +6,12 @@ export function getCorsHeaders(req?: Request) {
     'https://www.isoguardian.co.za',
     'http://localhost:3000',
     'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+    'http://127.0.0.1:5175',
   ]
   const resolvedOrigin = allowed.includes(origin) ? origin : 'https://isoguardian.co.za'
   return {

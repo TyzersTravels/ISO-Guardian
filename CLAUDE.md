@@ -1,7 +1,10 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-**Last updated: 2026-04-18**
+**Last updated: 2026-04-30**
+
+## ⚠️ Start here in a new session
+Read `FOCUS.md` first — top has a "SESSION HANDOFF" block with the current sprint state, test credentials, environment map, and what's next. Do not start new work before reading it.
 
 ## Commands
 
@@ -292,6 +295,40 @@ Two Edge Functions handle email:
 | `rate-limit` | Server-side brute force protection |
 | `send-notifications` | Scheduled daily notification emails |
 | `unsubscribe` | POPIA-compliant drip email unsubscribe handler |
+
+## Document Retention (ISO 9001 §7.5.3 / §45001 / SA statute)
+
+Shipped 2026-04-24. Implemented in `src/lib/retentionPolicy.js` + Documents.jsx + `supabase/migrations/20260424120000_document_retention_policy.sql`.
+
+**Columns added to `documents`:** `retention_policy` (TEXT enum), `retention_until` (DATE), `archived_at` (TIMESTAMPTZ).
+
+**Policy enum values (basis):**
+| Value | Duration | Default applies to |
+|---|---|---|
+| `standard_3y` | 3y after supersession | Procedures, Work Instructions, Registers, Records §9.2/§10.2 |
+| `standard_5y` | 5y after supersession | Manual, Policy, Records §9.3, Legal Register §6.1.3 (14001) |
+| `standard_7y` | 7y | SARS / Companies Act |
+| `ohs_incident` | 7y (SA OHS Act s24 extended) | HIRA, safety records §45001 §6.1.2 |
+| `employment_plus_5y` | **Employment + 5y — manual date** | Training records §7.2 (9001) |
+| `medical_40y` | 40y | SA OHS hazardous-exposure regs |
+| `indefinite` | Never auto-expires | Certificates, contracts, legal agreements |
+| `no_retention` | None | Blank Forms (templates) |
+
+**Auto-inference:** `inferRetentionPolicy({ type, clause, standard })` — identical logic in JS and the SQL migration's backfill CASE.
+
+**Trigger `trg_documents_retention`:** on archive (`archived=true` transition), sets `archived_at = now()` and `retention_until = archived_at + duration` (unless policy is `employment_plus_5y` or `indefinite`, which require manual date / never expire).
+
+**Manual-date policies:** `employment_plus_5y` requires an admin/super_admin to record the retention-end date via `SetRetentionDateModal` (`logActivity('retention_date_set')`). Until set, permanent-delete is blocked — this closes the retention-dodging loophole.
+
+**Permanent delete enforcement:** `requestDeleteDocument(permanent=true)` calls `retentionStatus(doc)`:
+- Returns `{ blocked, reason, until, requiresManualDate }`
+- Non-super-admin gets a toast-only block
+- Super_admin sees override modal with required justification (logged as `permanently_deleted_retention_override` in audit_log)
+- On successful delete, cleans up `doc.file_path` AND every `doc.version_history[].file_path` from Storage (fixes orphan-storage bug)
+
+**Version History modal (`VersionHistoryModal` in Documents.jsx):** auditor-grade — per-version View (signed URL) and Download buttons, change_summary, uploaded_by name (resolved via `companyUsers`). Always visible via "History (N)" button (even N=0) for discoverability.
+
+**Document type dropdowns** now include: Policy, Procedure, Work Instruction, Form, Manual, Record, Register, Certificate (upload form, bulk form, and filter).
 
 ## Known Issues (as of 2026-03-27)
 

@@ -2,10 +2,13 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../contexts/ToastContext'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 const ResetPassword = () => {
   const navigate = useNavigate()
   const toast = useToast()
+  const { user, userProfile } = useAuth()
+  const isForcedChange = !!userProfile?.must_change_password
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -38,8 +41,23 @@ const ResetPassword = () => {
 
       if (error) throw error
 
+      // Clear the must_change_password flag if set (no-op for password recovery flow)
+      if (user?.id) {
+        await supabase
+          .from('users')
+          .update({ must_change_password: false, updated_at: new Date().toISOString() })
+          .eq('id', user.id)
+      }
+
       toast.success('Password updated successfully!')
-      navigate('/login')
+
+      // If user is logged in (forced first-login change), go to dashboard.
+      // Otherwise (recovery via email link), go to login.
+      if (user) {
+        window.location.href = '/dashboard'
+      } else {
+        navigate('/login')
+      }
     } catch (err) {
       setError('Failed to update password. Please try again.')
     } finally {
@@ -52,8 +70,30 @@ const ResetPassword = () => {
       <div className="w-full max-w-md">
         <div className="glass glass-border rounded-3xl p-8 shadow-2xl">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Set New Password</h1>
-            <p className="text-cyan-200 text-sm">Choose a strong password</p>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              {isForcedChange ? 'Welcome — Set Your Password' : 'Set New Password'}
+            </h1>
+            <p className="text-cyan-200 text-sm">
+              {isForcedChange
+                ? 'For security, please replace your temporary password before continuing.'
+                : 'Choose a strong password'}
+            </p>
+          </div>
+
+          <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-200 text-sm leading-relaxed">
+            {isForcedChange && (
+              <p className="mb-2">
+                <strong className="text-amber-100">First-time login.</strong> Your temporary password is for <strong className="text-amber-100">one-time use only</strong>. Choose a permanent password below.
+              </p>
+            )}
+            <p className="font-semibold text-amber-100">Password requirements:</p>
+            <ul className="mt-2 ml-4 space-y-1 list-disc">
+              <li><strong className="text-amber-100">At least 12 characters</strong></li>
+              <li>One <strong className="text-amber-100">uppercase</strong> letter</li>
+              <li>One <strong className="text-amber-100">lowercase</strong> letter</li>
+              <li>One <strong className="text-amber-100">number</strong></li>
+              <li>One <strong className="text-amber-100">special character</strong> (e.g. ! @ # $)</li>
+            </ul>
           </div>
 
           <form onSubmit={handleUpdatePassword} className="space-y-4">
@@ -65,7 +105,7 @@ const ResetPassword = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 glass glass-border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                  placeholder="Min 8 characters"
+                  placeholder="Min 12 characters"
                   required
                 />
                 <button

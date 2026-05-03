@@ -5,6 +5,7 @@
  */
 
 import jsPDF from 'jspdf'
+import { fitImage } from './brandedPDFExport'
 
 const PURPLE = [124, 58, 237]
 const DARK = [30, 27, 75]
@@ -99,7 +100,7 @@ export function generateAuditReport(data, logoDataUrl = null) {
   // Logo area — use company logo if available, otherwise IG monogram
   if (logoDataUrl) {
     try {
-      doc.addImage(logoDataUrl, 'PNG', 65, 30, 80, 60, undefined, 'FAST')
+      fitImage(doc, logoDataUrl, 65, 30, 80, 60)
     } catch {
       doc.setFillColor(...PURPLE)
       doc.roundedRect(80, 40, 50, 50, 8, 8, 'F')

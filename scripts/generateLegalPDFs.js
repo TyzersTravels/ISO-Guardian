@@ -1,13 +1,14 @@
-/**
+﻿/**
  * ISOGuardian Legal Document PDF Generator v2
  *
  * Generates branded legal PDFs with ISOGuardian styling:
- * - Terms of Service v1.1         (public)
+ * - Terms of Service v1.2         (public)
  * - POPIA Compliance & Privacy v1.1 (public)
  * - Company Profile               (public - marketing)
  * - PAIA Manual v1.1              (public)
  * - Client Subscription & SLA v1.1 (PRIVATE - serious buyers only)
  * - Data Processing Agreement v1.0 (PRIVATE - client agreements)
+ * - Upload Confirmation & Disclaimer v1.1 (public)
  *
  * Usage: node scripts/generateLegalPDFs.js
  * Output:
@@ -324,15 +325,15 @@ function makePageManager(doc, pw, ph, m, headerTitle, headerVer) {
 // ============================================================
 function generateTermsOfService() {
   const { doc, pw, ph, m, cw } = createDoc();
-  const pg = makePageManager(doc, pw, ph, m, 'Terms of Service', 'Version 1.1');
+  const pg = makePageManager(doc, pw, ph, m, 'Terms of Service', 'Version 1.2');
 
-  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-TOS', 'v1.1', 'January 2026', '20 February 2026');
+  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-TOS', 'v1.2', 'January 2026', 'April 2026');
   y = addTitle(doc, 'Terms of Service', y, m);
 
   // 1
   y = pg.bp(y);
   y = heading(doc, 'Acceptance of Terms', y, m, 1);
-  y = para(doc, 'By accessing and using ISOGuardian (\u201Cthe Service\u201D), you accept and agree to be bound by these Terms of Service, our Privacy Policy, POPIA Compliance Policy, and PAIA Manual (collectively, \u201Cthe Terms\u201D). If you do not agree, do not use the Service. If acting for a company, you warrant authority to bind it.', y, m, cw);
+  y = para(doc, 'By accessing and using ISOGuardian (\u201Cthe Service\u201D), you accept and agree to be bound by these Terms of Service, our Privacy Policy and PAIA Manual (collectively, \u201Cthe Terms\u201D). If you do not agree, do not use the Service. If acting for a company, you warrant authority to bind it.', y, m, cw);
   y = para(doc, 'These Terms are governed by the laws of the Republic of South Africa, including the Consumer Protection Act 68 of 2008 (CPA), the Protection of Personal Information Act 4 of 2013 (POPIA), and the Electronic Communications and Transactions Act 25 of 2002 (ECTA).', y, m, cw);
 
   // 2
@@ -479,7 +480,7 @@ function generatePOPIA() {
   const { doc, pw, ph, m, cw } = createDoc();
   const pg = makePageManager(doc, pw, ph, m, 'POPIA & Privacy Policy', 'Version 1.1');
 
-  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-POPIA', 'v1.1', 'January 2026', 'March 2026');
+  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-POPIA', 'v1.1', 'January 2026', 'April 2026');
   y = addTitle(doc, 'POPIA Compliance & Data Protection', y, m);
   y = para(doc, 'ISOGuardian is committed to protecting your personal information in accordance with the Protection of Personal Information Act (POPIA), 2013.', y, m, cw);
 
@@ -569,7 +570,7 @@ function generateSLA() {
   const { doc, pw, ph, m, cw } = createDoc();
   const pg = makePageManager(doc, pw, ph, m, 'Client Subscription & SLA', 'Version 1.1');
 
-  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-SLA', 'v1.1', 'January 2026', 'March 2026');
+  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-SLA', 'v1.1', 'January 2026', 'April 2026');
   y = addTitle(doc, 'Client Subscription & Service Level Agreement', y, m);
 
   y = heading(doc, 'Parties', y, m, 1);
@@ -628,13 +629,18 @@ function generateSLA() {
   y = pg.bp(y);
   y = heading(doc, 'Termination', y, m, 8);
   y = para(doc, 'CPA Cooling-Off: 5 business days from date of signing (distance selling).', y, m, cw);
+  y = para(doc, 'Early Cancellation: Initiate via the in-app Account Settings → Subscription → Cancel Subscription flow, or by 60 days written notice to support@isoguardian.co.za. Both constitute valid written notice.', y, m, cw);
   y = para(doc, 'Early Termination (months 1\u20136): 50% of remaining term fees.', y, m, cw);
   y = para(doc, 'Early Termination (months 7\u201312): 25% of remaining term fees.', y, m, cw);
   y = para(doc, 'Renewal Cancellation: 30 days\u2019 written notice before renewal date.', y, m, cw);
   y = para(doc, 'Post-Termination: Data available for export for 30 days, then permanently deleted.', y, m, cw);
 
   y = pg.bp(y);
-  y = heading(doc, 'Governing Law & Disputes', y, m, 9);
+  y = heading(doc, 'Force Majeure', y, m, 9);
+  y = para(doc, 'Neither party shall be liable for failure or delay caused by events beyond reasonable control, including acts of God, natural disasters, power outages, national or regional load-shedding, internet failures, outages caused by third-party infrastructure providers (Supabase, Vercel, Cloudflare), government actions, or pandemics. Response times in Clause 4 are suspended during a Force Majeure event and resume when services are restored.', y, m, cw);
+
+  y = pg.bp(y);
+  y = heading(doc, 'Governing Law & Disputes', y, m, 10);
   y = para(doc, 'South African law applies. Disputes referred to mediation in Gauteng. If unresolved within 30 days, to the courts of South Africa, Gauteng Division.', y, m, cw);
 
   // Signature block
@@ -849,7 +855,7 @@ function generateCompanyProfile() {
   }
 
   y += 2;
-  y = para(doc, 'ISOGuardian (Pty) Ltd is currently working towards ISO 27001:2022 (Information Security) certification for our own operations \u2014 because we hold ourselves to the same standards we help you achieve.', y, m, cw, { size: 7.5, color: SLATE });
+  y = para(doc, 'ISOGuardian (Pty) Ltd is designed and operated in alignment with ISO 27001:2022 (Information Security) principles, including AES-256 encryption, role-based access controls, audit logging, and breach notification procedures \u2014 because we hold ourselves to the same standards we help you achieve.', y, m, cw, { size: 7.5, color: SLATE });
 
   y += 4;
   y = divider(doc, y, m, cw);
@@ -882,7 +888,7 @@ function generateCompanyProfile() {
   y += 2;
 
   const whyItems = [
-    ['Stop wasting time on spreadsheets', 'The average quality manager spends 15+ hours per week on manual compliance tracking. ISOGuardian reduces that to minutes.'],
+    ['Stop wasting time on spreadsheets', 'Compliance professionals report spending up to 40% of their working week on documentation and administrative tasks. ISOGuardian reduces that overhead dramatically.'],
     ['Be audit-ready, always', 'No more last-minute scrambles before an audit. Your documentation, NCRs, and records are always up to date, always accessible, always organised.'],
     ['Built for South Africa', 'POPIA-compliant from day one. ZAR pricing. South African support. We understand the local regulatory landscape because we operate in it.'],
     ['One platform, three standards', 'Manage ISO 9001, 14001, and 45001 from a single dashboard. No more juggling multiple systems, spreadsheets, or consultants.'],
@@ -944,7 +950,7 @@ function generatePAIA() {
   const { doc, pw, ph, m, cw } = createDoc();
   const pg = makePageManager(doc, pw, ph, m, 'PAIA Manual', 'Version 1.1');
 
-  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-PAIA', 'v1.1', 'January 2026', 'March 2026');
+  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-PAIA', 'v1.1', 'January 2026', 'April 2026');
   y = addTitle(doc, 'PAIA Manual', y, m);
   y = para(doc, `Manual prepared in accordance with Section 51 of the Promotion of Access to Information Act No. 2 of 2000 (\u201CPAIA\u201D) as amended.`, y, m, cw);
 
@@ -1266,6 +1272,54 @@ function generateDPA() {
 }
 
 // ============================================================
+// UPLOAD DISCLAIMER v1.1
+// ============================================================
+function generateUploadDisclaimer() {
+  const { doc, pw, ph, m, cw } = createDoc();
+
+  addHeader(doc, pw, m, 'Upload Confirmation & Disclaimer', 'v1.1 | April 2026');
+  addFooter(doc, pw, ph, m, 1, 1);
+
+  let y = addControlBlock(doc, m, cw, 'IG-LEGAL-UPLOAD-001', 'v1.1', 'April 2026', 'April 2026');
+
+  y = addTitle(doc, 'Upload Confirmation & Disclaimer', y, m);
+  y += 2;
+
+  y = para(doc, 'By uploading documents to ISOGuardian, you acknowledge and agree to the following:', y, m, cw);
+  y += 4;
+
+  const points = [
+    'You confirm that you have the necessary authority and rights to share these documents with us.',
+    'You acknowledge that the documents may contain personal information (including special personal information such as health, safety incident details, or similar sensitive data relating to individuals).',
+    'You represent that you have a lawful basis under POPIA to collect, process, and share this information with us for ISO compliance management purposes (e.g., legitimate interest, contract performance, or explicit consent from affected individuals where required).',
+    'You agree that we may process, store, and display the uploaded content (including any personal or special personal information) solely to provide the ISOGuardian compliance management platform, in accordance with our Privacy Policy and Data Processing Agreement.',
+    'You will not upload any data that violates third-party rights or applicable laws.',
+  ];
+
+  points.forEach((text, i) => {
+    y += 1;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...TEAL);
+    doc.text((i + 1) + '.', m + 2, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...DARK);
+    const lines = doc.splitTextToSize(text, cw - 10);
+    doc.text(lines, m + 9, y);
+    y += lines.length * 3.5 + 3;
+  });
+
+  y += 4;
+  y = divider(doc, y, m, cw);
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(7);
+  doc.setTextColor(...SLATE);
+  doc.text('Version 1.1 | April 2026 | ISOGuardian (Pty) Ltd', m, y + 2);
+
+  return doc;
+}
+
+// ============================================================
 // MAIN
 // ============================================================
 async function main() {
@@ -1276,12 +1330,13 @@ async function main() {
   console.log('Generating ISOGuardian Legal PDFs v2...\n');
 
   const documents = [
-    { name: 'ISOGuardian_Terms_of_Service_v1.1', gen: generateTermsOfService, public: true },
+    { name: 'ISOGuardian_Terms_of_Service_v1.2', gen: generateTermsOfService, public: true },
     { name: 'ISOGuardian_POPIA_Privacy_Policy_v1.1', gen: generatePOPIA, public: true },
     { name: 'ISOGuardian_Company_Profile_2026', gen: generateCompanyProfile, public: true },
     { name: 'ISOGuardian_PAIA_Manual_v1.1', gen: generatePAIA, public: true },
     { name: 'ISOGuardian_Client_Subscription_SLA_v1.1', gen: generateSLA, public: false },
     { name: 'ISOGuardian_Data_Processing_Agreement_v1.0', gen: generateDPA, public: false },
+    { name: 'ISOGuardian_Upload_Disclaimer_v1.1', gen: generateUploadDisclaimer, public: true },
   ];
 
   for (const { name, gen, public: isPublic } of documents) {
@@ -1311,3 +1366,8 @@ async function main() {
 }
 
 main().catch(console.error);
+
+
+
+
+

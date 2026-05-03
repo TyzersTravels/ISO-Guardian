@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import { exportAuditPDF } from '../lib/brandedPDFExport'
+import { useFormDraft, DRAFT_NOTICE_CLASS } from '../hooks/useFormDraft'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 import { useToast } from '../contexts/ToastContext'
@@ -135,9 +136,9 @@ const Audits = () => {
       }
       await exportAuditPDF(
         mapped,
-        userProfile?.company?.name || 'ISOGuardian',
-        userProfile?.email || '',
-        userProfile?.company?.company_code || 'IG',
+        userProfile?.company?.name || 'Company',
+        userProfile?.full_name || userProfile?.email || 'User',
+        userProfile?.company?.company_code || 'XX',
         userProfile?.company?.logo_url || null
       )
     } catch (err) {
@@ -587,16 +588,25 @@ const AuditDetailsModal = ({ audit, onClose, onUpdateStatus, onDelete, onRestore
 const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
   const toast = useToast()
   const { getEffectiveCompanyId } = useAuth()
-  const [formData, setFormData] = useState({
-    audit_type: 'Internal',
-    standard: (userProfile?.standards_access || ['ISO_9001'])[0] || 'ISO_9001',
-    audit_date: '',
-    audit_time: '',
-    assigned_auditor_name: '',
-    scope: '',
-    reminder_method: 'email'
-  })
+  const [formData, setFormData, { restored, clearDraft }] = useFormDraft(
+    'isoguardian_audit_draft_v1',
+    {
+      audit_type: 'Internal',
+      standard: (userProfile?.standards_access || ['iso_9001'])[0] || 'iso_9001',
+      audit_date: '',
+      audit_time: '',
+      assigned_auditor_name: '',
+      scope: '',
+      reminder_method: 'email'
+    },
+    { validate: (d) => !d.standard || (userProfile?.standards_access || []).includes(d.standard) },
+  )
   const [submitting, setSubmitting] = useState(false)
+
+  const handleCancel = () => {
+    clearDraft()
+    onClose()
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -629,6 +639,7 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
       if (error) throw error
 
       toast.success('Audit scheduled successfully!')
+      clearDraft()
       onCreated()
     } catch (err) {
       console.error('Error creating audit:', err)
@@ -642,6 +653,15 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="glass glass-border rounded-2xl p-4 md:p-6 max-w-sm md:max-w-2xl w-full mx-4 md:mx-auto max-h-[90vh] overflow-y-auto">
         <h3 className="text-xl md:text-2xl font-bold text-white mb-6">Schedule New Audit</h3>
+
+        {restored && (
+          <div className={DRAFT_NOTICE_CLASS}>
+            <svg className="w-4 h-4 text-amber-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-amber-200 text-xs">Your previous audit draft was restored. Edit or click Cancel to discard.</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -697,6 +717,7 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
               <input
                 id="audit-time"
                 type="time"
+                step="900"
                 value={formData.audit_time}
                 onChange={(e) => setFormData({ ...formData, audit_time: e.target.value })}
                 className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
@@ -756,7 +777,7 @@ const CreateAuditForm = ({ userProfile, onClose, onCreated }) => {
             </button>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCancel}
               className="px-6 py-3 glass glass-border text-white rounded-lg hover:bg-white/10"
             >
               Cancel

@@ -9,6 +9,7 @@
  */
 
 import jsPDF from 'jspdf'
+import { fitImage } from './brandedPDFExport'
 
 // Brand colours
 const PURPLE = [124, 58, 237]
@@ -82,7 +83,7 @@ export async function generateInvoicePDF(invoice, company) {
 
   // Header with logo
   if (logo) {
-    doc.addImage(logo, 'PNG', margin, y, 30, 30)
+    fitImage(doc, logo, margin, y, 30, 30)
   }
   doc.setFontSize(24)
   doc.setTextColor(...DARK)
@@ -234,7 +235,7 @@ export async function generateCommissionStatementPDF(reseller, commissions, date
 
   // Header
   if (logo) {
-    doc.addImage(logo, 'PNG', margin, y, 30, 30)
+    fitImage(doc, logo, margin, y, 30, 30)
   }
   doc.setFontSize(22)
   doc.setTextColor(...DARK)

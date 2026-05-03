@@ -1,10 +1,11 @@
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../contexts/AuthContext'
 
 const ProtectedRoute = ({ children }) => {
-  const { user, loading, subscriptionStatus, isSuperAdmin } = useAuth()
+  const { user, userProfile, loading, subscriptionStatus, isSuperAdmin } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -19,6 +20,11 @@ const ProtectedRoute = ({ children }) => {
 
   if (!user) {
     return <Navigate to="/login" replace />
+  }
+
+  // Force password change on first login (temp password from invite/onboarding)
+  if (userProfile?.must_change_password && location.pathname !== '/reset-password') {
+    return <Navigate to="/reset-password" replace />
   }
 
   // Super admin always has access

@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }) => {
       const { data, error } = await supabase
         .from('users')
         .select(`
-          id, email, full_name, role, company_id, referral_code, referred_by, created_at, standards_access,
+          id, email, full_name, role, company_id, referral_code, referred_by, created_at, standards_access, must_change_password,
           company:companies!users_company_id_fkey(id, name, company_code, logo_url, industry)
         `)
         .eq('id', userId)

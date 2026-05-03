@@ -121,14 +121,16 @@ const Layout = ({ children }) => {
         { path: '/processes', label: 'Processes', icon: 'compliance', clause: '§4.4' },
       ],
     }] : []),
-    // Clause 5: Leadership — Company Profile, SHEQ Policy, Users shipped. Org Chart hidden.
+    // Clause 5: Leadership — Company Profile, SHEQ Policy (now routes to filtered Documents), Users shipped. Org Chart hidden.
     {
       label: isSuperAdmin ? '2. Leadership' : 'Leadership',
       clause: '§5',
       collapsible: true,
       items: [
         ...(isAdmin ? [{ path: '/settings', label: 'Company Profile', icon: 'company', clause: '§5.1' }] : []),
-        { path: '/compliance', label: 'SHEQ Policy & Scope', icon: 'compliance', clause: '§5.2' },
+        // SHEQ Policy & Scope: shows the actual policy documents tagged §5.2,
+        // not the compliance score (that lives under Performance §9.1).
+        { path: '/documents?clause=5', label: 'SHEQ Policy & Scope', icon: 'compliance', clause: '§5.2' },
         ...(isAdmin ? [{ path: '/users', label: 'Roles & Responsibilities', icon: 'users', clause: '§5.3' }] : []),
         ...(isSuperAdmin ? [{ path: '/org-chart', label: 'Org Chart', icon: 'users', clause: '§5.3' }] : []),
       ],
@@ -166,14 +168,15 @@ const Layout = ({ children }) => {
         { path: '/suppliers', label: 'Suppliers', icon: 'documents', clause: '§8.4' },
       ],
     }] : []),
-    // Clause 9: Performance — Audits + Mgmt Reviews shipped. Customer Feedback hidden.
+    // Clause 9: Performance — Compliance Score + Audits + Mgmt Reviews shipped. Customer Feedback hidden.
     {
       label: isSuperAdmin ? '6. Performance' : 'Performance',
       clause: '§9',
       collapsible: true,
       items: [
+        { path: '/compliance', label: 'Compliance Score', icon: 'analytics', clause: '§9.1' },
         ...(isSuperAdmin ? [{ path: '/customer-feedback', label: 'Customer Feedback', icon: 'ncrs', clause: '§9.1.2' }] : []),
-        { path: '/audits', label: 'Internal Audits', icon: 'audits', clause: '§9.2' },
+        { path: '/audits', label: 'Audits', icon: 'audits', clause: '§9.2' },
         { path: '/management-reviews', label: 'Management Reviews', icon: 'reviews', clause: '§9.3' },
       ],
     },
@@ -192,7 +195,7 @@ const Layout = ({ children }) => {
       label: 'Tools',
       collapsible: true,
       items: [
-        { path: '/templates', label: 'Templates', icon: 'templates' },
+        { path: '/ai-copilot', label: 'AI Copilot ✨', icon: 'analytics' },
         { path: '/audit-simulator', label: 'Audit Simulator', icon: 'audits' },
         { path: '/clause-matrix', label: 'Clause Matrix', icon: 'compliance' },
         { path: '/audit-connect', label: 'Audit Connect', icon: 'auditConnect' },
@@ -344,11 +347,12 @@ const Layout = ({ children }) => {
         </div>
       </div>
 
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay — sits ABOVE the sticky header so the drawer's
+          content (including its close X) is fully visible */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40">
+        <div className="lg:hidden fixed inset-0 z-[60]">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-[280px] bg-slate-900/95 backdrop-blur-xl border-r border-white/10 animate-slide-in">
+          <div className="absolute left-0 top-0 bottom-0 w-[280px] bg-slate-900/95 backdrop-blur-xl border-r border-white/10 animate-slide-in overflow-y-auto">
             <SidebarContent />
           </div>
         </div>

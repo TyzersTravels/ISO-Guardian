@@ -22,6 +22,16 @@ const ActivityTrail = () => {
       setLoading(true);
 
       const companyId = getEffectiveCompanyId();
+
+      // Fetch users in this company so we can resolve user_id → display name.
+      // ISO 9001 §7.5.3 requires traceability of who did what; without this
+      // the UI would only show actions, not actors.
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id, full_name, email')
+        .eq('company_id', companyId);
+      const userMap = new Map((usersData || []).map(u => [u.id, u.full_name || u.email || u.id.slice(0, 8)]));
+
       const { data: auditData, error: auditError } = await supabase
         .from('audit_log')
         .select('id, company_id, user_id, action, entity_type, entity_id, changes, created_at')
@@ -38,6 +48,11 @@ const ActivityTrail = () => {
 
       if (auditError) throw auditError;
 
+      const resolveActor = (uid) => {
+        if (!uid) return 'System';
+        return userMap.get(uid) || `User ${uid.slice(0, 8)}…`;
+      };
+
       const combined = [
         ...(auditData || []).map(a => ({
           id: a.id,
@@ -46,6 +61,7 @@ const ActivityTrail = () => {
           entity_id: a.entity_id,
           changes: a.changes,
           user_id: a.user_id,
+          actor_name: resolveActor(a.user_id),
           timestamp: a.created_at,
         })),
         ...(deletionData || []).map(d => {
@@ -58,6 +74,7 @@ const ActivityTrail = () => {
             entity_id: d.record_id,
             changes: { reason: d.reason },
             user_id: d.deleted_by,
+            actor_name: resolveActor(d.deleted_by),
             timestamp: d.deleted_at,
           };
         }),
@@ -218,6 +235,9 @@ const ActivityTrail = () => {
                               <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/60">
                                 {entityLabels[activity.entity_type] || activity.entity_type}
                               </span>
+                              <span className="text-xs text-white/50">
+                                by <span className="text-white/80 font-medium">{activity.actor_name || 'System'}</span>
+                              </span>
                               <span className="text-[10px] text-white/25 ml-auto">{time}</span>
                             </div>
                             {activity.changes && typeof activity.changes === 'object' && Object.keys(activity.changes).length > 0 && (
@@ -254,6 +274,9 @@ const ActivityTrail = () => {
                         </span>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/60">
                           {entityLabels[activity.entity_type] || activity.entity_type}
+                        </span>
+                        <span className="text-xs text-white/50">
+                          by <span className="text-white/80 font-medium">{activity.actor_name || 'System'}</span>
                         </span>
                       </div>
                       {activity.changes && typeof activity.changes === 'object' && Object.keys(activity.changes).length > 0 && (

@@ -1,26 +1,39 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
 import Layout from '../components/Layout'
 import { createBrandedPDF } from '../lib/brandedPDFExport'
 
+const ALL_STANDARDS = [
+  { code: 'ISO_9001', name: 'ISO 9001:2015', activeClass: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' },
+  { code: 'ISO_14001', name: 'ISO 14001:2015', activeClass: 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg' },
+  { code: 'ISO_45001', name: 'ISO 45001:2018', activeClass: 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' }
+]
+
 const Compliance = () => {
   const { userProfile, getEffectiveCompanyId } = useAuth()
   const toast = useToast()
-  const [selectedStandard, setSelectedStandard] = useState('ISO_9001')
+  const [selectedStandard, setSelectedStandard] = useState(null)
   const [requirements, setRequirements] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedClause, setSelectedClause] = useState(null)
 
-  const standards = [
-    { code: 'ISO_9001', name: 'ISO 9001:2015', activeClass: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' },
-    { code: 'ISO_14001', name: 'ISO 14001:2015', activeClass: 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg' },
-    { code: 'ISO_45001', name: 'ISO 45001:2018', activeClass: 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' }
-  ]
+  const accessibleStandards = ALL_STANDARDS.filter(s =>
+    (userProfile?.standards_access || []).some(a => a.toUpperCase() === s.code)
+  )
 
   useEffect(() => {
-    if (userProfile) fetchRequirements()
+    if (userProfile && !selectedStandard) {
+      const first = accessibleStandards[0]?.code
+      if (first) setSelectedStandard(first)
+      else setLoading(false)
+    }
+  }, [userProfile])
+
+  useEffect(() => {
+    if (userProfile && selectedStandard) fetchRequirements()
   }, [selectedStandard, userProfile])
 
   const fetchRequirements = async () => {
@@ -103,7 +116,7 @@ const Compliance = () => {
   const exportComplianceReport = async () => {
     try {
       setExporting(true)
-      const standardLabel = standards.find(s => s.code === selectedStandard)?.name || selectedStandard
+      const standardLabel = ALL_STANDARDS.find(s => s.code === selectedStandard)?.name || selectedStandard
       const companyName = userProfile?.company?.name || 'Company'
       const companyLogo = userProfile?.company?.logo_url || null
       const userName = userProfile?.full_name || userProfile?.email || ''
@@ -255,7 +268,7 @@ const Compliance = () => {
 
         {/* Standard Selector */}
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {standards.map(std => (
+          {accessibleStandards.map(std => (
             <button
               key={std.code}
               onClick={() => {
@@ -339,6 +352,12 @@ const Compliance = () => {
                 {/* Requirements List */}
                 {isExpanded && (
                   <div className="border-t border-white/10 p-4 space-y-2">
+                    <Link
+                      to={`/documents?standard=${selectedStandard}&clause=${clauseNum}`}
+                      className="block p-3 rounded-lg bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-400/30 hover:from-cyan-500/20 hover:to-purple-500/20 transition-all text-cyan-200 text-sm font-semibold"
+                    >
+                      View evidence documents for {data.clauseName} →
+                    </Link>
                     {requirements
                       .filter(r => r.clause_number === parseInt(clauseNum))
                       .map(req => (

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
 import { exportDocumentPDF } from '../lib/brandedPDFExport'
+import { RETENTION_POLICIES, inferRetentionPolicy, retentionBadge, retentionStatus } from '../lib/retentionPolicy'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 import DocumentRegister from '../components/DocumentRegister'
@@ -22,6 +24,7 @@ const Documents = () => {
   const [confirmAction, setConfirmAction] = useState(null)
   const [versionUploadDoc, setVersionUploadDoc] = useState(null)
   const [versionHistoryDoc, setVersionHistoryDoc] = useState(null)
+  const [retentionDateDoc, setRetentionDateDoc] = useState(null)
 
   // Document control state
   const [viewMode, setViewMode] = useState('cards') // 'cards' | 'register'
@@ -40,6 +43,15 @@ const Documents = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 20
 
+  const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    const clause = searchParams.get('clause')
+    const standard = searchParams.get('standard')
+    if (clause) setClauseFilter(clause)
+    if (standard) setStandardFilter(standard)
+  }, [])
+
   useEffect(() => {
     if (userProfile) {
       fetchDocuments()
@@ -54,16 +66,16 @@ const Documents = () => {
       const companyId = getEffectiveCompanyId()
       let query = supabase
         .from('documents')
-        .select('id, name, standard, clause, clause_name, type, version, version_history, status, company_id, created_at, updated_at, file_path, archived, next_review_date, document_number, owner_id, review_frequency_months, last_reviewed_at, last_reviewed_by, requires_acknowledgement, change_summary, source_type, source_id, uploaded_by, superseded_by, supersedes')
+        .select('id, name, standard, clause, clause_name, type, version, version_history, status, company_id, created_at, updated_at, file_path, archived, archived_at, retention_policy, retention_until, next_review_date, document_number, owner_id, review_frequency_months, last_reviewed_at, last_reviewed_by, requires_acknowledgement, change_summary, source_type, source_id, uploaded_by, superseded_by, supersedes')
         .eq('company_id', companyId)
 
       const { data, error: fetchError } = await query
 
       if (fetchError) throw fetchError
 
-      // Filter by user's standards access
+      // Filter by user's standards access (case-insensitive — DB stores ISO_9001, standards_access stores iso_9001)
       const filteredDocs = data.filter(doc =>
-        (userProfile?.standards_access || []).includes(doc.standard)
+        (userProfile?.standards_access || []).some(a => a.toUpperCase() === doc.standard?.toUpperCase())
       )
 
       setDocuments(filteredDocs)
@@ -152,14 +164,32 @@ const Documents = () => {
   const requestDeleteDocument = (docId, permanent = false) => {
     const doc = documents.find(d => d.id === docId)
     if (permanent) {
+      const retention = doc ? retentionStatus(doc) : { blocked: false }
+      const isSuperAdmin = userProfile?.role === 'super_admin'
+
+      // Retention lock: block permanent deletion for non-super-admins
+      if (retention.blocked && !isSuperAdmin) {
+        toast.error(`Cannot delete: ${retention.reason} Only a super_admin can override retention.`)
+        return
+      }
+
+      const baseMessage = `Delete "${doc?.name || 'this document'}" and its file? This cannot be undone and will be logged for POPIA compliance.`
+      const message = retention.blocked
+        ? `⚠️ RETENTION OVERRIDE: ${retention.reason}\n\n${baseMessage}`
+        : baseMessage
+
       setConfirmAction({
-        title: 'Permanently Delete Document',
-        message: `Delete "${doc?.name || 'this document'}" and its file? This cannot be undone and will be logged for POPIA compliance.`,
+        title: retention.blocked ? 'Override Retention & Delete' : 'Permanently Delete Document',
+        message,
         variant: 'danger',
-        confirmLabel: 'Delete Forever',
+        confirmLabel: retention.blocked ? 'Override & Delete Forever' : 'Delete Forever',
         requireReason: true,
-        reasonLabel: 'Deletion reason (required for audit trail):',
-        reasonPlaceholder: 'Why is this document being permanently deleted?',
+        reasonLabel: retention.blocked
+          ? 'Override justification (required — retained under ' + (doc.retention_policy || 'policy') + '):'
+          : 'Deletion reason (required for audit trail):',
+        reasonPlaceholder: retention.blocked
+          ? 'Why is this retained document being deleted before its retention period ends?'
+          : 'Why is this document being permanently deleted?',
         onConfirm: async (reason) => {
           setConfirmAction(null)
           try {
@@ -169,15 +199,38 @@ const Documents = () => {
               record_id: docId,
               deleted_by: userProfile.id,
               deleted_at: new Date().toISOString(),
-              reason
+              reason: retention.blocked ? `[RETENTION OVERRIDE - ${doc.retention_policy}] ${reason}` : reason
             }])
-            if (doc?.file_path) {
-              await supabase.storage.from('documents').remove([doc.file_path])
+
+            // Clean up current file + all historical version files from storage
+            const pathsToRemove = []
+            if (doc?.file_path) pathsToRemove.push(doc.file_path)
+            if (Array.isArray(doc?.version_history)) {
+              for (const v of doc.version_history) {
+                if (v?.file_path && !pathsToRemove.includes(v.file_path)) pathsToRemove.push(v.file_path)
+              }
             }
+            if (pathsToRemove.length > 0) {
+              await supabase.storage.from('documents').remove(pathsToRemove)
+            }
+
             const { error } = await supabase.from('documents').delete().eq('id', docId)
             if (error) throw error
-            await logActivity({ companyId: getEffectiveCompanyId(), userId: userProfile.id, action: 'permanently_deleted', entityType: 'document', entityId: docId, changes: { name: doc?.name } })
-            toast.success('Document permanently deleted.')
+            await logActivity({
+              companyId: getEffectiveCompanyId(),
+              userId: userProfile.id,
+              action: retention.blocked ? 'permanently_deleted_retention_override' : 'permanently_deleted',
+              entityType: 'document',
+              entityId: docId,
+              changes: {
+                name: doc?.name,
+                retention_policy: doc?.retention_policy,
+                retention_until: doc?.retention_until,
+                override: retention.blocked || false,
+                files_removed: pathsToRemove.length,
+              },
+            })
+            toast.success(retention.blocked ? 'Document deleted with retention override.' : 'Document permanently deleted.')
             fetchDocuments()
             setPreviewDoc(null)
           } catch (err) {
@@ -456,7 +509,7 @@ ${htmlContent}
         changes: { name: doc.name, old_version: doc.version, new_version: newVersion, change_summary: changeSummary },
       })
 
-      toast.success(`${doc.name} updated to version ${newVersion}`)
+      toast.success(`${doc.name} updated to v${newVersion}. Previous v${doc.version} preserved in History.`)
       setVersionUploadDoc(null)
       fetchDocuments()
     } catch (err) {
@@ -658,9 +711,12 @@ ${htmlContent}
               <option value="all" className="bg-slate-800">All Types</option>
               <option value="Policy" className="bg-slate-800">Policy</option>
               <option value="Procedure" className="bg-slate-800">Procedure</option>
+              <option value="Work Instruction" className="bg-slate-800">Work Instruction</option>
               <option value="Form" className="bg-slate-800">Form</option>
               <option value="Manual" className="bg-slate-800">Manual</option>
               <option value="Record" className="bg-slate-800">Record</option>
+              <option value="Register" className="bg-slate-800">Register</option>
+              <option value="Certificate" className="bg-slate-800">Certificate</option>
             </select>
 
             <select
@@ -802,6 +858,14 @@ ${htmlContent}
                                   Next review: {new Date(doc.next_review_date).toLocaleDateString()}
                                 </div>
                               )}
+                              {retentionBadge(doc) && (
+                                <div className="text-xs text-amber-300/80 mt-1 flex items-center gap-1">
+                                  <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span className="truncate">{retentionBadge(doc)}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -845,14 +909,13 @@ ${htmlContent}
                                   <span className="hidden sm:inline">New Version</span>
                                   <span className="sm:hidden">Version</span>
                                 </button>
-                                {doc.version_history?.length > 0 && (
-                                  <button
-                                    onClick={() => setVersionHistoryDoc(doc)}
-                                    className="px-2 sm:px-3 py-1.5 sm:py-2 glass glass-border text-white/70 rounded-lg hover:bg-white/10 transition-colors text-xs sm:text-sm flex items-center justify-center"
-                                  >
-                                    History ({doc.version_history.length})
-                                  </button>
-                                )}
+                                <button
+                                  onClick={() => setVersionHistoryDoc(doc)}
+                                  className="px-2 sm:px-3 py-1.5 sm:py-2 glass glass-border text-white/70 rounded-lg hover:bg-white/10 transition-colors text-xs sm:text-sm flex items-center justify-center"
+                                  title="Show version history (audit trail)"
+                                >
+                                  History ({doc.version_history?.length || 0})
+                                </button>
                                 <button
                                   onClick={() => requestDeleteDocument(doc.id)}
                                   className="px-2 sm:px-3 py-1.5 sm:py-2 bg-orange-500/20 text-orange-300 rounded-lg hover:bg-orange-500/30 transition-colors text-xs sm:text-sm flex items-center justify-center"
@@ -864,15 +927,27 @@ ${htmlContent}
                             {doc.archived && (
                               <button
                                 onClick={() => restoreDocument(doc.id)}
-                                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors text-xs sm:text-sm"
+                                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl shadow-lg shadow-blue-500/40 transition-transform hover:scale-105 text-xs sm:text-sm font-semibold"
                               >
                                 Restore
+                              </button>
+                            )}
+                            {doc.archived && retentionStatus(doc).requiresManualDate && (['super_admin', 'admin'].includes(userProfile?.role)) && (
+                              <button
+                                onClick={() => setRetentionDateDoc(doc)}
+                                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-amber-500/30 text-amber-200 rounded-lg hover:bg-amber-500/40 transition-colors text-xs sm:text-sm flex items-center justify-center gap-1"
+                                title="Record the retention-end date (e.g. employment ended + retention period)"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                Set Retention Date
                               </button>
                             )}
                             {(['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role)) && (
                               <button
                                 onClick={() => requestDeleteDocument(doc.id, true)}
-                                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600/20 text-red-300 rounded-lg hover:bg-red-600/30 transition-colors text-xs sm:text-sm flex items-center justify-center"
+                                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl shadow-lg shadow-red-600/40 transition-transform hover:scale-105 text-xs sm:text-sm font-semibold flex items-center justify-center"
                               >
                                 Delete
                               </button>
@@ -1095,6 +1170,19 @@ ${htmlContent}
           onClose={() => setVersionHistoryDoc(null)}
           onDownload={handleDownload}
           userProfile={userProfile}
+          companyUsers={companyUsers}
+        />
+      )}
+
+      {/* Set Retention Date Modal (for employment_plus_5y docs) */}
+      {retentionDateDoc && (
+        <SetRetentionDateModal
+          doc={retentionDateDoc}
+          onClose={() => setRetentionDateDoc(null)}
+          onSaved={() => { setRetentionDateDoc(null); fetchDocuments() }}
+          userProfile={userProfile}
+          companyId={getEffectiveCompanyId()}
+          toast={toast}
         />
       )}
 
@@ -1117,18 +1205,69 @@ ${htmlContent}
   )
 }
 
+const UPLOAD_DRAFT_KEY = 'isoguardian_upload_draft_v1'
+
 const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
   const toast = useToast()
   const { getEffectiveCompanyId } = useAuth()
-  const [formData, setFormData] = useState({
-    name: '',
-    standard: (userProfile?.standards_access || ['ISO_9001'])[0] || 'ISO_9001',
-    clause: 5,
-    type: 'Policy',
-    version: '1.0'
-  })
+
+  // Restore draft from sessionStorage on mount (file itself can't be persisted —
+  // browser security — user re-picks file but keeps all metadata).
+  const initialFormData = (() => {
+    try {
+      const raw = typeof window !== 'undefined' ? window.sessionStorage.getItem(UPLOAD_DRAFT_KEY) : null
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        // Sanity check: only restore if shape matches and user has access to the standard
+        if (parsed && typeof parsed === 'object' && parsed.standard && (userProfile?.standards_access || []).includes(parsed.standard)) {
+          return parsed
+        }
+      }
+    } catch { /* ignore corrupt storage */ }
+    return {
+      name: '',
+      standard: (userProfile?.standards_access || ['ISO_9001'])[0] || 'ISO_9001',
+      clause: 5,
+      type: 'Policy',
+      version: '1.0',
+      retention_policy: 'standard_5y',
+      retention_policy_touched: false,
+    }
+  })()
+
+  const [formData, setFormData] = useState(initialFormData)
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
+  const [draftRestored] = useState(() => initialFormData.name !== '' || initialFormData.retention_policy_touched)
+
+  // Persist formData to sessionStorage on every change (excluding the file itself)
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(UPLOAD_DRAFT_KEY, JSON.stringify(formData))
+    } catch { /* quota or private mode — ignore */ }
+  }, [formData])
+
+  // Auto-update retention_policy when type/clause/standard change,
+  // unless the user has explicitly chosen one.
+  useEffect(() => {
+    if (formData.retention_policy_touched) return
+    const suggested = inferRetentionPolicy({
+      type: formData.type,
+      clause: formData.clause,
+      standard: formData.standard,
+    })
+    if (suggested !== formData.retention_policy) {
+      setFormData(prev => ({ ...prev, retention_policy: suggested }))
+    }
+  }, [formData.type, formData.clause, formData.standard, formData.retention_policy_touched])
+
+  const clearDraft = () => {
+    try { window.sessionStorage.removeItem(UPLOAD_DRAFT_KEY) } catch { /* noop */ }
+  }
+  const handleCancel = () => {
+    clearDraft()
+    onClose()
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -1189,13 +1328,15 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
           date_updated: new Date().toISOString().split('T')[0],
           file_path: filePath,
           file_size: file.size,
-          uploaded_by: userProfile.id
+          uploaded_by: userProfile.id,
+          retention_policy: formData.retention_policy,
         }])
 
       if (dbError) throw dbError
 
       await logActivity({ companyId: getEffectiveCompanyId(), userId: userProfile.id, action: 'uploaded', entityType: 'document', entityId: null, changes: { name: formData.name, standard: formData.standard, clause: formData.clause } })
       toast.success('Document uploaded successfully!')
+      clearDraft()
       onUploaded()
     } catch (err) {
       console.error('Error uploading document:', err)
@@ -1209,6 +1350,15 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="glass glass-border rounded-2xl p-4 md:p-6 max-w-sm md:max-w-2xl w-full mx-4 md:mx-auto max-h-[90vh] overflow-y-auto">
         <h3 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">Upload Document</h3>
+
+        {draftRestored && (
+          <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-2">
+            <svg className="w-4 h-4 text-amber-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-amber-200 text-xs">Your previous draft was restored. Re-pick the file and click Upload, or Cancel to discard.</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -1270,9 +1420,12 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
               >
                 <option value="Policy" className="bg-slate-800">Policy</option>
                 <option value="Procedure" className="bg-slate-800">Procedure</option>
+                <option value="Work Instruction" className="bg-slate-800">Work Instruction</option>
                 <option value="Form" className="bg-slate-800">Form</option>
                 <option value="Manual" className="bg-slate-800">Manual</option>
                 <option value="Record" className="bg-slate-800">Record</option>
+                <option value="Register" className="bg-slate-800">Register</option>
+                <option value="Certificate" className="bg-slate-800">Certificate</option>
               </select>
             </div>
 
@@ -1288,6 +1441,29 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
                 placeholder="e.g., 1.0"
               />
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="doc-retention" className="text-sm text-white/60 block mb-2">
+              Retention Policy *
+              <span className="text-white/40 text-xs ml-2">(auto-suggested from type &amp; clause)</span>
+            </label>
+            <select
+              id="doc-retention"
+              required
+              value={formData.retention_policy}
+              onChange={(e) => setFormData({ ...formData, retention_policy: e.target.value, retention_policy_touched: true })}
+              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+            >
+              {Object.entries(RETENTION_POLICIES).map(([key, { label, basis }]) => (
+                <option key={key} value={key} className="bg-slate-800">
+                  {label} — {basis}
+                </option>
+              ))}
+            </select>
+            <p className="text-white/40 text-xs mt-1">
+              The retention clock starts when this document is archived/superseded. Permanent deletion is blocked while retention is active.
+            </p>
           </div>
 
           <div>
@@ -1323,7 +1499,7 @@ const UploadDocumentForm = ({ userProfile, onClose, onUploaded }) => {
             </button>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCancel}
               className="px-6 py-3 glass glass-border text-white rounded-lg hover:bg-white/10"
             >
               Cancel
@@ -1425,7 +1601,8 @@ const BulkUploadForm = ({ userProfile, onClose, onUploaded }) => {
             date_updated: new Date().toISOString().split('T')[0],
             file_path: filePath,
             file_size: file.size,
-            uploaded_by: userProfile.id
+            uploaded_by: userProfile.id,
+            retention_policy: inferRetentionPolicy({ type, clause, standard }),
           }])
 
         if (dbError) throw dbError
@@ -1480,7 +1657,7 @@ const BulkUploadForm = ({ userProfile, onClose, onUploaded }) => {
               <label className="text-sm text-white/60 block mb-1">Type</label>
               <select value={type} onChange={e => setType(e.target.value)}
                 className="w-full px-3 py-2 glass glass-border rounded-lg text-white bg-transparent text-sm">
-                {['Policy', 'Procedure', 'Form', 'Manual', 'Record'].map(t => (
+                {['Policy', 'Procedure', 'Work Instruction', 'Form', 'Manual', 'Record', 'Register', 'Certificate'].map(t => (
                   <option key={t} value={t} className="bg-slate-800">{t}</option>
                 ))}
               </select>
@@ -1617,48 +1794,203 @@ const VersionUploadModal = ({ doc, onClose, onUpload }) => {
   )
 }
 
-const VersionHistoryModal = ({ doc, onClose }) => {
+const VersionHistoryModal = ({ doc, onClose, onDownload, userProfile, companyUsers = [] }) => {
   const history = [...(doc.version_history || [])].reverse()
+  const userNameById = (uid) => {
+    if (!uid) return '—'
+    const u = companyUsers.find(x => x.id === uid)
+    return u?.full_name || u?.email || uid.slice(0, 8) + '…'
+  }
+
+  // View = open old version file in new tab via signed URL
+  const handleViewVersion = async (filePath) => {
+    if (!filePath) return
+    const { data, error } = await supabase.storage.from('documents').createSignedUrl(filePath, 60)
+    if (error || !data?.signedUrl) { console.error(error); return }
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  // Download = via the parent's handleDownload (renames + saves)
+  const handleDownloadVersion = (entry) => {
+    if (!entry?.file_path) return
+    // Build a synthetic doc object so existing handleDownload works
+    onDownload({ ...doc, file_path: entry.file_path, name: `${doc.name} (v${entry.version})`, version: entry.version })
+  }
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-800 border border-white/20 rounded-2xl w-full max-w-sm md:max-w-lg mx-4 md:mx-auto p-4 md:p-6">
+      <div className="bg-slate-800 border border-white/20 rounded-2xl w-full max-w-xl md:max-w-2xl mx-4 md:mx-auto p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-bold text-white">Version History</h3>
             <p className="text-white/50 text-sm">{doc.name}</p>
+            <p className="text-white/40 text-xs mt-1">Immutable audit trail — ISO 9001 §7.5.3 / ISO 19011</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg">
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg" aria-label="Close">
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div className="space-y-2 max-h-80 overflow-y-auto">
-          {/* Current version */}
-          <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-cyan-300 font-semibold text-sm">v{doc.version}</span>
-                <span className="text-cyan-400 text-xs ml-2">(current)</span>
-              </div>
-              <span className="text-white/40 text-xs">
-                {doc.updated_at ? new Date(doc.updated_at).toLocaleDateString('en-ZA') : ''}
-              </span>
+
+        {/* Current version */}
+        <div className="p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-xl mb-3">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="min-w-0">
+              <span className="text-cyan-300 font-semibold">v{doc.version}</span>
+              <span className="text-cyan-400 text-xs ml-2">(current)</span>
             </div>
+            <span className="text-white/50 text-xs whitespace-nowrap">
+              {doc.updated_at ? new Date(doc.updated_at).toLocaleDateString('en-ZA') : ''}
+            </span>
           </div>
-          {/* Previous versions */}
-          {history.map((entry, i) => (
-            <div key={i} className="p-3 bg-white/5 border border-white/10 rounded-xl">
-              <div className="flex items-center justify-between">
-                <span className="text-white/70 font-semibold text-sm">v{entry.version}</span>
-                <span className="text-white/40 text-xs">
-                  {entry.uploaded_at ? new Date(entry.uploaded_at).toLocaleDateString('en-ZA') : ''}
-                </span>
-              </div>
-            </div>
-          ))}
+          <div className="text-xs text-white/60 space-y-0.5">
+            <div>Uploaded by: <span className="text-white/80">{userNameById(doc.uploaded_by)}</span></div>
+            {doc.change_summary && <div>Change summary: <span className="text-white/80 italic">{doc.change_summary}</span></div>}
+          </div>
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => handleViewVersion(doc.file_path)}
+              className="px-3 py-1.5 bg-cyan-500/20 text-cyan-200 rounded-lg hover:bg-cyan-500/30 text-xs"
+            >
+              View
+            </button>
+            <button
+              onClick={() => onDownload(doc)}
+              className="px-3 py-1.5 bg-white/10 text-white rounded-lg hover:bg-white/20 text-xs"
+            >
+              Download
+            </button>
+          </div>
         </div>
+
+        {/* Previous versions */}
+        {history.length === 0 ? (
+          <div className="p-6 text-center text-white/40 text-sm border border-dashed border-white/10 rounded-xl">
+            No previous versions yet. When you upload a new version, the old one is preserved here.
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+            {history.map((entry, i) => (
+              <div key={i} className="p-4 bg-white/5 border border-white/10 rounded-xl">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <span className="text-white/80 font-semibold">v{entry.version}</span>
+                  <span className="text-white/40 text-xs whitespace-nowrap">
+                    {entry.uploaded_at ? new Date(entry.uploaded_at).toLocaleDateString('en-ZA') : ''}
+                  </span>
+                </div>
+                <div className="text-xs text-white/60 space-y-0.5">
+                  <div>Uploaded by: <span className="text-white/80">{userNameById(entry.uploaded_by)}</span></div>
+                  {entry.change_summary && <div>Change summary: <span className="text-white/80 italic">{entry.change_summary}</span></div>}
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => handleViewVersion(entry.file_path)}
+                    disabled={!entry.file_path}
+                    className="px-3 py-1.5 bg-cyan-500/20 text-cyan-200 rounded-lg hover:bg-cyan-500/30 text-xs disabled:opacity-30"
+                  >
+                    View
+                  </button>
+                  <button
+                    onClick={() => handleDownloadVersion(entry)}
+                    disabled={!entry.file_path}
+                    className="px-3 py-1.5 bg-white/10 text-white rounded-lg hover:bg-white/20 text-xs disabled:opacity-30"
+                  >
+                    Download
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p className="text-white/30 text-[11px] mt-4 italic">
+          This view is read-only. Full audit trail of every action (including deletions) is available at Activity Trail.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// Modal: manually set retention_until for policies that need a real-world
+// trigger date (e.g. employment_plus_5y). Super_admin/admin only.
+const SetRetentionDateModal = ({ doc, onClose, onSaved, userProfile, companyId, toast }) => {
+  const [endDate, setEndDate] = useState('')
+  const [reason, setReason] = useState('')
+  const [saving, setSaving] = useState(false)
+  const policyLabel = RETENTION_POLICIES[doc.retention_policy]?.label || doc.retention_policy
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!endDate) { toast.warning('Please pick a retention-end date.'); return }
+    if (!reason.trim()) { toast.warning('Please record why this date was chosen (e.g. "employee X left on date Y").'); return }
+
+    setSaving(true)
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ retention_until: endDate })
+        .eq('id', doc.id)
+      if (error) throw error
+
+      await logActivity({
+        companyId,
+        userId: userProfile.id,
+        action: 'retention_date_set',
+        entityType: 'document',
+        entityId: doc.id,
+        changes: { name: doc.name, retention_policy: doc.retention_policy, retention_until: endDate, reason: reason.trim() },
+      })
+      toast.success(`Retention-end date set to ${new Date(endDate).toLocaleDateString('en-ZA')}.`)
+      onSaved()
+    } catch (err) {
+      console.error('Failed to set retention date:', err)
+      toast.error('Failed to save retention date. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+      <div className="bg-slate-800 border border-white/20 rounded-2xl w-full max-w-md p-6">
+        <h3 className="text-lg font-bold text-white mb-2">Set Retention-End Date</h3>
+        <p className="text-white/60 text-sm mb-4">
+          <strong>{doc.name}</strong> uses the <span className="text-amber-300">{policyLabel}</span> policy, which requires a real-world trigger date (e.g. employment end + 5 years). Record the correct end date below.
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="ret-date" className="text-sm text-white/60 block mb-2">Retention-End Date *</label>
+            <input
+              id="ret-date"
+              type="date"
+              required
+              value={endDate}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+            />
+            <p className="text-white/40 text-xs mt-1">Date the retention period expires. For training records: date employment ended + 5 years.</p>
+          </div>
+          <div>
+            <label htmlFor="ret-reason" className="text-sm text-white/60 block mb-2">Justification * (audit trail)</label>
+            <textarea
+              id="ret-reason"
+              required
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder='e.g. "Training record for Jane Doe. Employment ended 2026-04-01. Retention ends 2031-04-01."'
+              className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="submit" disabled={saving} className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold rounded-lg disabled:opacity-50">
+              {saving ? 'Saving...' : 'Set Retention Date'}
+            </button>
+            <button type="button" onClick={onClose} className="px-6 py-2 glass glass-border text-white rounded-lg hover:bg-white/10">Cancel</button>
+          </div>
+        </form>
       </div>
     </div>
   )

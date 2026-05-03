@@ -4,22 +4,46 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
+import { fitImage } from '../lib/brandedPDFExport';
+
+const DRAFT_KEY = 'isoguardian_mr_draft_v1';
 
 const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'create', getEffectiveCompanyId }) => {
   const toast = useToast();
-  const [reviewNumber, setReviewNumber] = useState(review?.review_number || '');
-  const [reviewDate, setReviewDate] = useState(review?.review_date || new Date().toISOString().split('T')[0]);
-  const [reviewTime, setReviewTime] = useState(review?.review_time || '09:00');
-  const [chairperson, setChairperson] = useState(review?.chairperson || '');
-  const [attendees, setAttendees] = useState(review?.attendees || '');
-  const [agendaItems, setAgendaItems] = useState(review?.agenda_items || '');
-  const [minutes, setMinutes] = useState(review?.minutes || '');
-  const [decisionsMade, setDecisionsMade] = useState(review?.decisions_made || '');
-  const [actionItems, setActionItems] = useState(review?.action_items || '');
-  const [resourceDecisions, setResourceDecisions] = useState(review?.resource_decisions || '');
-  const [improvementOpportunities, setImprovementOpportunities] = useState(review?.improvement_opportunities || '');
-  const [nextReviewDate, setNextReviewDate] = useState(review?.next_review_date || '');
+  const isCreate = mode === 'create';
+
+  const savedDraft = (() => {
+    if (!isCreate) return null;
+    try { const r = sessionStorage.getItem(DRAFT_KEY); return r ? JSON.parse(r) : null; } catch { return null; }
+  })();
+  const [restored] = useState(!!savedDraft);
+
+  const [reviewNumber, setReviewNumber] = useState(savedDraft?.reviewNumber ?? review?.review_number ?? '');
+  const [reviewDate, setReviewDate] = useState(savedDraft?.reviewDate ?? review?.review_date ?? new Date().toISOString().split('T')[0]);
+  const [reviewTime, setReviewTime] = useState(savedDraft?.reviewTime ?? review?.review_time ?? '09:00');
+  const [chairperson, setChairperson] = useState(savedDraft?.chairperson ?? review?.chairperson ?? '');
+  const [attendees, setAttendees] = useState(savedDraft?.attendees ?? review?.attendees ?? '');
+  const [agendaItems, setAgendaItems] = useState(savedDraft?.agendaItems ?? review?.agenda_items ?? '');
+  const [minutes, setMinutes] = useState(savedDraft?.minutes ?? review?.minutes ?? '');
+  const [decisionsMade, setDecisionsMade] = useState(savedDraft?.decisionsMade ?? review?.decisions_made ?? '');
+  const [actionItems, setActionItems] = useState(savedDraft?.actionItems ?? review?.action_items ?? '');
+  const [resourceDecisions, setResourceDecisions] = useState(savedDraft?.resourceDecisions ?? review?.resource_decisions ?? '');
+  const [improvementOpportunities, setImprovementOpportunities] = useState(savedDraft?.improvementOpportunities ?? review?.improvement_opportunities ?? '');
+  const [nextReviewDate, setNextReviewDate] = useState(savedDraft?.nextReviewDate ?? review?.next_review_date ?? '');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isCreate) return;
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+        reviewNumber, reviewDate, reviewTime, chairperson, attendees,
+        agendaItems, minutes, decisionsMade, actionItems, resourceDecisions,
+        improvementOpportunities, nextReviewDate,
+      }));
+    } catch {}
+  }, [reviewNumber, reviewDate, reviewTime, chairperson, attendees, agendaItems, minutes, decisionsMade, actionItems, resourceDecisions, improvementOpportunities, nextReviewDate]);
+
+  const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} };
 
   const handleSubmit = async () => {
     if (!reviewNumber || !reviewDate || !chairperson) { toast.warning('Please fill in Review Number, Date, and Chairperson'); return; }
@@ -36,11 +60,14 @@ const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'cre
         const { error } = await supabase.from('management_reviews').insert(payload);
         if (error) throw error;
         await supabase.from('audit_log').insert({ company_id: getEffectiveCompanyId(), user_id: userId, action: 'created', entity_type: 'management_review', entity_id: null, changes: { review_number: reviewNumber, chairperson } });
+        clearDraft();
         toast.success('Review scheduled!');
       }
       onSaved();
     } catch (err) { toast.error('Failed to save review. Please try again.'); } finally { setSubmitting(false); }
   };
+
+  const handleCancel = () => { if (isCreate) clearDraft(); onClose(); };
 
   const c = "w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-cyan-500";
   return (
@@ -48,8 +75,14 @@ const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'cre
       <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border border-white/20 rounded-2xl w-full max-w-sm md:max-w-2xl mx-4 md:mx-auto max-h-[90vh] overflow-y-auto p-4 md:p-6">
         <div className="flex justify-between mb-6">
           <h2 className="text-lg md:text-xl font-bold text-white">{mode === 'edit' ? 'Update Management Review' : 'Schedule Management Review'}</h2>
-          <button onClick={onClose} className="text-white/50 hover:text-white text-2xl">&times;</button>
+          <button onClick={handleCancel} className="text-white/50 hover:text-white text-2xl">&times;</button>
         </div>
+        {isCreate && restored && (
+          <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-2">
+            <span className="text-amber-400 text-sm mt-0.5">⚠</span>
+            <p className="text-amber-300 text-xs">Your previous draft has been restored. Cancel to discard it.</p>
+          </div>
+        )}
         {mode === 'edit' && <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-2 mb-4"><p className="text-xs text-blue-300">Update this review with meeting outcomes, minutes, decisions, and action items.</p></div>}
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -57,7 +90,7 @@ const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'cre
             <div><label className="block text-sm text-white/70 mb-1">Review Date *</label><input type="date" value={reviewDate} onChange={e => setReviewDate(e.target.value)} className={c} /></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label className="block text-sm text-white/70 mb-1">Time</label><input type="time" value={reviewTime} onChange={e => setReviewTime(e.target.value)} className={c} /></div>
+            <div><label className="block text-sm text-white/70 mb-1">Time</label><input type="time" step="900" value={reviewTime} onChange={e => setReviewTime(e.target.value)} className={c} /></div>
             <div><label className="block text-sm text-white/70 mb-1">Chairperson *</label><input type="text" value={chairperson} onChange={e => setChairperson(e.target.value)} placeholder="Name" className={c} /></div>
           </div>
           <div><label className="block text-sm text-white/70 mb-1">Attendees</label><textarea value={attendees} onChange={e => setAttendees(e.target.value)} placeholder="List attendees (one per line)" rows={2} className={c} /></div>
@@ -69,7 +102,7 @@ const ReviewForm = ({ review, userProfile, userId, onClose, onSaved, mode = 'cre
           <div><label className="block text-sm text-white/70 mb-1">Improvement Opportunities (ISO 10.1)</label><textarea value={improvementOpportunities} onChange={e => setImprovementOpportunities(e.target.value)} placeholder="Continual improvement" rows={2} className={c} /></div>
           <div><label className="block text-sm text-white/70 mb-1">Next Review Date</label><input type="date" value={nextReviewDate} onChange={e => setNextReviewDate(e.target.value)} className={c} /></div>
           <div className="flex gap-3 pt-4">
-            <button onClick={onClose} className="flex-1 px-6 py-3 bg-white/10 border border-white/20 text-white rounded-xl hover:bg-white/20">Cancel</button>
+            <button onClick={handleCancel} className="flex-1 px-6 py-3 bg-white/10 border border-white/20 text-white rounded-xl hover:bg-white/20">Cancel</button>
             <button onClick={handleSubmit} disabled={submitting} className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:scale-105 transition-transform disabled:opacity-50">{submitting ? (mode === 'edit' ? 'Saving...' : 'Scheduling...') : (mode === 'edit' ? 'Save Changes' : 'Schedule Review')}</button>
           </div>
         </div>
@@ -168,21 +201,21 @@ const ManagementReviews = () => {
       const addHF = (pg) => {
         doc.setFillColor(124, 58, 237); doc.rect(0, 0, pw, 30, 'F');
         // Company logo = hero (left side)
-        if (companyLogo) try { doc.addImage(companyLogo, 'PNG', m, 2, 26, 26); } catch(e) {}
+        if (companyLogo) try { fitImage(doc, companyLogo, m, 2, 26, 26); } catch(e) {}
         doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(255, 255, 255);
         doc.text(companyName, companyLogo ? m + 30 : m, 13);
         doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(220, 220, 255);
         doc.text('Integrated Management System', companyLogo ? m + 30 : m, 19);
         // ISOGuardian logo = subtle (right side, small)
-        if (igLogo) try { doc.addImage(igLogo, 'PNG', pw - m - 10, 5, 8, 8); } catch(e) {}
+        if (igLogo) try { fitImage(doc, igLogo, pw - m - 10, 5, 8, 8); } catch(e) {}
         doc.setFontSize(5); doc.setTextColor(200, 200, 255);
         doc.text('Powered by ISOGuardian', pw - m, 17, { align: 'right' });
         doc.text(`Page ${pg}`, pw - m, 26, { align: 'right' });
         // Footer
         doc.setDrawColor(124, 58, 237); doc.line(m, ph - 13, pw - m, ph - 13);
         doc.setFontSize(6); doc.setTextColor(107, 114, 128);
-        doc.text(`${companyName} | ISOGuardian (Pty) Ltd | Reg: 2026/082362/07`, m, ph - 9);
-        doc.text(`Printed: ${new Date().toLocaleDateString('en-ZA')} | CONFIDENTIAL`, pw - m, ph - 9, { align: 'right' });
+        doc.text(`${companyName} | CONFIDENTIAL`, m, ph - 9);
+        doc.text(`Printed: ${new Date().toLocaleDateString('en-ZA')}`, pw - m, ph - 9, { align: 'right' });
       };
 
       addHF(1);
@@ -193,7 +226,7 @@ const ManagementReviews = () => {
       doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(30, 27, 75);
       doc.text('Document No.', m + 3, 38); doc.text('Revision', m + cl + 3, 38); doc.text('Date of Review', m + cl * 2 + 3, 38);
       doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(124, 58, 237);
-      doc.text(dn, m + 3, 44); doc.text('Rev 01', m + cl + 3, 44); doc.text('31 January 2027', m + cl * 2 + 3, 44);
+      doc.text(dn, m + 3, 44); doc.text('Rev 01', m + cl + 3, 44); doc.text(r.review_date ? new Date(r.review_date).toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A', m + cl * 2 + 3, 44);
       doc.line(m + cl, 33, m + cl, 47); doc.line(m + cl * 2, 33, m + cl * 2, 47);
 
       let y = 54;

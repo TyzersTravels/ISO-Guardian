@@ -46,16 +46,17 @@ const ResellerDashboard = () => {
     // Get all resellers and clients for superadmin
     const { data: allResellers, error: resellersError } = await supabase
       .from('resellers')
-      .select('id, company_id, commission_rate, status, reseller_name, contact_email')
-      .order('created_at', { ascending: false });
+      .select('id, company_id, commission_rate, status, reseller_name, contact_email, agreement_date')
+      .order('agreement_date', { ascending: false });
 
     if (resellersError) throw resellersError;
 
-    // Get all clients
+    // Get all clients (reseller_clients schema: id, reseller_id, client_company_id,
+    // client_name, client_email, subscription_tier, mrr, onboarded_date, status)
     const { data: allClients, error: clientsError } = await supabase
       .from('reseller_clients')
-      .select('id, reseller_company_id, client_company_id, client_name, status, mrr, subscription_tier, created_at, reseller_id, client_email, onboarded_date')
-      .order('created_at', { ascending: false });
+      .select('id, reseller_id, client_company_id, client_name, client_email, subscription_tier, mrr, onboarded_date, status')
+      .order('onboarded_date', { ascending: false });
 
     if (clientsError) throw clientsError;
 
@@ -88,17 +89,20 @@ const ResellerDashboard = () => {
 
     const { data: clientsData, error: clientsError } = await supabase
       .from('reseller_clients')
-      .select('id, reseller_company_id, client_company_id, client_name, status, mrr, subscription_tier, created_at, reseller_id, client_email, onboarded_date')
+      .select('id, reseller_id, client_company_id, client_name, client_email, subscription_tier, mrr, onboarded_date, status')
       .eq('reseller_id', resellerInfo.id)
-      .order('created_at', { ascending: false });
+      .order('onboarded_date', { ascending: false });
 
     if (clientsError) throw clientsError;
     setClients(clientsData || []);
   };
 
+  // Helper: case-insensitive 'active' check (DB stores lowercase, defensive in case anyone changes that)
+  const isActive = (c) => (c?.status || '').toLowerCase() === 'active';
+
   const calculateTotalMRR = () => {
     return clients
-      .filter(c => c.status === 'Active')
+      .filter(isActive)
       .reduce((sum, client) => sum + (parseFloat(client.mrr) || 0), 0);
   };
 
@@ -108,7 +112,7 @@ const ResellerDashboard = () => {
     return totalMRR * commissionRate;
   };
 
-  const activeClients = clients.filter(c => c.status === 'Active').length;
+  const activeClients = clients.filter(isActive).length;
   const progressTo10 = Math.min((activeClients / 10) * 100, 100);
 
   if (loading) {
@@ -270,8 +274,8 @@ const ResellerDashboard = () => {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold text-white">{client.client_name}</span>
                         <span className={`text-xs px-2 py-1 rounded-full ${
-                          client.status === 'Active' 
-                            ? 'bg-green-500/20 text-green-300' 
+                          isActive(client)
+                            ? 'bg-green-500/20 text-green-300'
                             : 'bg-gray-500/20 text-gray-300'
                         }`}>
                           {client.status}
@@ -287,11 +291,13 @@ const ResellerDashboard = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xl font-bold text-white mb-1">
-                        R{parseFloat(client.mrr || 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
-                      </div>
-                      <div className="text-xs text-green-400">
-                        +R{(parseFloat(client.mrr || 0) * (resellerData?.commission_rate || 0.25)).toLocaleString('en-ZA', { minimumFractionDigits: 2 })} commission
+                      {isSuperAdmin && (
+                        <div className="text-xl font-bold text-white mb-1">
+                          R{parseFloat(client.mrr || 0).toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+                        </div>
+                      )}
+                      <div className={`${isSuperAdmin ? 'text-xs text-green-400' : 'text-xl font-bold text-green-400'}`}>
+                        {isSuperAdmin ? '+R' : 'R'}{(parseFloat(client.mrr || 0) * (resellerData?.commission_rate || 0.25)).toLocaleString('en-ZA', { minimumFractionDigits: 2 })} {isSuperAdmin ? 'commission' : 'commission/mo'}
                       </div>
                     </div>
                   </div>

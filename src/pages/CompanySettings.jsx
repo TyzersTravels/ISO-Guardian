@@ -421,7 +421,7 @@ const CompanySettings = () => {
             Company Logo
           </h2>
           <p className="text-sm text-white/50 mb-4">
-            Your logo appears as the hero image on all branded PDF exports (NCR reports, Audit reports, Management Review minutes). Recommended: PNG or JPG, minimum 200x200px, maximum 2MB.
+            Your logo appears as the hero image on all branded PDF exports (NCR reports, Audit reports, Management Review minutes). <strong className="text-white/70">Recommended: square (1:1) PNG, 512×512px minimum, max 2MB.</strong> Non-square logos are accepted and will be auto-fitted to preserve their aspect ratio.
           </p>
 
           <div className="flex flex-col sm:flex-row items-start gap-6">

@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { supabase } from '../lib/supabase'
 import { logActivity } from '../lib/auditLogger'
+import { fitImage } from '../lib/brandedPDFExport'
+import { useFormDraft, DRAFT_NOTICE_CLASS } from '../hooks/useFormDraft'
 import Layout from '../components/Layout'
 import ConfirmModal from '../components/ConfirmModal'
 
@@ -13,6 +15,84 @@ const NCRs = () => {
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [selectedNCR, setSelectedNCR] = useState(null)
+  const [editMode, setEditMode] = useState(false)
+  const [editFormData, setEditFormData] = useState(null)
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  const startEditMode = () => {
+    if (!selectedNCR) return
+    setEditFormData({
+      title: selectedNCR.title || '',
+      description: selectedNCR.description || '',
+      severity: selectedNCR.severity || 'Major',
+      root_cause: selectedNCR.root_cause || '',
+      corrective_action: selectedNCR.corrective_action || '',
+      due_date: selectedNCR.due_date || '',
+    })
+    setEditMode(true)
+  }
+
+  const cancelEditMode = () => {
+    setEditMode(false)
+    setEditFormData(null)
+  }
+
+  const saveEdit = async () => {
+    if (!selectedNCR || !editFormData) return
+    setSavingEdit(true)
+    try {
+      const changes = {
+        title: editFormData.title.trim(),
+        description: editFormData.description.trim(),
+        severity: editFormData.severity,
+        root_cause: editFormData.root_cause?.trim() || null,
+        corrective_action: editFormData.corrective_action?.trim() || null,
+        due_date: editFormData.due_date || null,
+        updated_at: new Date().toISOString(),
+      }
+
+      // Compute a diff for the audit log so we record only what actually changed
+      const diff = {}
+      Object.keys(changes).forEach((k) => {
+        if (k === 'updated_at') return
+        if (selectedNCR[k] !== changes[k]) diff[k] = { from: selectedNCR[k] || null, to: changes[k] }
+      })
+
+      if (Object.keys(diff).length === 0) {
+        toast.info('No changes to save.')
+        setEditMode(false)
+        setEditFormData(null)
+        return
+      }
+
+      const { error } = await supabase
+        .from('ncrs')
+        .update(changes)
+        .eq('id', selectedNCR.id)
+
+      if (error) throw error
+
+      await logActivity({
+        companyId: getEffectiveCompanyId(),
+        userId: userProfile.id,
+        action: 'updated',
+        entityType: 'ncr',
+        entityId: selectedNCR.id,
+        changes: diff,
+      })
+
+      toast.success(`${selectedNCR.ncr_number} updated.`)
+      setSelectedNCR({ ...selectedNCR, ...changes })
+      setEditMode(false)
+      setEditFormData(null)
+      fetchNCRs()
+    } catch (err) {
+      console.error('Error saving NCR edits:', err)
+      toast.error('Failed to save changes. Please try again.')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
   const [confirmAction, setConfirmAction] = useState(null)
   
   // Filters
@@ -165,7 +245,7 @@ const NCRs = () => {
       doc.setFillColor(124, 58, 237)
       doc.rect(0, 0, pw, 32, 'F')
       // Company logo = hero
-      if (companyLogo) try { doc.addImage(companyLogo, 'PNG', m, 3, 26, 26) } catch(e) {}
+      if (companyLogo) try { fitImage(doc, companyLogo, m, 3, 26, 26) } catch(e) {}
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(14)
       doc.setTextColor(255, 255, 255)
@@ -175,7 +255,7 @@ const NCRs = () => {
       doc.setTextColor(220, 220, 255)
       doc.text('Integrated Management System', companyLogo ? m + 30 : m, 21)
       // ISOGuardian subtle right side
-      if (igLogo) try { doc.addImage(igLogo, 'PNG', pw - m - 10, 5, 8, 8) } catch(e) {}
+      if (igLogo) try { fitImage(doc, igLogo, pw - m - 10, 5, 8, 8) } catch(e) {}
       doc.setFontSize(5)
       doc.setTextColor(200, 200, 255)
       doc.text('Powered by ISOGuardian', pw - m, 18, { align: 'right' })
@@ -267,14 +347,72 @@ const NCRs = () => {
       if (ncr.root_cause) { y = addSection('Root Cause Analysis', y); y = addBody(ncr.root_cause, y) }
       if (ncr.corrective_action) { y = addSection('Corrective Action', y); y = addBody(ncr.corrective_action, y) }
 
-      // Footer
-      const fy = doc.internal.pageSize.getHeight() - 12
-      doc.setDrawColor(107, 114, 128)
+      // ── Signature Blocks (ISO 9001 §10.2 + §7.5.3 traceability) ──
+      const ph = doc.internal.pageSize.getHeight()
+      const minSpaceForSigs = 70
+      if (y > ph - minSpaceForSigs - 20) {
+        doc.addPage()
+        y = 20
+      } else {
+        y += 6
+      }
+
+      y = addSection('Signatures', y)
+
+      const sigBlock = (label, name, dateLabel, dateValue, yPos, xCol) => {
+        const colW = (cw - 6) / 2
+        const xStart = m + (xCol === 0 ? 0 : colW + 6)
+        // Label
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(8)
+        doc.setTextColor(107, 114, 128)
+        doc.text(label, xStart, yPos)
+        // Name printed below if known
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(8)
+        doc.setTextColor(30, 27, 75)
+        if (name) doc.text(`Name: ${name}`, xStart, yPos + 5)
+        // Signature line
+        doc.setDrawColor(160, 160, 160)
+        doc.setLineWidth(0.3)
+        doc.line(xStart, yPos + 18, xStart + colW, yPos + 18)
+        doc.setFontSize(7)
+        doc.setTextColor(120, 120, 120)
+        doc.text('Signature', xStart, yPos + 22)
+        // Date line
+        doc.line(xStart, yPos + 30, xStart + colW, yPos + 30)
+        doc.setFontSize(8)
+        doc.setTextColor(30, 27, 75)
+        if (dateValue) doc.text(dateValue, xStart, yPos + 28)
+        doc.setFontSize(7)
+        doc.setTextColor(120, 120, 120)
+        doc.text(dateLabel, xStart, yPos + 34)
+      }
+
+      const openedDate = ncr.date_opened ? new Date(ncr.date_opened).toLocaleDateString('en-ZA') : ''
+      const closedDate = ncr.date_closed ? new Date(ncr.date_closed).toLocaleDateString('en-ZA') : ''
+
+      // Row 1 — Raised by + Approved by
+      sigBlock('RAISED BY', ncr.assigned_name || '', 'Date Raised', openedDate, y, 0)
+      sigBlock('APPROVED BY (Quality Manager)', '', 'Date', '', y, 1)
+      y += 40
+
+      // Row 2 — Verified by + Closed by (only on closed NCRs)
+      if (ncr.status === 'Closed') {
+        sigBlock('VERIFICATION OF EFFECTIVENESS', '', 'Verification Date', '', y, 0)
+        sigBlock('CLOSED BY', '', 'Date Closed', closedDate, y, 1)
+        y += 40
+      }
+
+      // ── Footer (client-only branding — no ISOGuardian text) ──
+      const fy = ph - 12
+      doc.setDrawColor(200, 200, 200)
+      doc.setLineWidth(0.3)
       doc.line(m, fy - 4, pw - m, fy - 4)
       doc.setFontSize(7)
       doc.setTextColor(107, 114, 128)
-      doc.text(`${companyName} | ISOGuardian (Pty) Ltd | Reg: 2026/082362/07`, m, fy)
-      doc.text(`Printed: ${new Date().toLocaleDateString('en-ZA')} | CONFIDENTIAL`, pw - m, fy, { align: 'right' })
+      doc.text(`${companyName} — CONFIDENTIAL`, m, fy)
+      doc.text(`Printed: ${new Date().toLocaleDateString('en-ZA')}`, pw - m, fy, { align: 'right' })
 
       doc.save(`${ncr.ncr_number}_Report.pdf`)
     } catch (err) {
@@ -424,110 +562,208 @@ const NCRs = () => {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="glass glass-border rounded-2xl p-4 md:p-6 max-w-sm md:max-w-2xl w-full mx-4 md:mx-auto max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4 md:mb-6">
-                <h3 className="text-xl md:text-2xl font-bold text-white">{selectedNCR.ncr_number}</h3>
+                <div>
+                  <h3 className="text-xl md:text-2xl font-bold text-white">{selectedNCR.ncr_number}</h3>
+                  {editMode && <p className="text-amber-300 text-xs mt-1">Editing — changes are logged to the audit trail</p>}
+                </div>
                 <button
-                  onClick={() => setSelectedNCR(null)}
+                  onClick={() => { cancelEditMode(); setSelectedNCR(null) }}
                   className="text-white/60 hover:text-white"
+                  aria-label="Close"
                 >
                   ✕
                 </button>
               </div>
 
               <div className="space-y-4">
+                {/* Title */}
                 <div>
-                  <label className="text-sm text-white/60">Title</label>
-                  <div className="text-white font-semibold">{selectedNCR.title}</div>
+                  <label className="text-sm text-white/60 block mb-1">Title</label>
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={editFormData.title}
+                      onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                      className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+                    />
+                  ) : (
+                    <div className="text-white font-semibold">{selectedNCR.title}</div>
+                  )}
                 </div>
 
+                {/* Description */}
                 <div>
-                  <label className="text-sm text-white/60">Description</label>
-                  <div className="text-white/80 glass glass-border rounded-lg p-3">
-                    {selectedNCR.description}
-                  </div>
+                  <label className="text-sm text-white/60 block mb-1">Description</label>
+                  {editMode ? (
+                    <textarea
+                      value={editFormData.description}
+                      onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                      rows="3"
+                      className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+                    />
+                  ) : (
+                    <div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap">
+                      {selectedNCR.description}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm text-white/60">Standard</label>
-                    <div className="text-white">{selectedNCR.standard.replace('_', ' ')}</div>
+                    <label className="text-sm text-white/60 block mb-1">Standard</label>
+                    <div className="text-white">{selectedNCR.standard?.replace('_', ' ')}</div>
                   </div>
                   <div>
-                    <label className="text-sm text-white/60">Severity</label>
-                    <div className="text-white">{selectedNCR.severity}</div>
+                    <label className="text-sm text-white/60 block mb-1">Severity</label>
+                    {editMode ? (
+                      <select
+                        value={editFormData.severity}
+                        onChange={(e) => setEditFormData({ ...editFormData, severity: e.target.value })}
+                        className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+                      >
+                        <option value="Critical" className="bg-slate-800">Critical</option>
+                        <option value="Major" className="bg-slate-800">Major</option>
+                        <option value="Minor" className="bg-slate-800">Minor</option>
+                      </select>
+                    ) : (
+                      <div className="text-white">{selectedNCR.severity}</div>
+                    )}
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-sm text-white/60">Root Cause</label>
-                  <div className="text-white/80 glass glass-border rounded-lg p-3">
-                    {selectedNCR.root_cause}
-                  </div>
+                  <label className="text-sm text-white/60 block mb-1">
+                    Root Cause {editMode && <span className="text-white/40">(ISO §10.2)</span>}
+                  </label>
+                  {editMode ? (
+                    <textarea
+                      value={editFormData.root_cause}
+                      onChange={(e) => setEditFormData({ ...editFormData, root_cause: e.target.value })}
+                      rows="3"
+                      placeholder="5-Whys analysis result"
+                      className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+                    />
+                  ) : (
+                    <div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap min-h-[2.5rem]">
+                      {selectedNCR.root_cause || <span className="text-white/30 italic">Not yet recorded — click Edit to add.</span>}
+                    </div>
+                  )}
                 </div>
 
                 <div>
-                  <label className="text-sm text-white/60">Corrective Action</label>
-                  <div className="text-white/80 glass glass-border rounded-lg p-3">
-                    {selectedNCR.corrective_action}
-                  </div>
+                  <label className="text-sm text-white/60 block mb-1">
+                    Corrective Action {editMode && <span className="text-white/40">(ISO §10.2)</span>}
+                  </label>
+                  {editMode ? (
+                    <textarea
+                      value={editFormData.corrective_action}
+                      onChange={(e) => setEditFormData({ ...editFormData, corrective_action: e.target.value })}
+                      rows="3"
+                      placeholder="Numbered steps with owners + due dates"
+                      className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+                    />
+                  ) : (
+                    <div className="text-white/80 glass glass-border rounded-lg p-3 whitespace-pre-wrap min-h-[2.5rem]">
+                      {selectedNCR.corrective_action || <span className="text-white/30 italic">Not yet recorded — click Edit to add.</span>}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm text-white/60">Date Opened</label>
-                    <div className="text-white">{new Date(selectedNCR.date_opened).toLocaleDateString()}</div>
+                    <label className="text-sm text-white/60 block mb-1">Date Opened</label>
+                    <div className="text-white">{selectedNCR.date_opened ? new Date(selectedNCR.date_opened).toLocaleDateString() : '—'}</div>
                   </div>
                   <div>
-                    <label className="text-sm text-white/60">Due Date</label>
-                    <div className="text-white">{new Date(selectedNCR.due_date).toLocaleDateString()}</div>
+                    <label className="text-sm text-white/60 block mb-1">Due Date</label>
+                    {editMode ? (
+                      <input
+                        type="date"
+                        value={editFormData.due_date}
+                        onChange={(e) => setEditFormData({ ...editFormData, due_date: e.target.value })}
+                        className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
+                      />
+                    ) : (
+                      <div className="text-white">{selectedNCR.due_date ? new Date(selectedNCR.due_date).toLocaleDateString() : '—'}</div>
+                    )}
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-sm text-white/60">Assigned To</label>
+                  <label className="text-sm text-white/60 block mb-1">Assigned To</label>
                   <div className="text-white">{selectedNCR.assigned_name || 'Unassigned'}</div>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 flex-wrap pt-2">
-                  {selectedNCR.status === 'Open' && !selectedNCR.archived && (
-                    <button
-                      onClick={() => closeNCR(selectedNCR.id)}
-                      className="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg"
-                    >
-                      ✓ Close NCR
-                    </button>
-                  )}
-                  <button
-                    onClick={() => exportNCR(selectedNCR)}
-                    className="py-3 px-6 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Export
-                  </button>
-                  {selectedNCR.archived ? (
-                    <button
-                      onClick={() => restoreNCR(selectedNCR.id)}
-                      className="py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg"
-                    >
-                      ↩ Restore
-                    </button>
+                  {editMode ? (
+                    <>
+                      <button
+                        onClick={saveEdit}
+                        disabled={savingEdit}
+                        className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold rounded-lg shadow-lg shadow-cyan-500/30 disabled:opacity-50"
+                      >
+                        {savingEdit ? 'Saving…' : 'Save Changes'}
+                      </button>
+                      <button
+                        onClick={cancelEditMode}
+                        disabled={savingEdit}
+                        className="py-3 px-6 glass glass-border text-white rounded-lg hover:bg-white/10 disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </>
                   ) : (
-                    <button
-                      onClick={() => requestDeleteNCR(selectedNCR.id)}
-                      className="py-3 px-6 bg-orange-500/80 hover:bg-orange-600 text-white font-semibold rounded-lg"
-                    >
-                      Archive
-                    </button>
-                  )}
-                  {['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role) && (
-                    <button
-                      onClick={() => requestDeleteNCR(selectedNCR.id, true)}
-                      className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg"
-                    >
-                      Delete Forever
-                    </button>
+                    <>
+                      {selectedNCR.status === 'Open' && !selectedNCR.archived && (
+                        <button
+                          onClick={() => closeNCR(selectedNCR.id)}
+                          className="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg"
+                        >
+                          ✓ Close NCR
+                        </button>
+                      )}
+                      {!selectedNCR.archived && ['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role) && (
+                        <button
+                          onClick={startEditMode}
+                          className="py-3 px-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg shadow-lg shadow-amber-500/30"
+                        >
+                          ✎ Edit
+                        </button>
+                      )}
+                      <button
+                        onClick={() => exportNCR(selectedNCR)}
+                        className="py-3 px-6 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Export PDF
+                      </button>
+                      {selectedNCR.archived ? (
+                        <button
+                          onClick={() => restoreNCR(selectedNCR.id)}
+                          className="py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg"
+                        >
+                          ↩ Restore
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => requestDeleteNCR(selectedNCR.id)}
+                          className="py-3 px-6 bg-orange-500/80 hover:bg-orange-600 text-white font-semibold rounded-lg"
+                        >
+                          Archive
+                        </button>
+                      )}
+                      {['super_admin', 'admin', 'lead_auditor'].includes(userProfile?.role) && (
+                        <button
+                          onClick={() => requestDeleteNCR(selectedNCR.id, true)}
+                          className="py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg"
+                        >
+                          Delete Forever
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -563,17 +799,31 @@ const NCRs = () => {
 const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
   const toast = useToast()
   const { getEffectiveCompanyId } = useAuth()
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    standard: userProfile?.standards_access?.[0] || 'ISO_9001',
-    clause: 7,
-    severity: 'Major',
-    root_cause: '',
-    corrective_action: '',
-    due_date: ''
-  })
+
+  const [formData, setFormData, { restored, clearDraft }] = useFormDraft(
+    'isoguardian_ncr_draft_v1',
+    {
+      title: '',
+      description: '',
+      standard: userProfile?.standards_access?.[0] || 'iso_9001',
+      clause: 7,
+      severity: 'Major',
+      root_cause: '',
+      corrective_action: '',
+      due_date: '',
+    },
+    {
+      // Don't restore a draft if the user has lost access to that standard
+      validate: (d) => !d.standard || (userProfile?.standards_access || []).includes(d.standard),
+    },
+  )
+
   const [submitting, setSubmitting] = useState(false)
+
+  const handleCancel = () => {
+    clearDraft()
+    onClose()
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -612,13 +862,14 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
           assigned_to: userProfile.id,
           date_opened: new Date().toISOString().split('T')[0],
           due_date: formData.due_date || null,
-          root_cause: formData.root_cause || null,
-          corrective_action: formData.corrective_action || null
+          root_cause: formData.root_cause?.trim() || null,
+          corrective_action: formData.corrective_action?.trim() || null,
         }])
 
       if (error) throw error
 
-      toast.success('NCR created successfully!')
+      toast.success(`NCR ${ncrNumber} raised. You can fill in root cause and corrective action later from the View screen.`)
+      clearDraft()
       onCreated()
     } catch (err) {
       console.error('Error creating NCR:', err)
@@ -631,7 +882,19 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="glass glass-border rounded-2xl p-4 md:p-6 max-w-sm md:max-w-2xl w-full mx-4 md:mx-auto max-h-[90vh] overflow-y-auto">
-        <h3 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">Create New NCR</h3>
+        <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Raise New NCR</h3>
+        <p className="text-white/50 text-sm mb-4 md:mb-6">
+          Capture the nonconformance now. Root cause and corrective action can be added later from the NCR detail view, after investigation.
+        </p>
+
+        {restored && (
+          <div className={DRAFT_NOTICE_CLASS}>
+            <svg className="w-4 h-4 text-amber-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-amber-200 text-xs">Your previous NCR draft was restored. Edit or click Cancel to discard.</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -724,26 +987,30 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
           </div>
 
           <div>
-            <label htmlFor="ncr-root-cause" className="text-sm text-white/60 block mb-2">Root Cause *</label>
+            <label htmlFor="ncr-root-cause" className="text-sm text-white/60 block mb-2">
+              Root Cause <span className="text-white/40">(optional — add after investigation, ISO §10.2)</span>
+            </label>
             <textarea
               id="ncr-root-cause"
-              required
               value={formData.root_cause}
               onChange={(e) => setFormData({ ...formData, root_cause: e.target.value })}
               className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
               rows="2"
+              placeholder="e.g. 5-Whys analysis result. Leave blank if not yet investigated."
             />
           </div>
 
           <div>
-            <label htmlFor="ncr-corrective-action" className="text-sm text-white/60 block mb-2">Corrective Action *</label>
+            <label htmlFor="ncr-corrective-action" className="text-sm text-white/60 block mb-2">
+              Corrective Action <span className="text-white/40">(optional — add when planned, ISO §10.2)</span>
+            </label>
             <textarea
               id="ncr-corrective-action"
-              required
               value={formData.corrective_action}
               onChange={(e) => setFormData({ ...formData, corrective_action: e.target.value })}
               className="w-full px-4 py-2 glass glass-border rounded-lg text-white bg-transparent"
               rows="2"
+              placeholder="e.g. 1. Recalibrate gauge G-12. 2. Implement digital reminder schedule."
             />
           </div>
 
@@ -753,11 +1020,11 @@ const CreateNCRForm = ({ userProfile, onClose, onCreated }) => {
               disabled={submitting}
               className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg disabled:opacity-50"
             >
-              {submitting ? 'Creating...' : 'Create NCR'}
+              {submitting ? 'Raising...' : 'Raise NCR'}
             </button>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCancel}
               className="px-6 py-3 glass glass-border text-white rounded-lg hover:bg-white/10"
             >
               Cancel

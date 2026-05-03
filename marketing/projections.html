@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISOGuardian — Realistic Growth Projections</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  body { font-family: 'Inter', sans-serif; background: #0f172a; color: #cbd5e1; line-height: 1.7; }
+
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    padding: 80px 40px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .hero .label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; color: #06b6d4; margin-bottom: 16px; }
+  .hero h1 { font-size: 40px; font-weight: 800; color: #fff; margin-bottom: 12px; }
+  .hero p { color: rgba(255,255,255,0.5); font-size: 16px; max-width: 600px; margin: 0 auto; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 48px 24px; }
+
+  h2 {
+    font-size: 24px; font-weight: 800; color: #fff;
+    margin: 48px 0 16px; padding-top: 32px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  h2:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+
+  h3 { font-size: 18px; font-weight: 700; color: #e2e8f0; margin: 32px 0 12px; }
+
+  p { margin-bottom: 16px; font-size: 15px; }
+
+  .highlight { color: #06b6d4; font-weight: 600; }
+  .warn { color: #f59e0b; font-weight: 600; }
+  .danger { color: #ef4444; font-weight: 600; }
+  .success { color: #22c55e; font-weight: 600; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0 32px;
+    font-size: 14px;
+  }
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    background: rgba(6,182,212,0.1);
+    color: #06b6d4;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: #e2e8f0;
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .num { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .num-green { color: #22c55e; font-weight: 700; }
+  .num-cyan { color: #06b6d4; font-weight: 700; }
+  .num-purple { color: #a855f7; font-weight: 700; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin: 24px 0 32px;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+  }
+  .stat-card .value {
+    font-size: 36px;
+    font-weight: 800;
+    background: linear-gradient(to right, #06b6d4, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .stat-card .label { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+  .callout {
+    background: rgba(6,182,212,0.08);
+    border-left: 4px solid #06b6d4;
+    border-radius: 0 12px 12px 0;
+    padding: 20px 24px;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+  .callout-warn {
+    background: rgba(245,158,11,0.08);
+    border-left-color: #f59e0b;
+  }
+  .callout-danger {
+    background: rgba(239,68,68,0.08);
+    border-left-color: #ef4444;
+  }
+  .callout-success {
+    background: rgba(34,197,94,0.08);
+    border-left-color: #22c55e;
+  }
+
+  .prob-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0;
+  }
+  .prob-bar .bar-bg {
+    flex: 1;
+    height: 24px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .prob-bar .bar-fill {
+    height: 100%;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    padding-left: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .prob-bar .label { width: 120px; font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 600; }
+  .prob-bar .pct { width: 50px; text-align: right; font-size: 14px; font-weight: 700; }
+
+  ul { margin: 12px 0 20px 24px; }
+  li { margin-bottom: 8px; font-size: 15px; }
+
+  .footer {
+    text-align: center; padding: 40px; margin-top: 60px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.3); font-size: 12px;
+  }
+
+  a { color: #06b6d4; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  @media print {
+    body { background: #fff; color: #1e293b; }
+    .hero { background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
+    .hero h1 { color: #0f172a; }
+    .hero .label { color: #0891b2; }
+    h2 { color: #0f172a; border-top-color: #e2e8f0; }
+    h3 { color: #1e293b; }
+    td { color: #334155; border-bottom-color: #e2e8f0; }
+    th { background: #f0fdfa; }
+    .stat-card { border-color: #e2e8f0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="label">Financial Projections</div>
+  <h1>Realistic Growth Projections</h1>
+  <p>Brutally honest numbers. No hype. Based on B2B SaaS benchmarks for bootstrapped startups in South Africa.</p>
+</div>
+
+<div class="container">
+
+  <h2>Probability of Reaching These Numbers</h2>
+
+  <div class="prob-bar">
+    <span class="label">Conservative</span>
+    <div class="bar-bg"><div class="bar-fill" style="width: 70%; background: linear-gradient(to right, #22c55e, #16a34a);">70%</div></div>
+    <span class="pct success">70%</span>
+  </div>
+  <div class="prob-bar">
+    <span class="label">Realistic</span>
+    <div class="bar-bg"><div class="bar-fill" style="width: 45%; background: linear-gradient(to right, #06b6d4, #0891b2);">40-50%</div></div>
+    <span class="pct highlight">45%</span>
+  </div>
+  <div class="prob-bar">
+    <span class="label">Optimistic</span>
+    <div class="bar-bg"><div class="bar-fill" style="width: 18%; background: linear-gradient(to right, #a855f7, #7c3aed);">15-20%</div></div>
+    <span class="pct num-purple">18%</span>
+  </div>
+
+  <div class="callout">
+    <strong>The #1 factor:</strong> Consistency. Posting 4x/week on LinkedIn for 90 days straight, following up on every lead within 4 hours, and personally reaching out to 20 quality managers per week. Most founders stop after week 3.
+  </div>
+
+  <!-- 12 Month Summary -->
+  <h2>12-Month Revenue Model (Realistic Scenario)</h2>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="value">34</div>
+      <div class="label">Paying Clients (Month 12)</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">R68K</div>
+      <div class="label">Monthly Recurring Revenue</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">R400K</div>
+      <div class="label">Year 1 Total Revenue</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">R816K</div>
+      <div class="label">ARR Run-Rate (Month 12)</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Month</th>
+        <th>New Clients</th>
+        <th>Churned</th>
+        <th>Total Active</th>
+        <th>MRR</th>
+        <th>Cumulative Revenue</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td class="num">1</td><td class="num">0</td><td class="num">1</td><td class="num-cyan">R2,000</td><td class="num">R2,000</td></tr>
+      <tr><td>2</td><td class="num">2</td><td class="num">0</td><td class="num">3</td><td class="num-cyan">R6,000</td><td class="num">R8,000</td></tr>
+      <tr><td>3</td><td class="num">3</td><td class="num">0</td><td class="num">6</td><td class="num-cyan">R12,000</td><td class="num">R20,000</td></tr>
+      <tr><td>4</td><td class="num">3</td><td class="num">1</td><td class="num">8</td><td class="num-cyan">R16,000</td><td class="num">R36,000</td></tr>
+      <tr><td>5</td><td class="num">4</td><td class="num">0</td><td class="num">12</td><td class="num-cyan">R24,000</td><td class="num">R60,000</td></tr>
+      <tr><td>6</td><td class="num">3</td><td class="num">1</td><td class="num">14</td><td class="num-cyan">R28,000</td><td class="num">R88,000</td></tr>
+      <tr><td>7</td><td class="num">4</td><td class="num">1</td><td class="num">17</td><td class="num-cyan">R34,000</td><td class="num">R122,000</td></tr>
+      <tr><td>8</td><td class="num">5</td><td class="num">1</td><td class="num">21</td><td class="num-cyan">R42,000</td><td class="num">R164,000</td></tr>
+      <tr><td>9</td><td class="num">4</td><td class="num">1</td><td class="num">24</td><td class="num-cyan">R48,000</td><td class="num">R212,000</td></tr>
+      <tr><td>10</td><td class="num">5</td><td class="num">1</td><td class="num">28</td><td class="num-cyan">R56,000</td><td class="num">R268,000</td></tr>
+      <tr><td>11</td><td class="num">4</td><td class="num">1</td><td class="num">31</td><td class="num-cyan">R62,000</td><td class="num">R330,000</td></tr>
+      <tr><td>12</td><td class="num">4</td><td class="num">1</td><td class="num">34</td><td class="num-green">R68,000</td><td class="num-green">R398,000</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Milestones -->
+  <h2>Key Milestones</h2>
+
+  <table>
+    <thead>
+      <tr><th>Milestone</th><th>Conservative</th><th>Realistic</th><th>Optimistic</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>First paying client</td><td>Month 2</td><td class="num-cyan">Month 1-2</td><td>Month 1</td></tr>
+      <tr><td>Break-even (infra costs)</td><td>Month 2</td><td class="num-cyan">Month 1</td><td>Month 1</td></tr>
+      <tr><td>R10,000 MRR</td><td>Month 5</td><td class="num-cyan">Month 3</td><td>Month 2</td></tr>
+      <tr><td>R30,000 MRR</td><td>Month 10</td><td class="num-cyan">Month 6</td><td>Month 4</td></tr>
+      <tr><td>R50,000 MRR</td><td>Month 18+</td><td class="num-cyan">Month 10</td><td>Month 7</td></tr>
+      <tr><td>First hire needed</td><td>Month 18+</td><td class="num-cyan">Month 12</td><td>Month 8</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Conversion Funnel -->
+  <h2>Conversion Funnel Benchmarks</h2>
+
+  <table>
+    <thead>
+      <tr><th>Stage</th><th>Conversion Rate</th><th>Industry Benchmark</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Website visitor &rarr; Assessment completion</td><td class="num-cyan">5-10%</td><td>2-5% typical for B2B</td></tr>
+      <tr><td>Assessment lead &rarr; Free trial</td><td class="num-cyan">15-25%</td><td>With follow-up within 4 hours</td></tr>
+      <tr><td>Free trial &rarr; Paying customer</td><td class="num-cyan">15-25%</td><td>10-25% for B2B SaaS</td></tr>
+      <tr><td>Website visitor &rarr; Paying customer</td><td class="num-cyan">0.5-1.5%</td><td>End-to-end</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout-warn callout">
+    <strong>B2B sales cycles are slow.</strong> Expect 2-8 weeks from first contact to payment. A quality manager might love the product, but they need approval from their MD. Budget this patience into your expectations.
+  </div>
+
+  <!-- What Works For/Against -->
+  <h2>What Works For You</h2>
+  <ul>
+    <li><span class="success">No real SA competitor</span> at this price point — the market is underserved</li>
+    <li><span class="success">Government tender demand</span> — businesses NEED ISO cert, it's not optional</li>
+    <li><span class="success">Reseller model</span> — partners scale distribution faster than solo selling</li>
+    <li><span class="success">Low churn category</span> — compliance software is sticky (3% monthly churn)</li>
+    <li><span class="success">Product is built and working</span> — most competitors took 12+ months to reach this point</li>
+  </ul>
+
+  <h2>What Works Against You</h2>
+  <ul>
+    <li><span class="danger">Zero brand recognition</span> — trust takes 3-6 months to build</li>
+    <li><span class="danger">No testimonials yet</span> — social proof is critical in compliance</li>
+    <li><span class="danger">SA market is small</span> — ~15K businesses actively seeking software</li>
+    <li><span class="danger">Budget sensitivity</span> — even R2,000/mo goes through the MD at most SMEs</li>
+    <li><span class="danger">Solo founder</span> — limited hours in the day for sales + support + development</li>
+  </ul>
+
+  <!-- Unit Economics -->
+  <h2>Unit Economics</h2>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="value">R66K</div>
+      <div class="label">Customer Lifetime Value (LTV)</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">R0</div>
+      <div class="label">Customer Acquisition Cost (organic)</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">33mo</div>
+      <div class="label">Average Customer Lifetime</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">2</div>
+      <div class="label">Clients to Cover All Costs</div>
+    </div>
+  </div>
+
+  <!-- Infrastructure Costs -->
+  <h2>When Costs Kick In</h2>
+  <table>
+    <thead>
+      <tr><th>Service</th><th>Free Until</th><th>Paid Cost</th><th>Trigger</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Supabase</td><td>~15 clients</td><td>~R500/mo</td><td>Storage/row limits</td></tr>
+      <tr><td>Vercel</td><td>~5,000 visitors/mo</td><td>~R400/mo</td><td>Bandwidth limits</td></tr>
+      <tr><td>Resend</td><td>3,000 emails/mo</td><td>~R400/mo</td><td>Email volume</td></tr>
+      <tr><td>Buffer</td><td>10 scheduled posts</td><td>~R120/mo</td><td>More channels needed</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout-success callout">
+    <strong>Break-even: 2 clients.</strong> From client #3 onward, every rand is profit (minus your time). Your infrastructure costs stay near R0 until ~15 clients.
+  </div>
+
+  <!-- Priority Actions -->
+  <h2>Top 5 Actions (Ranked by Impact)</h2>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Action</th><th>Why</th><th>Timeline</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="num-cyan">1</td><td><strong>Get 3 paying clients</strong> (any way possible)</td><td>Validates product-market fit, generates testimonials</td><td>60 days</td></tr>
+      <tr><td class="num-cyan">2</td><td><strong>Video testimonials</strong> from those 3 clients</td><td>Social proof is the #1 trust signal in compliance</td><td>90 days</td></tr>
+      <tr><td class="num-cyan">3</td><td><strong>Sign 2-3 reseller partners</strong> (SHEQ consultants)</td><td>Each partner with 20 clients = 20x your solo reach</td><td>90 days</td></tr>
+      <tr><td class="num-cyan">4</td><td><strong>LinkedIn 4x/week</strong> for 90 days straight</td><td>Compound effect kicks in at month 2-3</td><td>Ongoing</td></tr>
+      <tr><td class="num-cyan">5</td><td><strong>Follow up every lead</strong> within 4 hours (WhatsApp)</td><td>80% of B2B sales happen after the 5th follow-up</td><td>Ongoing</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>The honest bottom line:</strong> The product is ready. The market exists. The pricing is competitive. Whether ISOGuardian becomes a R68K/mo business in 12 months depends entirely on sales execution — specifically, your consistency in showing up every single day for 90 days. That's the only variable left.
+  </div>
+
+</div>
+
+<div class="footer">
+  ISOGuardian (Pty) Ltd | Reg: 2026/082362/07 | Confidential<br>
+  <a href="index.html">&larr; Back to Marketing Hub</a>
+</div>
+
+</body>
+</html>

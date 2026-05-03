@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async'
 import { useFadeIn, useStaggerFadeIn, useHeroParallax } from '../hooks/useAnimations'
 import { useReferralTracking } from '../hooks/useReferralTracking'
 import ReadinessAssessment from '../components/landing/ReadinessAssessment'
-import TemplateMarketplace from '../components/landing/TemplateMarketplace'
+
 import { trackConversion } from '../lib/analytics'
 
 /* ─── Animated counter (scroll-triggered) ─── */
@@ -623,9 +623,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* ═══ TEMPLATE MARKETPLACE ═════════════════════════════════════════ */}
-      <TemplateMarketplace />
 
       {/* ═══ SECURITY ═════════════════════════════════════════════════════ */}
       <section className="py-14">

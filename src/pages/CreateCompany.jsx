@@ -86,20 +86,24 @@ const CreateCompany = () => {
       const tierPrices = { starter: 2000, growth: 3700, enterprise: 0 }
       const tierUsers = { starter: 10, growth: 20, enterprise: 50 }
       const price = tierPrices[formData.tier]
+      const usersCount = tierUsers[formData.tier]
+      const pricePerUser = usersCount > 0 ? price / usersCount : 0
+      const today = new Date().toISOString().split('T')[0]
+      const periodEnd = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
 
       const { error: subError } = await supabase
         .from('subscriptions')
         .insert([{
           company_id: companyData.id,
-          tier: formData.tier,
-          base_price: price,
-          discount_percent: 0,
-          final_price: price,
-          user_count: tierUsers[formData.tier],
+          plan: formData.tier,
           status: 'active',
+          users_count: usersCount,
+          price_per_user: pricePerUser,
           billing_cycle: 'monthly',
-          next_billing_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-          created_by: user.id,
+          current_period_start: today,
+          current_period_end: periodEnd,
+          currency: 'ZAR',
+          next_billing_date: periodEnd,
         }])
 
       if (subError) throw subError

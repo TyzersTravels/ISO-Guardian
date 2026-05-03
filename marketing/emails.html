@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISOGuardian — Email Nurture Sequences</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  body { font-family: 'Inter', sans-serif; background: #0f172a; color: #cbd5e1; line-height: 1.7; }
+
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    padding: 80px 40px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .hero .label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; color: #06b6d4; margin-bottom: 16px; }
+  .hero h1 { font-size: 40px; font-weight: 800; color: #fff; margin-bottom: 12px; }
+  .hero p { color: rgba(255,255,255,0.5); font-size: 16px; max-width: 600px; margin: 0 auto; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 48px 24px; }
+
+  h2 {
+    font-size: 24px; font-weight: 800; color: #fff;
+    margin: 48px 0 16px; padding-top: 32px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  h2:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+
+  h3 { font-size: 18px; font-weight: 700; color: #e2e8f0; margin: 32px 0 12px; }
+
+  p { margin-bottom: 16px; font-size: 15px; }
+
+  .highlight { color: #06b6d4; font-weight: 600; }
+  .warn { color: #f59e0b; font-weight: 600; }
+  .success { color: #22c55e; font-weight: 600; }
+  .purple { color: #a855f7; font-weight: 600; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0 32px;
+    font-size: 14px;
+  }
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    background: rgba(6,182,212,0.1);
+    color: #06b6d4;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: #e2e8f0;
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin: 24px 0 32px;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+  }
+  .stat-card .value {
+    font-size: 36px;
+    font-weight: 800;
+    background: linear-gradient(to right, #06b6d4, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .stat-card .label { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+  /* Sequence header */
+  .sequence-header {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin: 32px 0 24px;
+  }
+  .sequence-header h2 {
+    margin: 0 0 8px; padding: 0; border: none;
+  }
+  .sequence-meta {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    font-size: 14px;
+  }
+  .sequence-meta span { color: rgba(255,255,255,0.5); }
+  .sequence-meta strong { color: #e2e8f0; }
+
+  /* Email card */
+  .email-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    margin: 20px 0;
+    overflow: hidden;
+  }
+  .email-header {
+    background: rgba(6,182,212,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 20px 28px;
+  }
+  .email-number {
+    display: inline-block;
+    background: linear-gradient(135deg, #06b6d4, #a855f7);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .email-subject {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin: 4px 0;
+  }
+  .email-meta {
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 4px;
+  }
+  .email-meta span {
+    margin-right: 16px;
+  }
+  .send-timing {
+    display: inline-block;
+    background: rgba(168,85,247,0.15);
+    color: #a855f7;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 6px;
+    margin-left: 8px;
+  }
+  .email-body {
+    padding: 28px;
+    font-size: 15px;
+    line-height: 1.8;
+  }
+  .email-body p { margin-bottom: 14px; }
+  .email-body strong { color: #e2e8f0; }
+  .email-body .var { color: #06b6d4; font-style: italic; }
+  .email-body blockquote {
+    border-left: 3px solid rgba(168,85,247,0.4);
+    padding: 12px 20px;
+    margin: 16px 0;
+    background: rgba(168,85,247,0.05);
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    color: #e2e8f0;
+  }
+  .email-body .conditional {
+    background: rgba(245,158,11,0.08);
+    border: 1px dashed rgba(245,158,11,0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  .email-body .conditional-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #f59e0b;
+    margin-bottom: 4px;
+  }
+  .email-body ul, .email-body ol {
+    margin: 12px 0 16px 24px;
+  }
+  .email-body li { margin-bottom: 6px; }
+  .email-body .cta-link {
+    display: inline-block;
+    color: #06b6d4;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .email-body .signature {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.5);
+    font-size: 14px;
+  }
+  .email-body .note {
+    background: rgba(6,182,212,0.08);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    font-style: italic;
+    margin: 12px 0;
+  }
+
+  .callout {
+    background: rgba(6,182,212,0.08);
+    border-left: 4px solid #06b6d4;
+    border-radius: 0 12px 12px 0;
+    padding: 20px 24px;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+
+  ul { margin: 12px 0 20px 24px; }
+  li { margin-bottom: 8px; font-size: 15px; }
+
+  a { color: #06b6d4; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .footer {
+    text-align: center; padding: 40px; margin-top: 60px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.3); font-size: 12px;
+  }
+
+  @media (max-width: 768px) {
+    .hero { padding: 48px 20px; }
+    .hero h1 { font-size: 28px; }
+    .container { padding: 32px 16px; }
+    .email-header, .email-body { padding: 16px 20px; }
+    .sequence-meta { flex-direction: column; gap: 8px; }
+  }
+
+  @media print {
+    body { background: #fff; color: #1e293b; }
+    .hero { background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
+    .hero h1 { color: #0f172a; }
+    .hero .label { color: #0891b2; }
+    h2 { color: #0f172a; border-top-color: #e2e8f0; }
+    h3 { color: #1e293b; }
+    td { color: #334155; border-bottom-color: #e2e8f0; }
+    th { background: #f0fdfa; }
+    .email-card { border-color: #e2e8f0; }
+    .email-header { background: #f0fdfa; border-bottom-color: #e2e8f0; }
+    .email-body { color: #334155; }
+    .sequence-header { border-color: #e2e8f0; background: #f8fafc; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="label">Email Marketing</div>
+  <h1>Email Nurture Sequences</h1>
+  <p>Send via Resend API (already configured). 4 sequences, 15 emails total. Triggered by assessment completion, consultation requests, trial signups, and partner outreach.</p>
+</div>
+
+<div class="container">
+
+  <!-- Overview stats -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="value">4</div>
+      <div class="label">Sequences</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">15</div>
+      <div class="label">Total Emails</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">14d</div>
+      <div class="label">Longest Sequence</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">4</div>
+      <div class="label">Triggers</div>
+    </div>
+  </div>
+
+  <!-- Overview table -->
+  <h2>Sequence Overview</h2>
+  <table>
+    <thead>
+      <tr><th>Sequence</th><th>Trigger</th><th>Emails</th><th>Duration</th><th>Goal</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>1. Post-Assessment Nurture</strong></td><td>ISO Readiness Assessment completion</td><td>5</td><td>14 days</td><td>Convert to free trial</td></tr>
+      <tr><td><strong>2. Post-Consultation Nurture</strong></td><td>Consultation request</td><td>3</td><td>Event-based</td><td>Book call, convert to client</td></tr>
+      <tr><td><strong>3. Trial User Onboarding</strong></td><td>Free trial signup</td><td>4</td><td>14 days</td><td>Activate &amp; convert to paid</td></tr>
+      <tr><td><strong>4. Reseller/Partner Outreach</strong></td><td>Manual (SHEQ consultants)</td><td>3</td><td>8 days</td><td>Sign reseller partner</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============================================ -->
+  <!-- SEQUENCE 1 -->
+  <!-- ============================================ -->
+  <div class="sequence-header">
+    <h2>Sequence 1: Post-Assessment Nurture</h2>
+    <div class="sequence-meta">
+      <span><strong>Trigger:</strong> User completes ISO Readiness Assessment</span>
+      <span><strong>Emails:</strong> 5 over 14 days</span>
+      <span><strong>Goal:</strong> Convert assessment lead into free trial signup</span>
+    </div>
+  </div>
+
+  <!-- Email 1.1 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 1 of 5</div> <span class="send-timing">Send immediately</span>
+      <div class="email-subject">Your ISO Readiness Score: <span class="var">{score}</span>% &mdash; Here's what it means</div>
+      <div class="email-meta">
+        <span><strong>From:</strong> Tyreece Kruger &lt;support@isoguardian.co.za&gt;</span>
+      </div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>Thanks for completing the ISO Readiness Assessment for <span class="var">{company_name}</span>.</p>
+      <p>Your score: <strong><span class="var">{score}</span>%</strong> for <strong><span class="var">{standard}</span></strong></p>
+      <p><strong>What this means:</strong></p>
+
+      <div class="conditional">
+        <div class="conditional-label">If score &ge; 70%</div>
+        You're in good shape. Your business has strong foundations for ISO compliance. The focus now is on formalising what you already do and filling in the documentation gaps.
+      </div>
+      <div class="conditional">
+        <div class="conditional-label">If score 40&ndash;69%</div>
+        You have the basics in place, but there are significant gaps that would be flagged in an audit. The good news: most of these can be addressed in 30&ndash;60 days with the right system.
+      </div>
+      <div class="conditional">
+        <div class="conditional-label">If score &lt; 40%</div>
+        There's meaningful work ahead, but don't be discouraged &mdash; every ISO-certified company started exactly where you are. The key is having a structured approach.
+      </div>
+
+      <p><strong>Your quick win for this week:</strong><br>
+      Start with document control. Make a list of every procedure, policy, and form your business uses. Put them in one place. Assign a version number. That single step eliminates the #1 audit non-conformance.</p>
+
+      <p>If you want a platform that does this automatically (plus NCR tracking, audit management, and compliance scoring), ISOGuardian is built exactly for this.</p>
+
+      <p>14-day free trial: <span class="cta-link">https://isoguardian.co.za</span></p>
+      <p>No credit card required. Setup takes 10 minutes.</p>
+
+      <div class="signature">
+        Best,<br>
+        Tyreece Kruger<br>
+        Founder, ISOGuardian<br>
+        support@isoguardian.co.za
+      </div>
+    </div>
+  </div>
+
+  <!-- Email 1.2 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 2 of 5</div> <span class="send-timing">Send Day 3</span>
+      <div class="email-subject">What ISO certification actually costs SA businesses (it's less than you think)</div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>Most SA businesses delay ISO certification because they think it's expensive and complicated.</p>
+      <p>Here's the reality:</p>
+      <p><strong>Certification body audit fees:</strong> R15,000 - R40,000/year (depending on company size)<br>
+      <strong>Consultant setup (optional):</strong> R50,000 - R150,000 (once-off)<br>
+      <strong>Compliance management:</strong> R2,000/mo with ISOGuardian</p>
+      <p><strong>Total year 1 with ISOGuardian:</strong> ~R40,000 - R65,000</p>
+      <p>Now compare that to:</p>
+      <ul>
+        <li>A single lost government tender: R500,000 - R5,000,000</li>
+        <li>A quality failure that loses a key customer: R50,000 - R500,000</li>
+        <li>A safety incident without proper OHS documentation: R100,000+</li>
+      </ul>
+      <p>The question isn't whether you can afford ISO certification. It's whether you can afford NOT to have it.</p>
+      <p>And with ISOGuardian, you don't need to spend R150K on a consultant to build your system. The platform guides you through it.</p>
+      <p>Start your free trial: <span class="cta-link">https://isoguardian.co.za</span></p>
+      <div class="signature">Best,<br>Tyreece</div>
+    </div>
+  </div>
+
+  <!-- Email 1.3 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 3 of 5</div> <span class="send-timing">Send Day 6</span>
+      <div class="email-subject">10 minutes from signup to audit-ready (here's how)</div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>I wanted to show you exactly how ISOGuardian works &mdash; because "compliance software" sounds complicated, and it really isn't.</p>
+
+      <p><strong>Step 1: Sign up (2 minutes)</strong><br>
+      Create your account. Choose your ISO standard(s). Done.</p>
+
+      <p><strong>Step 2: Upload your documents (5 minutes)</strong><br>
+      Drag and drop your existing procedures, policies, and forms. ISOGuardian assigns version numbers and creates an audit trail automatically.</p>
+
+      <p><strong>Step 3: See your compliance score (instant)</strong><br>
+      ISOGuardian maps your documents to ISO clauses and shows you exactly where you stand &mdash; clause by clause.</p>
+
+      <p><strong>Step 4: Manage ongoing compliance (daily, 5 minutes)</strong><br>
+      When issues arise, log NCRs. Schedule audits. Track corrective actions. Everything in one dashboard.</p>
+
+      <p><strong>That's it.</strong> No 6-month implementation. No consultant dependency. No complex training.</p>
+
+      <p>Your ISO Readiness Assessment scored <span class="var">{score}</span>%. ISOGuardian can help you get that to 80%+ in 30 days.</p>
+
+      <p>Try it free: <span class="cta-link">https://isoguardian.co.za</span></p>
+      <div class="signature">Best,<br>Tyreece</div>
+    </div>
+  </div>
+
+  <!-- Email 1.4 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 4 of 5</div> <span class="send-timing">Send Day 9</span>
+      <div class="email-subject">How SA businesses are simplifying ISO compliance</div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>I get it &mdash; trying new software feels risky. So here's what other SA businesses are saying:</p>
+
+      <blockquote>"We went from 3 weeks of audit prep to being audit-ready every day." &mdash; Quality Manager, Manufacturing (Johannesburg)</blockquote>
+      <blockquote>"The compliance scoring feature alone is worth the subscription. We finally know where we stand." &mdash; SHEQ Manager, Construction (Cape Town)</blockquote>
+      <blockquote>"At R2,000/mo, it pays for itself the first time you avoid an audit non-conformance." &mdash; Operations Director, Engineering (Durban)</blockquote>
+
+      <div class="note">[Note: Replace with actual testimonials as they come in]</div>
+
+      <p>ISOGuardian is built in South Africa, priced in Rands, and designed for how SA businesses actually work.</p>
+      <p>If you have 10 minutes this week, try the free trial: <span class="cta-link">https://isoguardian.co.za</span></p>
+      <p>Or if you'd prefer a personal demo, reply to this email and we'll set up a 30-minute call.</p>
+      <div class="signature">Best,<br>Tyreece</div>
+    </div>
+  </div>
+
+  <!-- Email 1.5 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 5 of 5</div> <span class="send-timing">Send Day 14</span>
+      <div class="email-subject">Quick question, <span class="var">{name}</span></div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>I noticed you took our ISO Readiness Assessment 2 weeks ago but haven't started your free trial yet.</p>
+      <p>No pressure &mdash; but I'm curious: what's holding you back?</p>
+      <p>A) Not the right time &rarr; totally fine, I'll follow up in a month<br>
+      B) Need more information &rarr; reply and I'll answer any questions personally<br>
+      C) Already using another tool &rarr; would love to hear which one (always learning)<br>
+      D) Forgot about it &rarr; here's your link: <span class="cta-link">https://isoguardian.co.za</span></p>
+      <p>If you reply with just the letter, that helps me understand how to help you better.</p>
+      <p>And if ISO compliance is on your radar for 2026, remember: the earlier you start, the less painful audit prep becomes.</p>
+      <div class="signature">
+        Best,<br>
+        Tyreece Kruger<br>
+        Founder, ISOGuardian<br>
+        +27 [your number] (WhatsApp)<br>
+        support@isoguardian.co.za
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SEQUENCE 2 -->
+  <!-- ============================================ -->
+  <div class="sequence-header">
+    <h2>Sequence 2: Post-Consultation Nurture</h2>
+    <div class="sequence-meta">
+      <span><strong>Trigger:</strong> User requests consultation on landing page</span>
+      <span><strong>Emails:</strong> 3 (event-based)</span>
+      <span><strong>Goal:</strong> Book and complete the consultation call, convert to client</span>
+    </div>
+  </div>
+
+  <!-- Email 2.1 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 1 of 3</div> <span class="send-timing">Send immediately</span>
+      <div class="email-subject">Your consultation request has been received</div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>Thank you for requesting a consultation with ISOGuardian.</p>
+      <p>I've received your request for <span class="var">{standard}</span> and will be in touch within 4 business hours to schedule a time that works for you.</p>
+      <p>In the meantime, here's what we'll cover in our 30-minute call:</p>
+      <ul>
+        <li>Your current compliance status and gaps</li>
+        <li>Which ISO standard(s) you need and why</li>
+        <li>How ISOGuardian can help you get audit-ready</li>
+        <li>Pricing and next steps</li>
+      </ul>
+      <p>If you'd like to prepare, take our free ISO Readiness Assessment before the call &mdash; it gives us a great starting point: <span class="cta-link">https://isoguardian.co.za</span></p>
+      <div class="signature">Speak soon,<br>Tyreece</div>
+    </div>
+  </div>
+
+  <!-- Email 2.2 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 2 of 3</div> <span class="send-timing">Send 24h before scheduled call</span>
+      <div class="email-subject">Preparing for our call tomorrow</div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>Looking forward to our consultation tomorrow at <span class="var">{time}</span>.</p>
+      <p>To make the most of our 30 minutes, it would help if you could think about:</p>
+      <ol>
+        <li>Which ISO standard(s) you're targeting (9001/14001/45001)?</li>
+        <li>Do you have any existing documentation (quality manual, procedures)?</li>
+        <li>When is your next audit (or when do you want to be certified by)?</li>
+        <li>How many people will use the system?</li>
+      </ol>
+      <p>No need to prepare formal answers &mdash; just having these in mind will help us give you the most useful advice.</p>
+      <p>Call details: <span class="var">[Zoom link / phone number]</span></p>
+      <div class="signature">Best,<br>Tyreece</div>
+    </div>
+  </div>
+
+  <!-- Email 2.3 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 3 of 3</div> <span class="send-timing">Send same day after call</span>
+      <div class="email-subject">Next steps from our call</div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>Great speaking with you today. Here's a summary of what we discussed:</p>
+      <p><strong>Your situation:</strong> <span class="var">[personalise based on call]</span><br>
+      <strong>Recommended standard(s):</strong> <span class="var">[ISO 9001/14001/45001]</span><br>
+      <strong>Key gaps identified:</strong> <span class="var">[list 2-3 gaps from discussion]</span><br>
+      <strong>Recommended plan:</strong> <span class="var">[next steps]</span></p>
+
+      <p><strong>To get started with ISOGuardian:</strong></p>
+      <ol>
+        <li>Start your 14-day free trial: <span class="cta-link">https://isoguardian.co.za</span></li>
+        <li>Upload your existing documents</li>
+        <li>Review your compliance score</li>
+        <li>Schedule a follow-up call if you need help</li>
+      </ol>
+      <p>Your trial is completely free &mdash; no credit card, no commitment.</p>
+      <p>If you have any questions at all, reply to this email or WhatsApp me at +27 <span class="var">[number]</span>.</p>
+      <div class="signature">Best,<br>Tyreece</div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SEQUENCE 3 -->
+  <!-- ============================================ -->
+  <div class="sequence-header">
+    <h2>Sequence 3: Trial User Onboarding</h2>
+    <div class="sequence-meta">
+      <span><strong>Trigger:</strong> User signs up for free trial</span>
+      <span><strong>Emails:</strong> 4 over 14 days</span>
+      <span><strong>Goal:</strong> Activate the user and convert to paying subscription</span>
+    </div>
+  </div>
+
+  <!-- Email 3.1 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 1 of 4</div> <span class="send-timing">Send immediately</span>
+      <div class="email-subject">Welcome to ISOGuardian &mdash; let's get you audit-ready</div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>Welcome to ISOGuardian! Your 14-day free trial is active.</p>
+      <p>Here are your first 3 steps (takes 10 minutes total):</p>
+
+      <p><strong>1. Upload your first document</strong><br>
+      Go to Documents &rarr; Upload. Start with your quality manual or any key procedure.</p>
+
+      <p><strong>2. Check your compliance score</strong><br>
+      Go to Compliance &rarr; Select your standard. See where you stand, clause by clause.</p>
+
+      <p><strong>3. Log an NCR (if you have any open)</strong><br>
+      Go to NCRs &rarr; Create NCR. Track it from identification to closure.</p>
+
+      <p>Your dashboard will start populating immediately.</p>
+      <p><strong>Need help?</strong> Reply to this email or use the help button in the app (bottom-right corner).</p>
+      <p>Let's make your next audit a non-event.</p>
+      <div class="signature">Best,<br>Tyreece</div>
+    </div>
+  </div>
+
+  <!-- Email 3.2 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 2 of 4</div> <span class="send-timing">Send Day 3</span>
+      <div class="email-subject">How's your first week going?</div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>You've been on ISOGuardian for 3 days. Quick check-in:</p>
+
+      <div class="conditional">
+        <div class="conditional-label">If user has uploaded documents</div>
+        Great start &mdash; I see you've uploaded documents. Have you checked your compliance score yet? That's where the real insights are.
+      </div>
+      <div class="conditional">
+        <div class="conditional-label">If user has NOT uploaded documents</div>
+        I noticed you haven't uploaded any documents yet. That's the best starting point &mdash; even uploading 5-10 key procedures will give you a compliance score instantly.
+      </div>
+
+      <p><strong>Quick tip:</strong> Set up your first audit reminder. Go to Audits &rarr; Create Audit &rarr; set a future date. ISOGuardian will remind your team 7 days and 1 day before.</p>
+      <p>Questions? Just reply.</p>
+      <div class="signature">Tyreece</div>
+    </div>
+  </div>
+
+  <!-- Email 3.3 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 3 of 4</div> <span class="send-timing">Send Day 7</span>
+      <div class="email-subject">You're halfway through your trial &mdash; here's what you might have missed</div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>Your free trial is half over. Here are 3 features you might not have explored yet:</p>
+      <ol>
+        <li><strong>NCR lifecycle tracking</strong> &mdash; Open, assign, root cause, corrective action, verify, close. Full audit trail.</li>
+        <li><strong>Management reviews</strong> &mdash; Document your Clause 9.3 reviews with minutes, actions, and follow-ups.</li>
+        <li><strong>Data export</strong> &mdash; One-click export of all your compliance data (POPIA-compliant).</li>
+      </ol>
+      <p>If ISOGuardian is working for you, your Starter plan is R2,000/mo with no setup fee.</p>
+      <p>Want to discuss? Reply or WhatsApp me at +27 <span class="var">[number]</span>.</p>
+      <div class="signature">Best,<br>Tyreece</div>
+    </div>
+  </div>
+
+  <!-- Email 3.4 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 4 of 4</div> <span class="send-timing">Send Day 12 (2 days before trial ends)</span>
+      <div class="email-subject">Your trial ends in 2 days</div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>Your ISOGuardian free trial expires on <span class="var">{expiry_date}</span>.</p>
+      <p>If you'd like to continue, here's what happens:</p>
+      <ul>
+        <li>Your data is preserved (nothing is deleted)</li>
+        <li>Starter plan: R2,000/mo (1-10 users)</li>
+        <li>Growth plan: R3,700/mo (11-20 users)</li>
+        <li>No setup fee, cancel anytime after 12 months</li>
+      </ul>
+      <p><strong>To activate:</strong> Log in &rarr; Settings &rarr; Subscription &rarr; Choose plan</p>
+      <p>If you need more time to evaluate, just reply and I'll extend your trial by 7 days. No questions asked.</p>
+      <p>If ISOGuardian isn't right for you, no hard feelings. I'd genuinely appreciate knowing why &mdash; your feedback helps us improve.</p>
+      <div class="signature">
+        Best,<br>
+        Tyreece Kruger<br>
+        Founder, ISOGuardian
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SEQUENCE 4 -->
+  <!-- ============================================ -->
+  <div class="sequence-header">
+    <h2>Sequence 4: Reseller/Partner Outreach</h2>
+    <div class="sequence-meta">
+      <span><strong>Target:</strong> SHEQ consultants, ISO implementers</span>
+      <span><strong>Emails:</strong> 3 over 8 days</span>
+      <span><strong>Goal:</strong> Sign reseller partner</span>
+    </div>
+  </div>
+
+  <!-- Email 4.1 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 1 of 3</div> <span class="send-timing">Introduction</span>
+      <div class="email-subject">Partnership opportunity &mdash; 25% recurring commission on ISO compliance clients</div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>I noticed you provide <span class="var">{SHEQ consulting / ISO implementation / quality management}</span> services in South Africa. I'd like to introduce a partnership opportunity.</p>
+      <p><strong>ISOGuardian</strong> is a cloud platform for ISO 9001, 14001, and 45001 compliance management &mdash; document control, NCR tracking, audit management, and compliance scoring. Built in SA, priced from R2,000/mo.</p>
+      <p><strong>Our reseller programme:</strong></p>
+      <ul>
+        <li>25% recurring commission on every client you bring on (for the lifetime of their subscription)</li>
+        <li>Your clients get a dedicated compliance platform</li>
+        <li>You reduce your admin workload and focus on consulting</li>
+        <li>No setup cost or minimum commitment from you</li>
+      </ul>
+      <p>For a client paying R2,000/mo, that's R500/mo recurring revenue per client. Ten clients = R5,000/mo passive income.</p>
+      <p>Would you be open to a 15-minute call this week? I'll show you the platform and explain how the partnership works.</p>
+      <div class="signature">
+        Best,<br>
+        Tyreece Kruger<br>
+        Founder, ISOGuardian<br>
+        isoguardian.co.za
+      </div>
+    </div>
+  </div>
+
+  <!-- Email 4.2 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 2 of 3</div> <span class="send-timing">Send Day 4</span>
+      <div class="email-subject">Re: Partnership opportunity &mdash; quick follow-up</div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>Just following up on my email about the ISOGuardian reseller programme.</p>
+      <p>I understand you're busy &mdash; so here's the 30-second version:</p>
+      <ul>
+        <li>Your clients struggle with ISO compliance admin</li>
+        <li>ISOGuardian automates 80% of it for R2,000/mo</li>
+        <li>You earn 25% recurring commission per client</li>
+        <li>No risk, no cost, no commitment from you</li>
+      </ul>
+      <p>Our first reseller partner (Simathemba Holdings, a SHEQ consultancy) is already onboarded and offering ISOGuardian to their clients.</p>
+      <p>5-minute demo: <span class="cta-link">https://isoguardian.co.za</span></p>
+      <p>Worth a quick look?</p>
+      <div class="signature">Best,<br>Tyreece</div>
+    </div>
+  </div>
+
+  <!-- Email 4.3 -->
+  <div class="email-card">
+    <div class="email-header">
+      <div class="email-number">Email 3 of 3</div> <span class="send-timing">Send Day 8</span>
+      <div class="email-subject">How SHEQ consultants are earning R5K+/mo in passive income</div>
+    </div>
+    <div class="email-body">
+      <p>Hi <span class="var">{name}</span>,</p>
+      <p>Final note on this &mdash; I won't follow up again if it's not a fit.</p>
+      <p>Here's the maths for our reseller programme:</p>
+
+      <table>
+        <thead>
+          <tr><th>Clients Referred</th><th>Monthly Commission</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>5 clients</td><td><strong>R2,500/mo</strong></td></tr>
+          <tr><td>10 clients</td><td><strong>R5,000/mo</strong></td></tr>
+          <tr><td>20 clients</td><td><strong>R10,000/mo</strong></td></tr>
+          <tr><td>50 clients</td><td><strong>R25,000/mo</strong></td></tr>
+        </tbody>
+      </table>
+
+      <p>This is recurring, lifetime revenue. Every client you refer generates commission for as long as they're subscribed.</p>
+      <p>And you're not selling something new &mdash; you're giving your existing clients a better tool for something they already need.</p>
+      <p>If this interests you at all, reply with "interested" and I'll send you the full partner pack.</p>
+      <div class="signature">
+        Best,<br>
+        Tyreece Kruger<br>
+        ISOGuardian (Pty) Ltd<br>
+        Reg: 2026/082362/07
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  ISOGuardian (Pty) Ltd | Reg: 2026/082362/07 | Confidential<br>
+  <a href="index.html">&larr; Back to Marketing Hub</a>
+</div>
+
+</body>
+</html>

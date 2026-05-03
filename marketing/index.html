@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISOGuardian — Marketing Hub</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #581c87 100%);
+    padding: 60px 40px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .header h1 {
+    font-size: 42px;
+    font-weight: 800;
+    margin-bottom: 12px;
+  }
+  .header h1 .iso { color: #06b6d4; }
+  .header h1 .guardian { color: #a855f7; }
+  .header p { color: rgba(255,255,255,0.6); font-size: 18px; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 24px;
+    margin-top: 32px;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 32px;
+    transition: all 0.3s;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .card:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(6,182,212,0.3);
+    transform: translateY(-4px);
+  }
+
+  .card-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 20px;
+  }
+  .icon-cyan { background: rgba(6,182,212,0.15); }
+  .icon-purple { background: rgba(139,92,246,0.15); }
+  .icon-green { background: rgba(34,197,94,0.15); }
+  .icon-orange { background: rgba(249,115,22,0.15); }
+  .icon-blue { background: rgba(59,130,246,0.15); }
+  .icon-pink { background: rgba(236,72,153,0.15); }
+
+  .card h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .card p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.6;
+  }
+  .card .badge {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge-cyan { background: rgba(6,182,212,0.15); color: #06b6d4; }
+  .badge-purple { background: rgba(139,92,246,0.15); color: #a855f7; }
+  .badge-green { background: rgba(34,197,94,0.15); color: #22c55e; }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #06b6d4;
+    margin-bottom: 8px;
+  }
+  .section-heading {
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .footer {
+    text-align: center;
+    padding: 40px;
+    color: rgba(255,255,255,0.3);
+    font-size: 13px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    margin-top: 60px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="iso">ISO</span><span class="guardian">Guardian</span></h1>
+  <p>Marketing Command Centre</p>
+</div>
+
+<div class="container">
+  <div class="section-title">Documents</div>
+  <div class="section-heading">Marketing Toolkit</div>
+
+  <div class="grid">
+    <a class="card" href="strategy.html">
+      <div class="card-icon icon-cyan">&#x1F3AF;</div>
+      <h3>Marketing Strategy</h3>
+      <p>Full go-to-market strategy for the South African ISO compliance market. ICPs, channels, positioning, competitive analysis, and 90-day launch plan.</p>
+      <span class="badge badge-cyan">Strategy</span>
+    </a>
+
+    <a class="card" href="calendar.html">
+      <div class="card-icon icon-purple">&#x1F4C5;</div>
+      <h3>90-Day Content Calendar</h3>
+      <p>Day-by-day posting schedule across LinkedIn, Facebook, Instagram, X, and WhatsApp. Exact content mapped to each day for 12 weeks.</p>
+      <span class="badge badge-purple">Calendar</span>
+    </a>
+
+    <a class="card" href="content-bank.html">
+      <div class="card-icon icon-green">&#x1F4DD;</div>
+      <h3>Content Bank (85+ Posts)</h3>
+      <p>Ready-to-copy-paste content for all platforms. 30 LinkedIn posts, 20 tweets, 15 WhatsApp messages, 10 Instagram captions, 10 Facebook posts.</p>
+      <span class="badge badge-green">Content</span>
+    </a>
+
+    <a class="card" href="emails.html">
+      <div class="card-icon icon-orange">&#x2709;</div>
+      <h3>Email Nurture Sequences</h3>
+      <p>4 automated email sequences (15 emails total). Post-assessment, post-consultation, trial onboarding, and reseller outreach.</p>
+      <span class="badge badge-cyan">Email</span>
+    </a>
+
+    <a class="card" href="projections.html">
+      <div class="card-icon icon-blue">&#x1F4CA;</div>
+      <h3>Realistic Projections</h3>
+      <p>Brutally honest growth projections. Month-by-month revenue model, conversion benchmarks, and 12-month financial forecast.</p>
+      <span class="badge badge-purple">Finance</span>
+    </a>
+
+    <a class="card" href="templates/template-a-carousel.html">
+      <div class="card-icon icon-pink">&#x1F3A8;</div>
+      <h3>Social Post Templates</h3>
+      <p>Branded HTML templates for Instagram carousels, feature showcases, stat posts, and WhatsApp status. Screenshot and post.</p>
+      <span class="badge badge-green">Design</span>
+    </a>
+  </div>
+</div>
+
+<div class="footer">
+  ISOGuardian (Pty) Ltd | Reg: 2026/082362/07 | Confidential — Internal Use Only
+</div>
+
+</body>
+</html>

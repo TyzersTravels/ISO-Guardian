@@ -12,6 +12,7 @@
 
 import jsPDF from 'jspdf'
 import { resolveAllPlaceholders, CROSS_REFERENCES, DOC_NUMBER_MAP, TEMPLATES } from './templateData'
+import { fitImage } from './brandedPDFExport'
 
 // ─── Brand Palette ───
 const PURPLE = [124, 58, 237]
@@ -105,7 +106,7 @@ export async function generateTemplatePDF(template, options = {}) {
     let logoX = margin
     if (companyLogoImg) {
       try {
-        doc.addImage(companyLogoImg, 'PNG', margin, 1.5, 11, 11)
+        fitImage(doc, companyLogoImg, margin, 1.5, 11, 11)
         logoX = margin + 13
       } catch (_e) { /* skip */ }
     }
@@ -190,7 +191,7 @@ export async function generateTemplatePDF(template, options = {}) {
   // Company logo large on cover
   if (companyLogoImg) {
     try {
-      doc.addImage(companyLogoImg, 'PNG', pageWidth / 2 - 20, y, 40, 40)
+      fitImage(doc, companyLogoImg, pageWidth / 2 - 20, y, 40, 40)
       y += 46
     } catch (_e) { y += 6 }
   } else {

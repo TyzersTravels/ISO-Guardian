@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { email, password, full_name, company_id, standards_access } = await req.json()
+    const { email, password, full_name, company_id, standards_access, role } = await req.json()
 
     if (!email || !password || !full_name || !company_id) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -87,9 +87,10 @@ Deno.serve(async (req) => {
         id: authData.user.id,
         email,
         full_name,
-        role: 'admin',
+        role: ['user', 'lead_auditor', 'admin', 'super_admin'].includes(role) ? role : 'admin',
         company_id,
         is_active: true,
+        must_change_password: true,
         standards_access: standards_access || ['ISO_9001'],
       })
 

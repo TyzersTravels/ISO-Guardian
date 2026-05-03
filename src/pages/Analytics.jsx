@@ -34,12 +34,19 @@ const Analytics = () => {
       if (reseller) {
         setResellerData(reseller)
 
-        // Fetch reseller's clients
-        const { data: resellerClients } = await supabase
+        // Fetch reseller's clients. Schema columns per migration: id, reseller_id,
+        // client_company_id, client_name, client_email, subscription_tier, mrr,
+        // onboarded_date, status. There is no `reseller_company_id` column on this
+        // table — that was a typo causing 400 Bad Request and an empty UI.
+        const { data: resellerClients, error: clientsError } = await supabase
           .from('reseller_clients')
-          .select('id, reseller_company_id, client_company_id, client_name, status, mrr, subscription_tier, created_at, reseller_id')
+          .select('id, reseller_id, client_company_id, client_name, client_email, subscription_tier, mrr, onboarded_date, status')
           .eq('reseller_id', reseller.id)
-          .order('created_at', { ascending: false })
+          .order('onboarded_date', { ascending: false })
+
+        if (clientsError) {
+          console.error('reseller_clients fetch failed:', clientsError)
+        }
 
         if (resellerClients?.length > 0) {
           // Enrich each client with compliance data
@@ -82,7 +89,7 @@ const Analytics = () => {
           supabase.from('subscriptions').select('id, company_id, tier, status, start_date, end_date, final_price, max_users, storage_limit, total_amount')
         ])
 
-        const activeSubs = subscriptions.data?.filter(s => s.status === 'Active') || []
+        const activeSubs = subscriptions.data?.filter(s => (s.status || '').toLowerCase() === 'active') || []
         const totalMRR = activeSubs.reduce((sum, sub) => 
           sum + Number(sub.total_amount || 0), 0
         )
@@ -108,11 +115,13 @@ const Analytics = () => {
   }
 
   // Calculate reseller metrics from the agreement
+  // Note: `status` in the DB is lower-case ('active'); the comparison is case-
+  // insensitive so this stays correct if anyone introduces 'Active' later.
   const getResellerMetrics = () => {
-    if (!clients.length) return { totalMRR: 0, commission: 0, activeClients: 0 }
-    
-    const activeClients = clients.filter(c => c.status === 'Active')
-    const totalMRR = activeClients.reduce((sum, c) => sum + (c.mrr || 0), 0)
+    if (!clients.length) return { totalMRR: 0, commission: 0, activeClients: 0, totalClients: 0, commissionRate: resellerData?.commission_rate || 0.25 }
+
+    const activeClients = clients.filter(c => (c.status || '').toLowerCase() === 'active')
+    const totalMRR = activeClients.reduce((sum, c) => sum + Number(c.mrr || 0), 0)
     const commissionRate = resellerData?.commission_rate || 0.25
     const commission = totalMRR * commissionRate
 
@@ -121,7 +130,7 @@ const Analytics = () => {
       commission,
       activeClients: activeClients.length,
       totalClients: clients.length,
-      commissionRate
+      commissionRate,
     }
   }
 
@@ -262,19 +271,37 @@ const Analytics = () => {
                 </div>
               </div>
 
-              {/* Monthly Revenue */}
-              <div className="glass glass-border rounded-2xl p-5 bg-gradient-to-br from-green-500/10 to-emerald-500/10">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
-                    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+              {/* Monthly Revenue — super_admin only.
+                  Resellers see commission-only metrics (no underlying MRR) to
+                  protect ISOGuardian's commercial pricing position with clients
+                  and prevent inter-reseller commission comparison. */}
+              {isSuperAdmin ? (
+                <div className="glass glass-border rounded-2xl p-5 bg-gradient-to-br from-green-500/10 to-emerald-500/10">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
+                      <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-xs text-white/40">MRR</span>
                   </div>
-                  <span className="text-xs text-white/40">MRR</span>
+                  <div className="text-3xl font-bold text-white">R{metrics.totalMRR.toLocaleString()}</div>
+                  <div className="text-sm text-white/50 mt-1">Monthly recurring revenue</div>
                 </div>
-                <div className="text-3xl font-bold text-white">R{metrics.totalMRR.toLocaleString()}</div>
-                <div className="text-sm text-white/50 mt-1">Monthly recurring revenue</div>
-              </div>
+              ) : (
+                <div className="glass glass-border rounded-2xl p-5 bg-gradient-to-br from-emerald-500/10 to-green-500/10">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                    </div>
+                    <span className="text-xs text-white/40">YEAR</span>
+                  </div>
+                  <div className="text-3xl font-bold text-white">R{(metrics.commission * 12).toLocaleString()}</div>
+                  <div className="text-sm text-white/50 mt-1">Projected annual commission</div>
+                </div>
+              )}
 
               {/* Commission Earned */}
               <div className="glass glass-border rounded-2xl p-5 bg-gradient-to-br from-purple-500/10 to-pink-500/10">
@@ -349,8 +376,8 @@ const Analytics = () => {
                         </div>
                         <div className="text-right">
                           <div className="text-white font-semibold">R{(client.mrr || 0).toLocaleString()}/mo</div>
-                          <div className={`text-xs ${client.status === 'Active' ? 'text-green-400' : 'text-yellow-400'}`}>
-                            {client.status || 'Active'}
+                          <div className={`text-xs ${(client.status || '').toLowerCase() === 'active' ? 'text-green-400' : 'text-yellow-400'}`}>
+                            {client.status || 'active'}
                           </div>
                         </div>
                       </div>
@@ -405,12 +432,12 @@ const Analytics = () => {
                             <h3 className="text-lg font-bold text-white">{client.client_name}</h3>
                             <div className="flex items-center gap-2">
                               <span className={`px-2 py-0.5 rounded-full text-xs ${tier.bg} ${tier.color}`}>
-                                {tier.name} — R{(client.mrr || 0).toLocaleString()}/mo
+                                {tier.name}{isSuperAdmin ? ` — R${(client.mrr || 0).toLocaleString()}/mo` : ''}
                               </span>
                               <span className={`px-2 py-0.5 rounded-full text-xs ${
-                                client.status === 'Active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+                                (client.status || '').toLowerCase() === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
                               }`}>
-                                {client.status || 'Active'}
+                                {client.status || 'active'}
                               </span>
                             </div>
                           </div>
@@ -448,9 +475,9 @@ const Analytics = () => {
                       </div>
 
                       {/* Onboarded date */}
-                      {client.created_at && (
+                      {client.onboarded_date && (
                         <div className="text-xs text-white/30 mt-3">
-                          Onboarded: {new Date(client.created_at).toLocaleDateString('en-ZA')}
+                          Onboarded: {new Date(client.onboarded_date).toLocaleDateString('en-ZA')}
                         </div>
                       )}
                     </div>
@@ -476,7 +503,7 @@ const Analytics = () => {
               {/* Tier breakdown */}
               <div className="space-y-4">
                 {['Enterprise', 'Growth', 'Partner Admin', 'Starter', 'Custom'].map(tierName => {
-                  const tierClients = clients.filter(c => getTier(c.mrr).name === tierName && c.status === 'Active')
+                  const tierClients = clients.filter(c => getTier(c.mrr).name === tierName && (c.status || '').toLowerCase() === 'active')
                   const tierMRR = tierClients.reduce((sum, c) => sum + (c.mrr || 0), 0)
                   const tierCommission = tierMRR * (resellerData?.commission_rate || 0.25)
                   
@@ -492,8 +519,12 @@ const Analytics = () => {
                           <span className="text-sm text-white/60">{tierClients.length} client{tierClients.length !== 1 ? 's' : ''}</span>
                         </div>
                         <div className="text-right">
-                          <div className="text-white font-semibold">R{tierMRR.toLocaleString()}/mo</div>
-                          <div className="text-xs text-purple-400">Commission: R{tierCommission.toLocaleString()}</div>
+                          {isSuperAdmin && (
+                            <div className="text-white font-semibold">R{tierMRR.toLocaleString()}/mo</div>
+                          )}
+                          <div className={`${isSuperAdmin ? 'text-xs text-purple-400' : 'text-white font-semibold'}`}>
+                            {isSuperAdmin ? 'Commission: ' : 'Your commission: '}R{tierCommission.toLocaleString()}/mo
+                          </div>
                         </div>
                       </div>
                       
@@ -596,7 +627,7 @@ const Analytics = () => {
                           </td>
                           <td className="py-3">
                             <span className={`px-2 py-1 rounded-full text-xs ${
-                              sub?.status === 'Active' ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/40'
+                              (sub?.status || '').toLowerCase() === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/40'
                             }`}>
                               {sub?.status || 'No subscription'}
                             </span>

@@ -36,10 +36,10 @@ const UserManagement = lazy(() => import('./pages/UserManagement'))
 const NotificationPreferences = lazy(() => import('./pages/NotificationPreferences'))
 const CreateCompany = lazy(() => import('./pages/CreateCompany'))
 const UserProfile = lazy(() => import('./pages/UserProfile'))
-// const AICopilot = lazy(() => import('./pages/AICopilot')) // Hidden until launch
+const AICopilot = lazy(() => import('./pages/AICopilot')) // super_admin only — token-cost gated
 const AuditorInvite = lazy(() => import('./pages/AuditorInvite'))
 const AuditorWorkspace = lazy(() => import('./pages/AuditorWorkspace'))
-const Templates = lazy(() => import('./pages/Templates'))
+
 const ResellerProgramme = lazy(() => import('./pages/ResellerProgramme'))
 const AffiliateProgramme = lazy(() => import('./pages/AffiliateProgramme'))
 const Consultation = lazy(() => import('./pages/Consultation'))
@@ -124,10 +124,10 @@ function App() {
           <Route path="/client-onboarding" element={<RoleProtectedRoute requireReseller><ClientOnboarding /></RoleProtectedRoute>} />
           <Route path="/users" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin']}><UserManagement /></RoleProtectedRoute>} />
           <Route path="/create-company" element={<RoleProtectedRoute allowedRoles={['super_admin']}><CreateCompany /></RoleProtectedRoute>} />
-          {/* <Route path="/ai-copilot" element={<ProtectedRoute><AICopilot /></ProtectedRoute>} /> */}{/* Hidden until launch */}
+          <Route path="/ai-copilot" element={<RoleProtectedRoute allowedRoles={['super_admin']}><AICopilot /></RoleProtectedRoute>} />{/* super_admin only — soft launch */}
           <Route path="/audit-connect" element={<RoleProtectedRoute allowedRoles={['super_admin', 'admin', 'lead_auditor']}><AuditorInvite /></RoleProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-          <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
+
           <Route path="/audit-simulator" element={<ProtectedRoute><AuditSimulator /></ProtectedRoute>} />
           <Route path="/risk-register" element={<ProtectedRoute><RiskRegister /></ProtectedRoute>} />
           <Route path="/quality-objectives" element={<ProtectedRoute><QualityObjectives /></ProtectedRoute>} />
