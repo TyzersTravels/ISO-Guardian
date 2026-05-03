@@ -101,9 +101,52 @@ A horizontal pipeline of four status pills: `Open → Investigation → Root Cau
 - Status colours match the actual NCR pages (defer to existing Tailwind tokens used in `NCRs.jsx`).
 - Use real ISO 9001-style language for the example NCR (calibration is a classic ISO finding in manufacturing).
 
+## Visual Fidelity Requirement (HARD RULE)
+
+To prevent false advertising under CPA s41 and to protect ISOGuardian's credibility, the animations **must not be bespoke recreations of the UI**. Instead:
+
+- Animations compose the *real* app's component primitives (`.glass`, `.glass-card`, `.glass-border`, real Tailwind brand tokens, real status pill components from `NCRs.jsx`, real number badges).
+- Where a reusable component exists in the codebase, the animation imports it directly and feeds it mock prop data.
+- Where no reusable component exists yet, refactor the smallest necessary piece out of the page (e.g. extract a `<NCRStatusPill />` from `NCRs.jsx`) and import it into both places. The animation and the real app then share one source of truth — drift is impossible.
+- All copy must reflect real ISOGuardian behaviour:
+  - Document number format from `generateDocNumber`
+  - Retention text from real enum in `src/lib/retentionPolicy.js`
+  - NCR status names matching `NCRs.jsx`
+  - Date formatting matching the real app (SAST timezone, ISO date format)
+
+**Verification gate before merge:** for each animation, take a screenshot of the equivalent real screen in the live app (or staging), place side-by-side with a screenshot of the animation's final state. If they're not visually indistinguishable, the animation gets revised — no exceptions.
+
+## Reference Targets & Libraries
+
+**Visual reference (study before building):**
+- **linear.app** — scroll-triggered motion gold standard for B2B SaaS
+- **vercel.com** — feature reveal pacing and rhythm
+- **resend.com** — closest aesthetic match to ISOGuardian's glass-morphism palette
+- **cal.com** ([github.com/calcom/cal.com](https://github.com/calcom/cal.com)) — fully open-source landing page; we can read their Framer Motion patterns directly
+- **anthropic.com** — minimal, professional, credibility-first tone
+- **stripe.com** — masterclass in dense product demos done gracefully
+
+**Open-source primitive sources (MIT-licensed, copy patterns from):**
+- **MagicUI** ([magicui.design](https://magicui.design)) — has Animated Beam, Number Ticker, Animated List, Border Beam, Marquee — likely covers half of what we need
+- **Aceternity UI** ([ui.aceternity.com](https://ui.aceternity.com)) — animation-heavy components used by serious SaaS landings
+- **Motion-Primitives** — composable Framer Motion patterns
+
+We are not adding these as npm dependencies — we lift specific snippets and adapt them to fit our existing component architecture. Each lifted pattern gets a comment crediting the source.
+
+## Prototype Gate (per component)
+
+Before any animation is committed to the codebase:
+
+1. **Standalone prototype** — I build a working version of the animation as a Claude Artifact (or `v0.dev` prototype) in isolation, viewable in a browser tab.
+2. **Tyreece reviews visually** — sign-off required before integration begins.
+3. **Real-component swap** — once visual is approved, I refactor the prototype to use the real app's components (per Visual Fidelity Requirement above) and integrate into `LandingPage.jsx`.
+4. **Side-by-side fidelity check** — screenshots compared before PR merge.
+
+This gate exists to protect against wasted integration work on an animation that turns out to look wrong, *and* to ensure visual quality is independent of "well, it works".
+
 ## Data Flow
 
-No data flow. All three components are presentational, hardcoded content, no Supabase queries, no props from parent. They are scroll-triggered and self-contained.
+No data flow. All three components are presentational, hardcoded mock content fed into real component primitives, no Supabase queries, no props from parent. They are scroll-triggered and self-contained.
 
 ## Error Handling
 
@@ -147,7 +190,9 @@ None blocking. Spec is ready for implementation planning.
 2. Bundle size increase < 35KB gzipped.
 3. No new console errors or Lighthouse regressions on the landing page.
 4. Reduced-motion preference fully honoured.
-5. Tyreece signs off on the visual quality before merge to main.
+5. **Prototype gate passed** for each component — Tyreece visually approved standalone prototype before integration.
+6. **Visual Fidelity Requirement met** — animations use real app components, side-by-side screenshot check passed.
+7. Tyreece signs off on the integrated build before merge to main.
 
 ## Out of Scope
 
